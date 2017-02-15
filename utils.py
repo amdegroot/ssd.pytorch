@@ -149,6 +149,14 @@ def apply_nms(boxes, scores, overlap, top_k):
     # reduce size to actual count
     pick = pick[0:count-1]
     return pick
+    imsize = 300
+    loader = transforms.Compose([
+                transforms.Scale(imsize),# scale imported image
+                transforms.CenterCrop(imsize),
+                transforms.ToTensor()]) # transform it into a torch tensor
+
+
+
 
 def sort(score_pairs, indices_list, label_list, ktk, final_scores, final_indices, final_labels):
        # note. removed tk field which was -1 for first case and length for second
