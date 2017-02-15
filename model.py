@@ -8,7 +8,6 @@ from prior_box import PriorBox
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torch.utils.serialization import load_lua
-import matplotlib.pyplot as plt
 import PIL
 from PIL import Image
 
@@ -69,27 +68,26 @@ class SSD(nn.Module):
         self.pp6=PriorBox(num_classes, 300, 300, 276, 330, [1,1,2,1/2,3,1/3], [0.1, 0.1, 0.2, 0.2], False, True)
         self.softmax = nn.Softmax()
         self.detect = Detect(21, True, 0, 'CENTER', False, 200, 0.01, 0.45, 400, False, 1)
-        self.t = nn.Transpose({1, 2}, {2, 3})
     def forward(self, x, phase):
         x = self.features1(x)
         x = self.features2(x)
-        branch2 = [self.t(self.lfc7(x)).contiguous(),self.t(self.cfc7(x)).contiguous()]
+        branch2 = [torch.transpose(torch.transpose(self.lfc7(x),1,2),2,3).contiguous(),torch.transpose(torch.transpose(self.cfc7(x),1,2),2,3).contiguous()]
         p2 = self.pfc7(x)
         branch2 = [o.view(o.size(0),-1) for o in branch2]
         x = self.features3(x)
-        branch3 = [self.t(self.l6_2(x)).contiguous(),self.t(self.c6_2(x)).contiguous()]
+        branch3 = [torch.transpose(torch.transpose(self.l6_2(x),1,2),2,3).contiguous(),torch.transpose(torch.transpose(self.c6_2(x),1,2),2,3).contiguous()]
         p3 = self.p6_2(x)
         branch3 = [o.view(o.size(0),-1) for o in branch3]
         x = self.features4(x)
-        branch4 = [self.t(self.l7_2(x)).contiguous(),self.t(self.c7_2(x)).contiguous()]
+        branch4 = [torch.transpose(torch.transpose(self.l7_2(x),1,2),2,3).contiguous(),torch.transpose(torch.transpose(self.c7_2(x),1,2),2,3).contiguous()]
         p4 = self.p7_2(x)
         branch4 = [o.view(o.size(0),-1) for o in branch4]
         x = self.features5(x)
-        branch5 = [self.t(self.l7_2(x)).contiguous(),self.t(self.c7_2(x)).contiguous()]
+        branch5 = [torch.transpose(torch.transpose(self.l7_2(x),1,2),2,3).contiguous(),torch.transpose(torch.transpose(self.c7_2(x),1,2),2,3).contiguous()]
         p5 = self.p8_2(x)
         branch5 = [o.view(o.size(0),-1) for o in branch5]
         x = self.pool6(x)
-        branch6 = [self.t(self.l7_2(x)).contiguous(),self.t(self.c7_2(x)).contiguous()]
+        branch6 = [torch.transpose(torch.transpose(self.l7_2(x),1,2),2,3).contiguous(),torch.transpose(torch.transpose(self.c7_2(x),1,2),2,3).contiguous()]
         p6 = self.pp6(x)
         branch6 = [o.view(o.size(0),-1) for o in branch6]
         loc_layers = torch.cat((branch2[0],branch3[0],branch4[0],branch5[0],branch6[0]),1)
