@@ -106,6 +106,7 @@ class Detect(Function):
 
 
             if num_det > self.keep_top_k: # narrow results further
+                print("hi")
                 length = self.keep_top_k
 
             final_indices = torch.Tensor(length).zero_()
