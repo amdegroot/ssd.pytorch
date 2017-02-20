@@ -25,7 +25,7 @@ class PriorBox(Function):
             num_priors = num_priors + 1
         self.clip = clip
         self.num_priors = num_priors
-        self.variance = variance or {0.1}
+        self.variance = variance or [0.1]
 
         if len(self.variance) != 1 and len(self.variance) != 4:
             print('<PriorBox> must provide exactly 0 or 4 variances in table format')
@@ -41,17 +41,20 @@ class PriorBox(Function):
         iwidth = input.size(dims-1)
         self.iheight = iheight
         self.iwidth = iwidth
+
         output = torch.Tensor(1,2,self.iheight*self.iwidth*self.num_priors*4)
         step_x = self.imWidth / self.iwidth    # ratio of image width to layer width
+        print(step_x)
         step_y = self.imHeight / self.iheight  # ratio of image height to layer height
+        print(step_y)
         top_data = output[0]
         mean_coords = top_data[0]
         dim = self.iheight * self.iwidth * self.num_priors * 4
-        idx = 0
-        for h in range(1,self.iheight):
-            for w in range(1,self.iwidth):
-                center_x = (w-0.5) * step_x
-                center_y = (h-0.5) * step_y
+        idx = -1
+        for h in range(0,self.iheight):
+            for w in range(0,self.iwidth):
+                center_x = ((w+1)-0.5) * step_x
+                center_y = ((h+1)-0.5) * step_y
 
                 #first prior aspect_ratio=1, size = min_size
                 box_width, box_height = self.min_size, self.min_size
@@ -81,7 +84,7 @@ class PriorBox(Function):
                     idx = idx + 1
                     # ymax
                     mean_coords[idx] = (center_y + box_height / 2) / self.imHeight
-                for i in range(1,len(self.aspect_ratios)):
+                for i in range(0,len(self.aspect_ratios)):
                     ar = self.aspect_ratios[i]
                     if not (abs(ar-1) < 1e-6):
                         box_width = self.min_size * math.sqrt(ar)
@@ -100,18 +103,14 @@ class PriorBox(Function):
                         # ymax
                         mean_coords[idx] = (center_y + box_height / 2) / self.imHeight
         if self.clip:
-            mean_coords = mean_coords.numpy()
             clipper = lambda t: min(max(t,0),1)
-            vfunc = np.vectorize(clipper)
-            vfunc(mean_coords)
-            mean_coords = torch.from_numpy(mean_coords)
-
-
-        var_coords = top_data[1]
+            mean_coords.apply_(clipper)
         variance = torch.Tensor(self.variance)
-        dim/=4
-        #var_coords.repeat(variance,dim)
-        #variance = var_coords.repeat(dim)
+        dim = dim//4
+        top_data[1]= variance.repeat(dim)
+
         return output
+
+
         def backward(self, grad_output):
             return None

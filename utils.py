@@ -47,6 +47,7 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
             torch.add(p_y2, var4, b_y2, out=decode[:,3])
 
     elif code_type == 'CENTER':
+        print('yo')
         decode_center_x = torch.Tensor()
         decode_center_y = torch.Tensor()
         prior_center_x = torch.add(p_x1,p_x2).mul(0.5)
@@ -57,6 +58,7 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
 
         if variance_encoded_in_target:
             # variance is encoded in target, we simply need to restore the offset predictions.
+            print('its encoded')
             torch.add(b_x1, p_w, out=prior_center_x)
             torch.add(b_y1, p_h, out=prior_center_y)
             decode_w = torch.addcmul(0.5,torch.exp(b_x2),p_w)
@@ -64,8 +66,12 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
 
         else:
             # variance is encoded in bbox, we need to scale the offset accordingly.
-            torch.addcmul(prior_center_x,var1,b_x1,p_w)
-            torch.addcmul(prior_center_y,var2,b_y1,p_h)
+            decode_center_x = b_x1.mul(p_w).mul(var1)
+            decode_center_x += prior_center_x
+            decode_center_y = b_y1.mul(p_h).mul(var2)
+            decode_center_y += prior_center_y
+            # torch.addcmul(prior_center_x,var1,b_x1,p_w)
+            # torch.addcmul(prior_center_y,var2,b_y1,p_h)
             decode_w = torch.exp(b_x2.mul(var3))*p_w.mul(0.5)
             decode_h = torch.exp(b_y2.mul(var4))*p_h.mul(0.5)
 
@@ -90,9 +96,9 @@ def apply_nms(boxes, scores, overlap, top_k):
     #print(scores.size())
     area = torch.mul(x2 - x1 + 1, y2 - y1 + 1)
 
-    v, I = torch.sort(scores) # sort in ascending order
+    v, I = scores.sort(0) # sort in ascending order
 
-    I = I[I.size(0)-top_k:I.size(0)] # only want top k
+    I = I[(I.size(0)-top_k):I.size(0)] # only want top k
 
 
     pick.resize_(v.size(0)).zero_()
@@ -107,8 +113,8 @@ def apply_nms(boxes, scores, overlap, top_k):
     h = boxes.new()
 
     while I.numel() > 0:
-        last = I.size(0)
-        i = I[last-1]
+        last = I.size(0)-1
+        i = I[last]
 
         pick[count] = i
         count += 1
@@ -149,12 +155,6 @@ def apply_nms(boxes, scores, overlap, top_k):
     # reduce size to actual count
     pick = pick[0:count-1]
     return pick
-    imsize = 300
-    loader = transforms.Compose([
-                transforms.Scale(imsize),# scale imported image
-                transforms.CenterCrop(imsize),
-                transforms.ToTensor()]) # transform it into a torch tensor
-
 
 
 

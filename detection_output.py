@@ -42,7 +42,7 @@ class Detect(Function):
         # may have to make this 6 instead of 7
         self.output = torch.Tensor(num,self.keep_top_k,7) # could be some empty indices, but this way we output 1 tensor
 
-        num_priors = self.prior_data.size(2) / 4      # height dim of priorbox input / 4
+        num_priors = self.prior_data.size(2) // 4      # height dim of priorbox input / 4
         if not self.loc_data.size(1) == self.prior_data.size(2):
             print('<Detection_Output> Number of priors must match number of location predictions.')
 
@@ -50,7 +50,6 @@ class Detect(Function):
         # GET LOCATION PREDICTIONS FROM LOC_DATA
         # (num X num_priors X 4) -- in caffe
         # (right now num X (num_priors x 4))
-        print(num)
         loc_preds = self.loc_data
 
         # GET CONFIDENCE SCORES FROM CONF_DATA
@@ -58,6 +57,7 @@ class Detect(Function):
         if num == 1: # If input is only a single image then we need to add the batch dim that we removed for softmax layer
             conf_preds = self.conf_data.t().contiguous()
             conf_preds = conf_preds.unsqueeze(0)
+            print(conf_preds.size())
         else:
             conf_predictions = self.conf_data.view(num,num_priors,self.num_classes)
             conf_preds = conf_predictions.transpose(2,1)
@@ -89,25 +89,24 @@ class Detect(Function):
             score_pairs = torch.Tensor(length)  # will score scores and corresponding bbox table indices
             indices_list = torch.Tensor(length)
             label_list = torch.Tensor(length)
-            ref = 1
+            ref = 0
             for number in range(self.num_classes-1):
                 label = number + 1 # add 1 to avoid background class
                 label_indices = indices[number]  # top bbox table indices for each class
-                for index in range(label_indices.size(0)-1):
+                for index in range(label_indices.size(0)):
 
 
                     idx = label_indices[index]
-                    indices_list[ref-1] = idx  #  inserting index of highest conf scores into indices list
-                    assert(idx <= conf_scores[label-1].size(0))
+                    indices_list[ref] = idx  #  inserting index of highest conf scores into indices list
+                    assert(idx <= conf_scores[label].size(0))
 
-                    score_pairs[ref] = conf_scores[label-1][idx]  #  corresp. score is inserted into score_pairs at same location
-                    label_list[ref-1] = label  # and label is added to label list at same location
+                    score_pairs[ref] = conf_scores[label][idx]  #  corresp. score is inserted into score_pairs at same location
+                    label_list[ref] = label  # and label is added to label list at same location
                     #  score_pairs, indices_list, and label_list could be combined into one tensor potentially
                     ref +=1
 
 
             if num_det > self.keep_top_k: # narrow results further
-                print("hi")
                 length = self.keep_top_k
 
             final_indices = torch.Tensor(length).zero_()
@@ -116,10 +115,10 @@ class Detect(Function):
             sort(score_pairs, indices_list, label_list, length, final_scores, final_indices, final_labels)
             num_kept += num_det
 
-
+            print(final_indices.size())
             for j in range(final_indices.size(0)):
                 idx = int(final_indices[j])
-                self.output[i][j][0] = i
+                self.output[i][j][0] = i+1
                 self.output[i][j][1] = final_labels[j]
                 self.output[i][j][2] = final_scores[j]
                 self.output[i][j][3] = max(min(decode_bboxes[idx][0], 1), 0)
