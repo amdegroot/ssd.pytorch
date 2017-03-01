@@ -52,6 +52,7 @@ class Detect(Function):
         # GET LOCATION PREDICTIONS FROM LOC_DATA
         # (num X num_priors X 4) -- in caffe
         # (right now num X (num_priors x 4))
+        print(num)
         loc_preds = self.loc_data
 
         # GET CONFIDENCE SCORES FROM CONF_DATA
