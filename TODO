@@ -1,0 +1,10 @@
+1.  get working on cuda
+2.  nms needs to work
+--------------------------
+PUBLIC
+--------------------------
+3.  backprop:
+    - training layer
+    - l2norm
+    - (multibox) loss layer
+4.  data augmentation
