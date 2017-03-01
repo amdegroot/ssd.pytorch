@@ -55,19 +55,13 @@ class SSD(nn.Module):
         self.pool6 = nn.Sequential(
             nn.AvgPool2d(kernel_size=3,stride=1),
         )
-<<<<<<< HEAD
+
 
         self.L2norm = L2norm(512,20)
         self.l4_3 = nn.Conv2d(512,12,kernel_size=3,padding=1)
         self.c4_3 = nn.Conv2d(512,param,kernel_size=3,padding=1)
         self.p4_3 = PriorBox(num_classes, 300, 300, 30, -1, [1,2,1/2], [0.1, 0.1, 0.2, 0.2], False, True)
-=======
-        # output from features1
-        self.l4_3 = nn.Conv2d(512,12,kernel_size=3,padding=1)
-        self.c4_3 = nn.Conv2d(512,param,kernel_size=3,padding=1)
-        self.p4_3 = PriorBox(num_classes, 300, 300, 30, -1, [1,2,1/2], [0.1, 0.1, 0.2, 0.2], False, True)
-        #
->>>>>>> c0db2b70afe02a0f564461509b78f8a60ef02b58
+
         self.lfc7 = nn.Conv2d(1024,24,kernel_size=3,padding=1)
         self.cfc7 = nn.Conv2d(1024,param*2,kernel_size=3,padding=1)
         self.pfc7 = PriorBox(num_classes, 300, 300, 60, 114, [1,1,2,1/2,3,1/3], [0.1, 0.1, 0.2, 0.2], False, True)
