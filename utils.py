@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 import math
+#from torch.autograd import Variable
+if torch.cuda.is_available():
+    import torch.backends.cudnn as cudnn
+
 def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_target,bboxes):
     bboxes = bboxes.view(-1,4)
     assert(prior_bboxes.size(0) == prior_variances.size(0))
@@ -8,6 +12,7 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
     assert(prior_bboxes.size(0) == bboxes.size(0))
     num_bboxes = prior_bboxes.size(0)
     decode = torch.Tensor(bboxes.size(0), bboxes.size(1))
+    #decode = Variable(decode)
     if num_bboxes >= 1:
         assert(prior_variances[0].size(0) == 4)
 
@@ -48,8 +53,8 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
 
     elif code_type == 'CENTER':
         print('yo')
-        decode_center_x = torch.Tensor()
-        decode_center_y = torch.Tensor()
+        #decode_center_x = torch.cuda.FloatTensor()
+        #decode_center_y = torch.cuda.FloatTensor()
         prior_center_x = torch.add(p_x1,p_x2).mul(0.5)
         prior_center_y = torch.add(p_y1,p_y2).mul(0.5)
         p_w-=p_x1
@@ -66,6 +71,17 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
 
         else:
             # variance is encoded in bbox, we need to scale the offset accordingly.
+            # print(type(decode_center_x))
+
+            # print(type(b_x1.data))
+            # print(b_x1.data.size())
+            # print(type(p_w.data))
+            # print(p_w.data.size())
+            # print(type(var1.data))
+            # print(var1.data.size())
+            # print(var1.data)
+            # print(var1)
+
             decode_center_x = b_x1.mul(p_w).mul(var1)
             decode_center_x += prior_center_x
             decode_center_y = b_y1.mul(p_h).mul(var2)
@@ -75,17 +91,96 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
             decode_w = torch.exp(b_x2.mul(var3))*p_w.mul(0.5)
             decode_h = torch.exp(b_y2.mul(var4))*p_h.mul(0.5)
 
-        decode[:,0] = prior_center_x.clone()-decode_w# set xmin
-        decode[:,1] = prior_center_y.clone()-decode_h# set ymin
+        decode[:,0] = prior_center_x-decode_w# set xmin
+        decode[:,1] = prior_center_y-decode_h# set ymin
         decode[:,2] = prior_center_x.add(decode_w)# set xmax
         decode[:,3] = prior_center_y.add(decode_h)# set ymax
     else:
        print('<Detection_Output> Unknown LocLossType')
     return decode
 
+def encode_bbox(prior_bbox, prior_variance, encode_variance_in_target, return_iou, bbox):
+    #iou = self.iou(box)
+    encoded_box = torch.zeros(self.num_priors, 4)
+    #assign_mask = iou > overlap_threshold
+    #if not assign_mask.any():
+    #    assign_mask[iou.argmax()] = True
+    #if return_iou:
+    #    encoded_box[:, -1][assign_mask] = iou[assign_mask]
+    #assigned_priors = self.priors[assign_mask]
+    box_center = 0.5 * (box[:2] + box[2:])
+    box_wh = box[2:] - box[:2]
+    priors_center = 0.5 * (prior_bbox[:, :2] + prior_bbox[:, 2:4])
+    priors_wh = (prior_bbox[:, 2:4] - prior_bbox[:, :2])
+    # here we encode variance
+    encoded_box[:, :2] = box_center - priors_center
+    encoded_box[:, :2] /= priors_wh
+    encoded_box[:, :2] /= assigned_priors[:, -4:-2]
+    encoded_box[:, 2:4] = np.log(box_wh /priors_wh)
+    encoded_box[:, 2:4] /= priors[:, -2:]
+    return encoded_box.view(-1)
+
+def iou(box):
+    """Compute intersection over union for the box with all priors.
+    # Arguments
+        box: Box, numpy tensor of shape (4,).
+    # Return
+        iou: Intersection over union,
+            numpy tensor of shape (num_priors).
+    """
+    # compute intersection
+    inter_upleft = np.maximum(self.priors[:, :2], box[:2])
+    inter_botright = np.minimum(self.priors[:, 2:4], box[2:])
+    inter_wh = inter_botright - inter_upleft
+    inter_wh = np.maximum(inter_wh, 0)
+    inter = inter_wh[:, 0] * inter_wh[:, 1]
+    # compute union
+    area_pred = (box[2] - box[0]) * (box[3] - box[1])
+    area_gt = (self.priors[:, 2] - self.priors[:, 0])
+    area_gt *= (self.priors[:, 3] - self.priors[:, 1])
+    union = area_pred + area_gt - inter
+    # compute iou
+    iou = inter / union
+    return iou
+
+
+# def match_bbox()
+
+
+def encode_box(box, return_iou=True):
+    """Encode box for training, do it only for assigned priors.
+    # Arguments
+        box: Box, numpy tensor of shape (4,).
+        return_iou: Whether to concat iou to encoded values.
+    # Return
+        encoded_box: Tensor with encoded box
+            numpy tensor of shape (num_priors, 4 + int(return_iou)).
+    """
+    iou = iou(box)
+    encoded_box = np.zeros((self.num_priors, 4 + return_iou))
+    assign_mask = iou > self.overlap_threshold
+    if not assign_mask.any():
+        assign_mask[iou.argmax()] = True
+    if return_iou:
+        encoded_box[:, -1][assign_mask] = iou[assign_mask]
+    assigned_priors = self.priors[assign_mask]
+    box_center = 0.5 * (box[:2] + box[2:])
+    box_wh = box[2:] - box[:2]
+    assigned_priors_center = 0.5 * (assigned_priors[:, :2] +
+                                    assigned_priors[:, 2:4])
+    assigned_priors_wh = (assigned_priors[:, 2:4] -
+                          assigned_priors[:, :2])
+    # we encode variance
+    encoded_box[:, :2][assign_mask] = box_center - assigned_priors_center
+    encoded_box[:, :2][assign_mask] /= assigned_priors_wh
+    encoded_box[:, :2][assign_mask] /= assigned_priors[:, -4:-2]
+    encoded_box[:, 2:4][assign_mask] = np.log(box_wh /
+                                              assigned_priors_wh)
+    encoded_box[:, 2:4][assign_mask] /= assigned_priors[:, -2:]
+    return encoded_box.ravel()
 
 def apply_nms(boxes, scores, overlap, top_k):
-    pick = torch.LongTensor()
+    pick = torch.Tensor()
     if boxes.numel() == 0:
         return pick
 
@@ -136,24 +231,25 @@ def apply_nms(boxes, scores, overlap, top_k):
     xx2 = torch.min(xx2,xx2.clone().fill_(x2[i]))
     yy2 = torch.min(yy2,yy2.clone().fill_(y2[i]))
 
-    w.resize_(xx2.size())
-    h.resize_(yy2.size())
+    w.resize_as_(xx2)
+    h.resize_as_(yy2)
     torch.add(xx2, -1, xx1, out = w).add(1).max(0)
     torch.add(yy2, -1, yy1, out = h).add(1).max(0)
 
     # reuse existing tensors
-    inter = torch.mul(w,h)
+    inter = w*h
     IoU = h
 
     # IoU .= i / (area(a) + area(b) - i)
     xx1 = torch.index_select(area, 0, I) # load remaining areas into xx1
-    IoU = inter / (xx1 + area[i] - inter) # store result in iou
+    IoU = inter.div(xx1 + area[i] - inter) # store result in iou
 
     I = I[IoU.le(overlap)]
     # keep only elements with a IoU < overlap
 
     # reduce size to actual count
     pick = pick[0:count-1]
+    print(pick)
     return pick
 
 

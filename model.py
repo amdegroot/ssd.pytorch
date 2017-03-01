@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 import torchvision.models as models
 from torch.utils.serialization import load_lua
 from f_l2norm import L2norm as norm
-
+import torch.backends.cudnn as cudnn
 
 
 class SSD(nn.Module):

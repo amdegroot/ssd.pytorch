@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
+import torch.backends.cudnn as cudnn
 from torch.autograd import Function
 import numpy as np
 import math
 
 class PriorBox(Function):
     def __init__(self, num_classes, imWidth, imHeight, min_size, max_size, aspect_ratios, variance, flip, clip):
+        #super(PriorBox, self).__init__()
         self.min_size = min_size
 
         self.imWidth = imWidth

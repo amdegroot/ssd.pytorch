@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
+import torch.backends.cudnn as cudnn
 from torch.autograd import Function
+from torch.autograd import Variable
 from utils import *
 
 class Detect(Function):
     def __init__(self, num_classes_, share_location_, background_label_id_, code_type_, var_encoded_in_target_, keep_top_k_, conf_thresh, nms_threshold_, nms_top_k_, visualize_, vis_thresh_):
-
+        #super(Detect, self).__init__()
         # initializations ........
         self.num_classes = num_classes_
         self.share_location = share_location_ or True
@@ -115,7 +117,7 @@ class Detect(Function):
             sort(score_pairs, indices_list, label_list, length, final_scores, final_indices, final_labels)
             num_kept += num_det
 
-            print(final_indices.size())
+            # print(final_indices.size())
             for j in range(final_indices.size(0)):
                 idx = int(final_indices[j])
                 self.output[i][j][0] = i+1
