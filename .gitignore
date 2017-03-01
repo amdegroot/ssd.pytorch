@@ -96,3 +96,6 @@ weights/
 
 #DS_Store
 .DS_Store
+
+# dev IPython Notebook
+ssd.ipynb
