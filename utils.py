@@ -52,9 +52,6 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
             torch.add(p_y2, var4, b_y2, out=decode[:,3])
 
     elif code_type == 'CENTER':
-        print('yo')
-        #decode_center_x = torch.cuda.FloatTensor()
-        #decode_center_y = torch.cuda.FloatTensor()
         prior_center_x = torch.add(p_x1,p_x2).mul(0.5)
         prior_center_y = torch.add(p_y1,p_y2).mul(0.5)
         p_w-=p_x1
@@ -71,16 +68,6 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
 
         else:
             # variance is encoded in bbox, we need to scale the offset accordingly.
-            # print(type(decode_center_x))
-
-            # print(type(b_x1.data))
-            # print(b_x1.data.size())
-            # print(type(p_w.data))
-            # print(p_w.data.size())
-            # print(type(var1.data))
-            # print(var1.data.size())
-            # print(var1.data)
-            # print(var1)
 
             decode_center_x = b_x1.mul(p_w).mul(var1)
             decode_center_x += prior_center_x
@@ -129,15 +116,15 @@ def iou(box):
             numpy tensor of shape (num_priors).
     """
     # compute intersection
-    inter_upleft = np.maximum(self.priors[:, :2], box[:2])
-    inter_botright = np.minimum(self.priors[:, 2:4], box[2:])
+    inter_upleft = np.maximum(priors[:, :2], box[:2])
+    inter_botright = np.minimum(priors[:, 2:4], box[2:])
     inter_wh = inter_botright - inter_upleft
     inter_wh = np.maximum(inter_wh, 0)
     inter = inter_wh[:, 0] * inter_wh[:, 1]
     # compute union
     area_pred = (box[2] - box[0]) * (box[3] - box[1])
-    area_gt = (self.priors[:, 2] - self.priors[:, 0])
-    area_gt *= (self.priors[:, 3] - self.priors[:, 1])
+    area_gt = (priors[:, 2] - priors[:, 0])
+    area_gt *= (priors[:, 3] - priors[:, 1])
     union = area_pred + area_gt - inter
     # compute iou
     iou = inter / union
@@ -180,77 +167,72 @@ def encode_box(box, return_iou=True):
     return encoded_box.ravel()
 
 def apply_nms(boxes, scores, overlap, top_k):
-    pick = torch.Tensor()
+
+    pick = torch.zeros(scores.size(0))
     if boxes.numel() == 0:
         return pick
-
     x1 = boxes[:,0]
     y1 = boxes[:,1]
     x2 = boxes[:,2]
     y2 = boxes[:,3]
-    #print(scores.size())
+
     area = torch.mul(x2 - x1 + 1, y2 - y1 + 1)
-
     v, I = scores.sort(0) # sort in ascending order
-
-    I = I[(I.size(0)-top_k):I.size(0)] # only want top k
-
-
-    pick.resize_(v.size(0)).zero_()
-    count = 0
+    I = I[-top_k:]
 
     xx1 = boxes.new()
     yy1 = boxes.new()
     xx2 = boxes.new()
     yy2 = boxes.new()
-
     w = boxes.new()
     h = boxes.new()
 
+    count = 0
     while I.numel() > 0:
-        last = I.size(0)-1
-        i = I[last]
+        last = I.size(0)
+        i = I[last-1]
 
         pick[count] = i
         count += 1
-
         if last == 1:
             break
 
-        I = I[0:last-1] # remove picked element from view
+        I = I[:-1] # remove picked element from view
 
-    # load values
-    xx1 = torch.index_select(x1, 0, I)
-    yy1 = torch.index_select(y1, 0, I)
-    xx2 = torch.index_select(x2, 0, I)
-    yy2 = torch.index_select(y2, 0, I)
+        # load values
+        torch.index_select(x1, 0, I, out=xx1)
+        torch.index_select(y1, 0, I, out=yy1)
+        torch.index_select(x2, 0, I, out=xx2)
+        torch.index_select(y2, 0, I, out=yy2)
 
-    # compute intersection area
-    xx1 = torch.max(xx1,xx1.clone().fill_(x1[i]))
-    yy1 = torch.max(yy1,yy1.clone().fill_(y1[i]))
-    xx2 = torch.min(xx2,xx2.clone().fill_(x2[i]))
-    yy2 = torch.min(yy2,yy2.clone().fill_(y2[i]))
+        # TODO: time comparison using map_() and xx1 < x1[i] instead
+        # store element-wise max with next highest score
+        xx1 = torch.max(xx1,xx1.clone().fill_(x1[i]))
+        yy1 = torch.max(yy1,yy1.clone().fill_(y1[i]))
+        xx2 = torch.min(xx2,xx2.clone().fill_(x2[i]))
+        yy2 = torch.min(yy2,yy2.clone().fill_(y2[i]))
+        w.resize_as_(xx2)
+        h.resize_as_(yy2)
 
-    w.resize_as_(xx2)
-    h.resize_as_(yy2)
-    torch.add(xx2, -1, xx1, out = w).add(1).max(0)
-    torch.add(yy2, -1, yy1, out = h).add(1).max(0)
+        w = xx2 - xx1
+        h = yy2 - yy1
+        w += 1
+        h +=1
+        w.max(torch.zeros(w.size(0)))
+        h.max(torch.zeros(h.size(0)))
 
-    # reuse existing tensors
-    inter = w*h
-    IoU = h
+        # reuse existing tensors
+        inter = w*h
+        # IoU .= i / (area(a) + area(b) - i)
+        xx1 = torch.index_select(area, 0, I) # load remaining areas into xx1
+        IoU = inter.div(xx1 + area[i] - inter) # store result in iou
+        mask = IoU.le(overlap)
 
-    # IoU .= i / (area(a) + area(b) - i)
-    xx1 = torch.index_select(area, 0, I) # load remaining areas into xx1
-    IoU = inter.div(xx1 + area[i] - inter) # store result in iou
-
-    I = I[IoU.le(overlap)]
-    # keep only elements with a IoU < overlap
+        # keep only elements with a IoU < overlap
+        I = torch.masked_select(I,IoU.le(overlap))
 
     # reduce size to actual count
-    pick = pick[0:count-1]
-    print(pick)
-    return pick
+    return pick[:count]
 
 
 

@@ -38,38 +38,35 @@ class Detect(Function):
         self.loc_data = loc_data # batch_size X num_priors*4
         self.conf_data = conf_data # batch_size*num_priors X num_classes
         self.prior_data = box_data # 1 X 2 X num_priors*4
-
         num = self.loc_data.size(0)
-
-        # may have to make this 6 instead of 7
         self.output = torch.Tensor(num,self.keep_top_k,7) # could be some empty indices, but this way we output 1 tensor
 
         num_priors = self.prior_data.size(2) // 4      # height dim of priorbox input / 4
         if not self.loc_data.size(1) == self.prior_data.size(2):
-            print('<Detection_Output> Number of priors must match number of location predictions.')
+            print('Number of priors must match number of location predictions.')
 
 
         # GET LOCATION PREDICTIONS FROM LOC_DATA
         # (num X num_priors X 4) -- in caffe
         # (right now num X (num_priors x 4))
-        print(num)
+        #print(num)
         loc_preds = self.loc_data
 
         # GET CONFIDENCE SCORES FROM CONF_DATA
 
         if num == 1: # If input is only a single image then we need to add the batch dim that we removed for softmax layer
             conf_preds = self.conf_data.t().contiguous()
-            conf_preds = conf_preds.unsqueeze(0)
-            print(conf_preds.size())
+            conf_preds = conf_preds.unsqueeze(0) # size num x 21 x 7308
+            #print(conf_preds.size())
         else:
             conf_predictions = self.conf_data.view(num,num_priors,self.num_classes)
             conf_preds = conf_predictions.transpose(2,1)
 
         # GET PRIOR BBOXES FROM PRIOR_DATA  -- Still thinking of good way to speed this up
 
-        prior_bboxes = self.prior_data[0][0].view(-1,4)
-        prior_variances = self.prior_data[0][1].view(-1,4)
-        print(prior_bboxes.size())
+        prior_bboxes = self.prior_data[0][0].view(-1,4)  # size 7308 x 4
+        prior_variances = self.prior_data[0][1].view(-1,4) # size 7308 x 4
+        #print(prior_bboxes.size())
         # Decode predictions into bboxes.
         num_kept = 0
         for i in range(num):
@@ -79,6 +76,9 @@ class Detect(Function):
 
             indices = []
             num_det = 0
+            print(self.num_classes)
+            print(self.nms_threshold)
+            print(self.top_k)
             for c in range(self.num_classes):
                 if not (c == self.background_label_id):
                     #  Populates overlaps and class_index_table
@@ -99,7 +99,7 @@ class Detect(Function):
                 for index in range(label_indices.size(0)):
 
 
-                    idx = label_indices[index]
+                    idx = int(label_indices[index])
                     indices_list[ref] = idx  #  inserting index of highest conf scores into indices list
                     assert(idx <= conf_scores[label].size(0))
 

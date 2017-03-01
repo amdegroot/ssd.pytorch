@@ -46,9 +46,9 @@ class PriorBox(Function):
 
         output = torch.Tensor(1,2,self.iheight*self.iwidth*self.num_priors*4)
         step_x = self.imWidth / self.iwidth    # ratio of image width to layer width
-        print(step_x)
+
         step_y = self.imHeight / self.iheight  # ratio of image height to layer height
-        print(step_y)
+
         top_data = output[0]
         mean_coords = top_data[0]
         dim = self.iheight * self.iwidth * self.num_priors * 4
@@ -105,6 +105,7 @@ class PriorBox(Function):
                         # ymax
                         mean_coords[idx] = (center_y + box_height / 2) / self.imHeight
         if self.clip:
+            # TODO look at torch.clamp()
             clipper = lambda t: min(max(t,0),1)
             mean_coords.apply_(clipper)
         variance = torch.Tensor(self.variance)
