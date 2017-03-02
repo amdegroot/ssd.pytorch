@@ -8,3 +8,24 @@ PUBLIC
     - l2norm
     - (multibox) loss layer
 -  data augmentation
+
+
+
+DATALOADER: dataloader.py
+
+-   load data from raw TAR
+    - organize into folders
+
+DATAAUGMENTATION dataaugmentation.py
+getting data ready to go through the network
+
+use pytorch image transforms
+-   
+
+
+To make the model more robust to various input object sizes and shapes, 
+each training image is randomly sampled by one of the following options:
+    – Use the entire original input image.
+    – Sample a patch so that the minimum jaccard overlap with the objects is 0.1, 0.3,
+    0.5, 0.7, or 0.9.
+    – Randomly sample a patch.
