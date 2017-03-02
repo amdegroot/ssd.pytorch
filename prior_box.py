@@ -9,7 +9,6 @@ class PriorBox(Function):
     def __init__(self, num_classes, imWidth, imHeight, min_size, max_size, aspect_ratios, variance, flip, clip):
         #super(PriorBox, self).__init__()
         self.min_size = min_size
-
         self.imWidth = imWidth
         self.imHeight = imHeight
 

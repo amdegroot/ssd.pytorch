@@ -86,85 +86,68 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
        print('<Detection_Output> Unknown LocLossType')
     return decode
 
-def encode_bbox(prior_bbox, prior_variance, encode_variance_in_target, return_iou, bbox):
-    #iou = self.iou(box)
-    encoded_box = torch.zeros(self.num_priors, 4)
-    #assign_mask = iou > overlap_threshold
-    #if not assign_mask.any():
-    #    assign_mask[iou.argmax()] = True
-    #if return_iou:
-    #    encoded_box[:, -1][assign_mask] = iou[assign_mask]
-    #assigned_priors = self.priors[assign_mask]
-    box_center = 0.5 * (box[:2] + box[2:])
-    box_wh = box[2:] - box[:2]
-    priors_center = 0.5 * (prior_bbox[:, :2] + prior_bbox[:, 2:4])
-    priors_wh = (prior_bbox[:, 2:4] - prior_bbox[:, :2])
-    # here we encode variance
-    encoded_box[:, :2] = box_center - priors_center
-    encoded_box[:, :2] /= priors_wh
-    encoded_box[:, :2] /= assigned_priors[:, -4:-2]
-    encoded_box[:, 2:4] = np.log(box_wh /priors_wh)
-    encoded_box[:, 2:4] /= priors[:, -2:]
-    return encoded_box.view(-1)
+def center_size(priors):
+     return torch.cat([priors[:,:2] - priors[:,2:]/2,
+                       priors[:,:2] + priors[:,2:]/2], 1)
 
-def iou(box):
-    """Compute intersection over union for the box with all priors.
-    # Arguments
-        box: Box, numpy tensor of shape (4,).
-    # Return
-        iou: Intersection over union,
-            numpy tensor of shape (num_priors).
-    """
-    # compute intersection
-    inter_upleft = np.maximum(priors[:, :2], box[:2])
-    inter_botright = np.minimum(priors[:, 2:4], box[2:])
-    inter_wh = inter_botright - inter_upleft
-    inter_wh = np.maximum(inter_wh, 0)
-    inter = inter_wh[:, 0] * inter_wh[:, 1]
-    # compute union
-    area_pred = (box[2] - box[0]) * (box[3] - box[1])
-    area_gt = (priors[:, 2] - priors[:, 0])
-    area_gt *= (priors[:, 3] - priors[:, 1])
-    union = area_pred + area_gt - inter
-    # compute iou
-    iou = inter / union
-    return iou
+def intersect(box_a, box_b):
+    '''
+    Args:
+      box_a: (tensor) bounding boxes, sized [A,4].
+      box_b: (tensor) bounding boxes, sized [B,4].
+    Return:
+      (tensor) intersection tensor sized [A,B].
+
+    expands both tensors to size [A,B,2]
+    [A,2] -> [A,1,2] -> [A,B,2]
+    [B,2] -> [1,B,2] -> [A,B,2]
+    subtracts max from min vals for each dimension from each tensor to get width and height,
+    thresholds at zero, and returns a [A,B] tensor of width*height values
+    '''
+    A = box_a.size(0)
+    B = box_b.size(0)
+
+    return torch.clamp(
+        box_a[:,:2].unsqueeze(1).expand(A,B,2).max(
+        box_b[:,:2].unsqueeze(0).expand(A,B,2),)
+        - box_a[:,2:].unsqueeze(1).expand(N,M,2).min(
+        box_b[:,2:].unsqueeze(0).expand(N,M,2)),
+        min=0).prod(2) # [A,B] multiplies width & height for each A,B
 
 
-# def match_bbox()
 
+def jaccard(box_a, box_b):
+    inter = intersect(boxa_a, box_b)
+    area_a = (box_a[:,2]-box_a[:,0])*(box_a[:,3]-box_a[:,1]).unsqueeze(1).expand_as(inter)  # [A,B]
+    area_b = (box_b[:,2]-box_b[:,0])*(box_b[:,3]-box_b[:,1]).unsqueeze(0).expand_as(inter)  # [A,B]
+    union = area_a + area_b - inter
+    return inter / union # [A,B]
 
-def encode_box(box, return_iou=True):
-    """Encode box for training, do it only for assigned priors.
-    # Arguments
-        box: Box, numpy tensor of shape (4,).
-        return_iou: Whether to concat iou to encoded values.
-    # Return
-        encoded_box: Tensor with encoded box
-            numpy tensor of shape (num_priors, 4 + int(return_iou)).
-    """
-    iou = iou(box)
-    encoded_box = np.zeros((self.num_priors, 4 + return_iou))
-    assign_mask = iou > self.overlap_threshold
-    if not assign_mask.any():
-        assign_mask[iou.argmax()] = True
-    if return_iou:
-        encoded_box[:, -1][assign_mask] = iou[assign_mask]
-    assigned_priors = self.priors[assign_mask]
-    box_center = 0.5 * (box[:2] + box[2:])
-    box_wh = box[2:] - box[:2]
-    assigned_priors_center = 0.5 * (assigned_priors[:, :2] +
-                                    assigned_priors[:, 2:4])
-    assigned_priors_wh = (assigned_priors[:, 2:4] -
-                          assigned_priors[:, :2])
-    # we encode variance
-    encoded_box[:, :2][assign_mask] = box_center - assigned_priors_center
-    encoded_box[:, :2][assign_mask] /= assigned_priors_wh
-    encoded_box[:, :2][assign_mask] /= assigned_priors[:, -4:-2]
-    encoded_box[:, 2:4][assign_mask] = np.log(box_wh /
-                                              assigned_priors_wh)
-    encoded_box[:, 2:4][assign_mask] /= assigned_priors[:, -2:]
-    return encoded_box.ravel()
+def match(truths, priors, variances, labels, threshold):
+    overlaps = jaccard(  # [#obj,8732]
+        truths,
+        center_size(priors)
+    )
+    best_overlaps, best_idx = overlaps.max(0)  # [#8732,1]
+    best_idx.squeeze_(0)                       # [#8732]
+    best_overlaps.squeeze_(0)             # [#8732]
+    matches = truths[best_idx]                 # [#8732,4]
+
+    conf = classes[max_idx].add(1)   # [8732,], background class = 0
+    conf[overlaps<threshold] = 0       # background
+    loc = encode(matches,priors,variances) # [8732, 4]
+
+    return loc, conf # encoded location of each bounding box, label matched with each bounding box
+
+def encode(matched, priors, variances):
+    # matched [8732,4] (x1,y1,x2,y2) ... coords of ground truth for each prior
+    # priors  [8732,4] (cx,cy,w,h)
+    # encoding variance in bounding boxes
+    cx_cy = (matched[:,:2] + matched[:,2:]) / 2 - priors[:,:2] # dist b/t match center and prior's center
+    cx_cy /= (variances[0] * priors[:,2:]) # encode variance
+    wh = (matched[:,2:] - matched[:,:2]) / priors[:,2:] # match wh / prior wh
+    wh = torch.log(wh) / variances[1]
+    return torch.cat([cx_cy, wh], 1)  # [8732,4]
 
 def apply_nms(boxes, scores, overlap, top_k):
 
@@ -207,10 +190,10 @@ def apply_nms(boxes, scores, overlap, top_k):
 
         # TODO: time comparison using map_() and xx1 < x1[i] instead
         # store element-wise max with next highest score
-        xx1 = torch.max(xx1,xx1.clone().fill_(x1[i]))
-        yy1 = torch.max(yy1,yy1.clone().fill_(y1[i]))
-        xx2 = torch.min(xx2,xx2.clone().fill_(x2[i]))
-        yy2 = torch.min(yy2,yy2.clone().fill_(y2[i]))
+        torch.clamp(xx1,min = x1[i])
+        torch.clamp(yy1,min = y1[i])
+        torch.clamp(xx2,max = x2[i])
+        torch.clamp(yy2,max = y2[i])
         w.resize_as_(xx2)
         h.resize_as_(yy2)
 
@@ -233,7 +216,6 @@ def apply_nms(boxes, scores, overlap, top_k):
 
     # reduce size to actual count
     return pick[:count]
-
 
 
 def sort(score_pairs, indices_list, label_list, ktk, final_scores, final_indices, final_labels):
