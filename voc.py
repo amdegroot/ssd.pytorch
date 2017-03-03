@@ -6,6 +6,9 @@ https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 
 Ellis Brown
 """
+
+from __future__ import print_function  # py 2.x compatability
+
 import os
 import os.path
 import sys
@@ -35,23 +38,26 @@ COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
 
 class VOCSegmentation(data.Dataset):
     """VOC Segmentation Dataset Object
+    input and target are both images
 
     NOTE: need to address https://github.com/pytorch/vision/issues/9
 
     Arguments:
         root (string): filepath to VOCdevkit folder.
-        image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        input_transform (function): transformation to perform on input img
-        target_transform (function): transformation to perform on target img
-        dataset_name (string): the name of the dataset to load
-            default: VOC2007
+        image_set (string): imageset to use (eg: 'train', 'val', 'test').
+        transform (callable, optional): transformation to perform on the
+            input image
+        target_transform (callable, optional): transformation to perform on the
+            target image
+        dataset_name (string, optional): which dataset to load
+            (default: 'VOC2007')
     """
 
-    def __init__(self, root, image_set, input_transform=None, target_transform=None,
+    def __init__(self, root, image_set, transform=None, target_transform=None,
                  dataset_name='VOC2007'):
         self.root = root
         self.image_set = image_set
-        self.input_transform = input_transform
+        self.transform = transform
         self.target_transform = target_transform
 
         self._annopath = os.path.join(
@@ -71,8 +77,8 @@ class VOCSegmentation(data.Dataset):
         target = Image.open(self._annopath % img_id).convert('RGB')
         img = Image.open(self._imgpath % img_id).convert('RGB')
 
-        if self.input_transform is not None:
-            img = self.input_transform(img)
+        if self.transform is not None:
+            img = self.transform(img)
 
         if self.target_transform is not None:
             target = self.target_transform(target)
@@ -88,10 +94,10 @@ class AnnotationTransform(object):
     Initilized with a dictionary lookup of classnames to indexes
 
     Arguments:
-        class_to_ind (dict): {<classname> : <classindex>}
-            default: alphabetic indexing of VOC's 20 classes
-        keep_difficult (bool): whether or not to keep difficult instances
-            defualt: False
+        class_to_ind (dict, optional): dictionary lookup of classnames -> indexes
+            (default: alphabetic indexing of VOC's 20 classes)
+        keep_difficult (bool, optional): keep difficult instances or not
+            (default: False)
     """
 
     def __init__(self, class_to_ind=None, keep_difficult=False):
@@ -102,7 +108,8 @@ class AnnotationTransform(object):
     def __call__(self, target):
         """
         Arguments:
-            target (annotation xml) : the target annotation to be made usable
+            target (annotation) : the target annotation to be made usable
+                will be an ET.Element
         Returns:
             an array containing [bbox coords, class name] subarrays
         """
@@ -126,16 +133,18 @@ class AnnotationTransform(object):
 class VOCDetection(data.Dataset):
     """VOC Detection Dataset Object
 
+    input is image, target is annotation
+
     Arguments:
         root (string): filepath to VOCdevkit folder.
         image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        transform (function): a function that takes in an image and returns a
-            transformed version
-        target_transform (function): a function that takes in the target and
-            transforms it
-            (eg. take in caption string, return tensor of word indices)
-        dataset_name (string): the name of the dataset to load
-            default: VOC2007
+        transform (callable, optional): transformation to perform on the
+            input image
+        target_transform (callable, optional): transformation to perform on the
+            target `annotation`
+            (eg: take in caption string, return tensor of word indices)
+        dataset_name (string, optional): which dataset to load
+            (default: 'VOC2007')
     """
 
     def __init__(self, root, image_set, transform=None, target_transform=None,
@@ -195,3 +204,4 @@ class VOCDetection(data.Dataset):
                       fill=COLORS[(i + 3) % len(COLORS)])
             i += 1
         img.show()
+        return img
