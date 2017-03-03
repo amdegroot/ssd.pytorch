@@ -9,12 +9,12 @@ A PyTorch implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs
 ##### VOC2007 trainval & test
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
-sh /data/scripts/VOC2007.sh # <directory>
+sh data/scripts/VOC2007.sh # <directory>
 ```
 ##### VOC2012 trainval
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
-sh /data/scripts/VOC2012.sh # <directory>
+sh data/scripts/VOC2012.sh # <directory>
 ```
 
  Ensure the following directory structure (as specified in [VOCdevkit](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/devkit_doc_07-Jun-2007.pdf)):
