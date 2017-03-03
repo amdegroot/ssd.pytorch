@@ -36,7 +36,8 @@ def _flip_box(boxes, width):
     return boxes
 
 
-class TransformVOCDetectionAnnotation(object):
+# class TransformVOCDetectionAnnotation(object):
+class TransformVOCAnnotation(object):
     """
     """
 
@@ -76,6 +77,13 @@ class TransformVOCDetectionAnnotation(object):
 
 
 class VOCSegmentation(data.Dataset):
+    """
+
+    Arguments:
+        root (string): filepath to VOCdevkit folder.
+        image_set (string): imageset to use (eg. 'train', 'val', 'test')
+        transform (TransformVOCAnnotation): 
+    """
 
     def __init__(self, root, image_set, transform=None, target_transform=None):
         self.root = root
@@ -159,16 +167,16 @@ class VOCDetection(data.Dataset):
         img.show()
 
 if __name__ == '__main__':
-    class_to_ind = dict(zip(cls, range(len(CLASSES))))
+    class_to_ind = dict(zip(CLASSES, range(len(CLASSES))))
 
     ds = VOCDetection(VOCroot, 'train',
-                      target_transform=TransformVOCDetectionAnnotation(class_to_ind, False))
+                      target_transform=TransformVOCAnnotation(class_to_ind, False))
     print(len(ds))
     img, target = ds[0]
     print(target)
     # ds.show(1)
     # dss = VOCSegmentation(VOCroot, 'train')
-    # img, target = dss[0]
+    # img, target = ds[0]
 
     # img.show()
     # print(target_transform(target))
