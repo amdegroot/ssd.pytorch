@@ -15,6 +15,7 @@ import sys
 # import torch
 import torch.utils.data as data
 from PIL import Image, ImageDraw
+import collections
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
@@ -30,6 +31,56 @@ VOC_CLASSES = ('__background__',  # always index 0
 # for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
           (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
+
+
+class VOCSegmentation(data.Dataset):
+    """VOC Segmentation Dataset Object
+
+    NOTE: need to address https://github.com/pytorch/vision/issues/9
+
+    Arguments:
+        root (string): filepath to VOCdevkit folder.
+        image_set (string): imageset to use (eg. 'train', 'val', 'test')
+        input_transform (function): transformation to perform on input img
+        target_transform (function): transformation to perform on target img
+        dataset_name (string): the name of the dataset to load
+            default: VOC2007
+    """
+
+    def __init__(self, root, image_set, input_transform=None, target_transform=None,
+                 dataset_name='VOC2007'):
+        self.root = root
+        self.image_set = image_set
+        self.input_transform = input_transform
+        self.target_transform = target_transform
+
+        self._annopath = os.path.join(
+            self.root, dataset_name, 'SegmentationClass', '%s.png')
+        self._imgpath = os.path.join(
+            self.root, dataset_name, 'JPEGImages', '%s.jpg')
+        self._imgsetpath = os.path.join(
+            self.root, dataset_name, 'ImageSets', 'Segmentation', '%s.txt')
+
+        with open(self._imgsetpath % self.image_set) as f:
+            self.ids = f.readlines()
+        self.ids = [x.strip('\n') for x in self.ids]
+
+    def __getitem__(self, index):
+        img_id = self.ids[index]
+
+        target = Image.open(self._annopath % img_id).convert('RGB')
+        img = Image.open(self._imgpath % img_id).convert('RGB')
+
+        if self.input_transform is not None:
+            img = self.input_transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.ids)
 
 
 class AnnotationTransform(object):
@@ -65,61 +116,11 @@ class AnnotationTransform(object):
             #bb = obj.find('bndbox')
             bbox = obj[4]
             # [xmin, ymin, xmax, ymax]
-            bndbox = [int(bb.text)-1 for bb in bbox]
+            bndbox = [int(bb.text) - 1 for bb in bbox]
 
-            res += [bndbox + [name]] # [[xmin, ymin, xmax, ymax], name]
+            res += [bndbox + [name]]  # [[xmin, ymin, xmax, ymax], name]
 
-        return res # [[[xmin, ymin, xmax, ymax], name], ... ]
-
-class VOCSegmentation(data.Dataset):
-    """VOC Segmentation Dataset Object
-
-    Arguments:
-        root (string): filepath to VOCdevkit folder.
-        image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        transform (function): a function that takes in an image and returns a
-            transformed version
-        target_transform (function): a function that takes in the target and
-            transforms it
-            (eg. take in caption string, return tensor of word indices)
-        dataset_name (string): the name of the dataset to load
-            default: VOC2007
-    """
-
-    def __init__(self, root, image_set, transform=None, target_transform=None,
-                 dataset_name='VOC2007'):
-        self.root = root
-        self.image_set = image_set
-        self.transform = transform
-        self.target_transform = target_transform
-
-        self._annopath = os.path.join(
-            self.root, dataset_name, 'SegmentationClass', '%s.png')
-        self._imgpath = os.path.join(
-            self.root, dataset_name, 'JPEGImages', '%s.jpg')
-        self._imgsetpath = os.path.join(
-            self.root, dataset_name, 'ImageSets', 'Segmentation', '%s.txt')
-
-        with open(self._imgsetpath % self.image_set) as f:
-            self.ids = f.readlines()
-        self.ids = [x.strip('\n') for x in self.ids]
-
-    def __getitem__(self, index):
-        img_id = self.ids[index]
-
-        target = Image.open(self._annopath % img_id).convert('RGB')
-        img = Image.open(self._imgpath % img_id).convert('RGB')
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return img, target
-
-    def __len__(self):
-        return len(self.ids)
+        return res  # [[[xmin, ymin, xmax, ymax], name], ... ]
 
 
 class VOCDetection(data.Dataset):
@@ -188,7 +189,7 @@ class VOCDetection(data.Dataset):
         i = 0
         for obj in target.iter('object'):
             bbox = obj.find('bndbox')
-            bndbox = [int(bb.text)-1 for bb in bbox]  # [x1,y1,x2,y2]
+            bndbox = [int(bb.text) - 1 for bb in bbox]  # [x1,y1,x2,y2]
             draw.rectangle(bndbox, outline=COLORS[i % len(COLORS)])
             draw.text(bndbox[:2], obj.find('name').text,
                       fill=COLORS[(i + 3) % len(COLORS)])
