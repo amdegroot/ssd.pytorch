@@ -15,7 +15,7 @@ import sys
 
 # from config import VOCroot
 
-# import torch
+import torch
 import torch.utils.data as data
 from PIL import Image, ImageDraw
 import collections
@@ -90,7 +90,7 @@ class VOCSegmentation(data.Dataset):
 
 
 class AnnotationTransform(object):
-    """Transforms a VOC annotation into a more usable format
+    """Transforms a VOC annotation into a Tensor of bbox coors and label index
     Initilized with a dictionary lookup of classnames to indexes
 
     Arguments:
@@ -111,7 +111,7 @@ class AnnotationTransform(object):
             target (annotation) : the target annotation to be made usable
                 will be an ET.Element
         Returns:
-            an array containing [bbox coords, class name] subarrays
+            a Tensor containing [bbox coords, class name] subarrays
         """
         res = []
         for obj in target.iter('object'):
@@ -124,10 +124,10 @@ class AnnotationTransform(object):
             bbox = obj[4]
             # [xmin, ymin, xmax, ymax]
             bndbox = [int(bb.text) - 1 for bb in bbox]
+            label_ind = self.class_to_ind[name]
+            res += [bndbox + [label_ind]]  # [xmin, ymin, xmax, ymax, ind]
 
-            res += [bndbox + [name]]  # [[xmin, ymin, xmax, ymax], name]
-
-        return res  # [[[xmin, ymin, xmax, ymax], name], ... ]
+        return torch.Tensor(res)  # [[xmin, ymin, xmax, ymax, ind], ... ]
 
 
 class VOCDetection(data.Dataset):
