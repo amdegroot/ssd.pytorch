@@ -99,3 +99,5 @@ weights/
 
 # dev IPython Notebook
 ssd.ipynb
+
+.vscode/
