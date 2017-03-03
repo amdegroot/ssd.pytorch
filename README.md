@@ -2,19 +2,21 @@
 A PyTorch implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs/1512.02325)
 
 
-## Preparation
+## Dataset Download
 
-### Download the VOC2007 dataset. We assume the data is stored in `~/data/`
+### VOC Dataset
 
+##### VOC2007 trainval & test
 ```Shell
-# Download the data.
-cd ~/data
-curl -LO http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar
-curl -LO http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar
-# Extract data
-tar -xvf VOCtrainval_06-Nov-2007.tar
-tar -xvf VOCtest_06-Nov-2007.tar
+# specify a directory for dataset to be downloaded into, else default is ~/data/
+sh /data/scripts/VOC2007.sh # <directory>
 ```
+##### VOC2012 trainval
+```Shell
+# specify a directory for dataset to be downloaded into, else default is ~/data/
+sh /data/scripts/VOC2012.sh # <directory>
+```
+
  Ensure the following directory structure (as specified in [VOCdevkit](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/devkit_doc_07-Jun-2007.pdf)):
 
 ```
