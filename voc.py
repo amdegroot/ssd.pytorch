@@ -1,17 +1,18 @@
 # voc.py
-"""Adaptation of @fmassa's voc_dataset branch of torch-vision
+"""VOC Dataset Classes
 
 Original author: Francisco Massa
 https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
+
+Ellis Brown
 """
 import os
 import os.path
 import sys
 
+# from config import VOCroot
 
-from config import VOCroot
-
-import torch
+# import torch
 import torch.utils.data as data
 from PIL import Image, ImageDraw
 if sys.version_info[0] == 2:
@@ -19,73 +20,106 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
-CLASSES = ('__background__',  # always index 0
-           'aeroplane', 'bicycle', 'bird', 'boat',
-           'bottle', 'bus', 'car', 'cat', 'chair',
-           'cow', 'diningtable', 'dog', 'horse',
-           'motorbike', 'person', 'pottedplant',
-           'sheep', 'sofa', 'train', 'tvmonitor')
+VOC_CLASSES = ('__background__',  # always index 0
+               'aeroplane', 'bicycle', 'bird', 'boat',
+               'bottle', 'bus', 'car', 'cat', 'chair',
+               'cow', 'diningtable', 'dog', 'horse',
+               'motorbike', 'person', 'pottedplant',
+               'sheep', 'sofa', 'train', 'tvmonitor')
 
+# for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
           (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
 
 
-def _flip_box(boxes, width):
-    boxes = boxes.clone()
-    oldx1 = boxes[:, 0].clone()
-    oldx2 = boxes[:, 2].clone()
-    boxes[:, 0] = width - oldx2 - 1
-    boxes[:, 2] = width - oldx1 - 1
-    return boxes
+class AnnotationTransform(object):
+    """Transforms a VOC annotation into a more usable format
+    Initilized with a dictionary lookup of classnames to indexes
 
-
-class TransformVOCAnnotation(object):
-    """
     Arguments:
         class_to_ind (dict): {<classname> : <classindex>}
+            default: alphabetic indexing of VOC's 20 classes
         keep_difficult (bool): whether or not to keep difficult instances
             defualt: False
     """
 
-    def __init__(self, class_to_ind, keep_difficult=False):
+    def __init__(self, class_to_ind=None, keep_difficult=False):
+        self.class_to_ind = class_to_ind or dict(
+            zip(VOC_CLASSES, range(len(VOC_CLASSES))))
         self.keep_difficult = keep_difficult
-        self.class_to_ind = class_to_ind
 
     def __call__(self, target):
         """
         Arguments:
-            target (Annotation) : the target annotation to be made usable
+            target (annotation xml) : the target annotation to be made usable
         Returns:
-            a dict with the following entries
-                - boxes (LongTensor): tensor representation fo all bounding
-                    boxes
-                - gt_classes ([int]): array of class indices for each gt obj
-                - im_dim ([int]): array containing [width, height,1]
+            an array containing [bbox coords, class name] subarrays
         """
-        boxes = []
-        gt_classes = []
+        res = []
         for obj in target.iter('object'):
             difficult = int(obj.find('difficult').text) == 1
             if not self.keep_difficult and difficult:
                 continue
-            name = obj.find('name').text.lower().strip()
-            bb = obj.find('bndbox')
-            bndbox = map(int, [bb.find('xmin').text, bb.find('ymin').text,
-                               bb.find('xmax').text, bb.find('ymax').text])
+            #name = obj.find('name').text
+            name = obj[0].text.lower().strip()
+            #bb = obj.find('bndbox')
+            bbox = obj[4]
+            # [xmin, ymin, xmax, ymax]
+            bndbox = [int(bb.text)-1 for bb in bbox]
 
-            boxes += [bndbox]
-            gt_classes += [self.class_to_ind[name]]
+            res += [bndbox + [name]] # [[xmin, ymin, xmax, ymax], name]
 
-        size = target.find('size')
-        im_dim = [int(i) for i in [size.find('width').text,
-                                   size.find('height').text, 1]]
+        return res # [[[xmin, ymin, xmax, ymax], name], ... ]
 
-        res = {
-            'boxes': torch.LongTensor(boxes),
-            'gt_classes': gt_classes,
-            'im_dim': im_dim
-        }
-        return res
+class VOCSegmentation(data.Dataset):
+    """VOC Segmentation Dataset Object
+
+    Arguments:
+        root (string): filepath to VOCdevkit folder.
+        image_set (string): imageset to use (eg. 'train', 'val', 'test')
+        transform (function): a function that takes in an image and returns a
+            transformed version
+        target_transform (function): a function that takes in the target and
+            transforms it
+            (eg. take in caption string, return tensor of word indices)
+        dataset_name (string): the name of the dataset to load
+            default: VOC2007
+    """
+
+    def __init__(self, root, image_set, transform=None, target_transform=None,
+                 dataset_name='VOC2007'):
+        self.root = root
+        self.image_set = image_set
+        self.transform = transform
+        self.target_transform = target_transform
+
+        self._annopath = os.path.join(
+            self.root, dataset_name, 'SegmentationClass', '%s.png')
+        self._imgpath = os.path.join(
+            self.root, dataset_name, 'JPEGImages', '%s.jpg')
+        self._imgsetpath = os.path.join(
+            self.root, dataset_name, 'ImageSets', 'Segmentation', '%s.txt')
+
+        with open(self._imgsetpath % self.image_set) as f:
+            self.ids = f.readlines()
+        self.ids = [x.strip('\n') for x in self.ids]
+
+    def __getitem__(self, index):
+        img_id = self.ids[index]
+
+        target = Image.open(self._annopath % img_id).convert('RGB')
+        img = Image.open(self._imgpath % img_id).convert('RGB')
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.ids)
 
 
 class VOCDetection(data.Dataset):
@@ -94,10 +128,13 @@ class VOCDetection(data.Dataset):
     Arguments:
         root (string): filepath to VOCdevkit folder.
         image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        transform (TransformVOCAnnotation): the transformation to be applied
-            to the image
-        target_transform (TransformVOCAnnotation): the transformation to be
-            applied to the target
+        transform (function): a function that takes in an image and returns a
+            transformed version
+        target_transform (function): a function that takes in the target and
+            transforms it
+            (eg. take in caption string, return tensor of word indices)
+        dataset_name (string): the name of the dataset to load
+            default: VOC2007
     """
 
     def __init__(self, root, image_set, transform=None, target_transform=None,
@@ -122,8 +159,8 @@ class VOCDetection(data.Dataset):
         img_id = self.ids[index]
 
         target = ET.parse(self._annopath % img_id).getroot()
-
         img = Image.open(self._imgpath % img_id).convert('RGB')
+
         if self.transform is not None:
             img = self.transform(img)
 
@@ -136,34 +173,24 @@ class VOCDetection(data.Dataset):
         return len(self.ids)
 
     def show(self, index):
-        '''Shows an image with it's bounding box overlaid
+        '''Shows an image with its bounding box overlaid
+
+        Note: not using self.__getitem__(), as any transformations passed in
+        could mess up this functionality.
 
         Argument:
             index (int): index of img to show
         '''
-        img, target = self.__getitem__(index)
+        img_id = self.ids[index]
+        target = ET.parse(self._annopath % img_id).getroot()
+        img = Image.open(self._imgpath % img_id).convert('RGB')
         draw = ImageDraw.Draw(img)
         i = 0
         for obj in target.iter('object'):
-            bb = obj.find('bndbox')
-            bbcoord = [int(b.text) for b in bb.getchildren()]  # [x1,y1,x2,y2]
-            draw.rectangle(bbcoord, outline=COLORS[i % len(COLORS)])
-            draw.text(bbcoord[:2], obj.find('name').text,
+            bbox = obj.find('bndbox')
+            bndbox = [int(bb.text)-1 for bb in bbox]  # [x1,y1,x2,y2]
+            draw.rectangle(bndbox, outline=COLORS[i % len(COLORS)])
+            draw.text(bndbox[:2], obj.find('name').text,
                       fill=COLORS[(i + 3) % len(COLORS)])
             i += 1
         img.show()
-
-if __name__ == '__main__':
-    class_to_ind = dict(zip(CLASSES, range(len(CLASSES))))
-
-    ds = VOCDetection(VOCroot, 'train',
-                      target_transform=TransformVOCAnnotation(class_to_ind, False))
-    print(len(ds))
-    img, target = ds[0]
-    print(target)
-    # ds.show(1)
-    # dss = VOCSegmentation(VOCroot, 'train')
-    # img, target = ds[0]
-
-    # img.show()
-    # print(target_transform(target))
