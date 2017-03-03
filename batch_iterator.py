@@ -17,7 +17,7 @@ from torchvision import transforms
 
 # next method
 
-class BatchIterator(Function):
+class BatchIterator(data.DataLoader):
     """
     class for loading batch into network
     """
@@ -28,6 +28,9 @@ class BatchIterator(Function):
         Args:
             dataset (string): the desired dataset to load
         """
+
+    def load(self, batch_size):
+        return batch_size
 
 
 class Dataset(data.Dataset):
