@@ -26,6 +26,9 @@ CLASSES = ('__background__',  # always index 0
            'motorbike', 'person', 'pottedplant',
            'sheep', 'sofa', 'train', 'tvmonitor')
 
+COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
+          (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
+
 
 def _flip_box(boxes, width):
     boxes = boxes.clone()
@@ -36,9 +39,12 @@ def _flip_box(boxes, width):
     return boxes
 
 
-# class TransformVOCDetectionAnnotation(object):
 class TransformVOCAnnotation(object):
     """
+    Arguments:
+        class_to_ind (dict): {<classname> : <classindex>}
+        keep_difficult (bool): whether or not to keep difficult instances
+            defualt: False
     """
 
     def __init__(self, class_to_ind, keep_difficult=False):
@@ -48,7 +54,13 @@ class TransformVOCAnnotation(object):
     def __call__(self, target):
         """
         Arguments:
-            target ()
+            target (Annotation) : the target annotation to be made usable
+        Returns:
+            a dict with the following entries
+                - boxes (LongTensor): tensor representation fo all bounding
+                    boxes
+                - gt_classes ([int]): array of class indices for each gt obj
+                - im_dim ([int]): array containing [width, height,1]
         """
         boxes = []
         gt_classes = []
@@ -65,71 +77,36 @@ class TransformVOCAnnotation(object):
             gt_classes += [self.class_to_ind[name]]
 
         size = target.find('size')
-        im_info = map(int, (size.find('height').text,
-                            size.find('width').text, 1))
+        im_dim = [int(i) for i in [size.find('width').text,
+                                   size.find('height').text, 1]]
 
         res = {
             'boxes': torch.LongTensor(boxes),
             'gt_classes': gt_classes,
-            'im_info': im_info
+            'im_dim': im_dim
         }
         return res
 
 
-class VOCSegmentation(data.Dataset):
-    """
+class VOCDetection(data.Dataset):
+    """VOC Detection Dataset Object
 
     Arguments:
         root (string): filepath to VOCdevkit folder.
         image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        transform (TransformVOCAnnotation): 
+        transform (TransformVOCAnnotation): the transformation to be applied
+            to the image
+        target_transform (TransformVOCAnnotation): the transformation to be
+            applied to the target
     """
 
-    def __init__(self, root, image_set, transform=None, target_transform=None):
+    def __init__(self, root, image_set, transform=None, target_transform=None,
+                 dataset_name='VOC2007'):
         self.root = root
         self.image_set = image_set
         self.transform = transform
         self.target_transform = target_transform
 
-        dataset_name = 'VOC2007'
-        self._annopath = os.path.join(
-            self.root, dataset_name, 'SegmentationClass', '%s.png')
-        self._imgpath = os.path.join(
-            self.root, dataset_name, 'JPEGImages', '%s.jpg')
-        self._imgsetpath = os.path.join(
-            self.root, dataset_name, 'ImageSets', 'Segmentation', '%s.txt')
-
-        with open(self._imgsetpath % self.image_set) as f:
-            self.ids = f.readlines()
-        self.ids = [x.strip('\n') for x in self.ids]
-
-    def __getitem__(self, index):
-        img_id = self.ids[index]
-
-        target = Image.open(self._annopath % img_id)  # .convert('RGB')
-
-        img = Image.open(self._imgpath % img_id).convert('RGB')
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return img, target
-
-    def __len__(self):
-        return len(self.ids)
-
-
-class VOCDetection(data.Dataset):
-
-    def __init__(self, root, image_set, transform=None, target_transform=None):
-        self.root = root
-        self.image_set = image_set
-        self.transform = transform
-        self.target_transform = target_transform
-
-        dataset_name = 'VOC2007'
         self._annopath = os.path.join(
             self.root, dataset_name, 'Annotations', '%s.xml')
         self._imgpath = os.path.join(
@@ -159,11 +136,21 @@ class VOCDetection(data.Dataset):
         return len(self.ids)
 
     def show(self, index):
+        '''Shows an image with it's bounding box overlaid
+
+        Argument:
+            index (int): index of img to show
+        '''
         img, target = self.__getitem__(index)
         draw = ImageDraw.Draw(img)
-        for obj in target:
-            draw.rectangle(obj[0:4], outline=(255, 0, 0))
-            draw.text(obj[0:2], obj[4], fill=(0, 255, 0))
+        i = 0
+        for obj in target.iter('object'):
+            bb = obj.find('bndbox')
+            bbcoord = [int(b.text) for b in bb.getchildren()]  # [x1,y1,x2,y2]
+            draw.rectangle(bbcoord, outline=COLORS[i % len(COLORS)])
+            draw.text(bbcoord[:2], obj.find('name').text,
+                      fill=COLORS[(i + 3) % len(COLORS)])
+            i += 1
         img.show()
 
 if __name__ == '__main__':
