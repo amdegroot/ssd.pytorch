@@ -1,8 +1,16 @@
--  get working on cuda
--  nms needs to work
+-   cuda
+-   loss, hard neg mining
+-   format, document, readme
+-   demo - loads batch using pretrained weights, prints predictions bboxs and labels
 --------------------------
 PUBLIC
 --------------------------
+-   l2norm, backprop
+-   training
+-   improve nms
+-   load weights from caffe
+
+
 -  backprop:
     - training layer
     - l2norm
@@ -29,3 +37,10 @@ each training image is randomly sampled by one of the following options:
     – Sample a patch so that the minimum jaccard overlap with the objects is 0.1, 0.3,
     0.5, 0.7, or 0.9.
     – Randomly sample a patch.
+
+
+PyTorch multi-thread dataloader
+https://github.com/kuangliu/pytorch-ssd/blob/master/datagen.py
+
+
+get coco pretrained weights
