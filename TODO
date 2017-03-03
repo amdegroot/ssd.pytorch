@@ -1,4 +1,4 @@
--   cuda
+-   cuda!
 -   loss, hard neg mining
 -   format, document, readme
 -   demo - loads batch using pretrained weights, prints predictions bboxs and labels
