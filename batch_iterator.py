@@ -1,6 +1,6 @@
-# batch_iterator.py
-"""
-augments image data and pairs with labels for loading into the network
+"""Contains the BatchIterator functionality
+
+Ellis Brown
 """
 
 import os
@@ -13,39 +13,22 @@ from torch.autograd import Variable
 import torchvision
 from torchvision import transforms
 
+from voc import AnnotationTransform, VOCDetection
+from config import VOCroot, BATCHES, SHUFFLE, WORKERS
 
 
-# next method
-
-class BatchIterator(data.DataLoader):
-    """
-    class for loading batch into network
-    """
-
-    def __init__(self, dataset):
-        """
-
-        Args:
-            dataset (string): the desired dataset to load
-        """
-
-    def load(self, batch_size):
-        return batch_size
-
-
-class Dataset(data.Dataset):
-    """Class representing the dataset
+class BatchIterator(object):
+    """Controlls batches on their way into the network
 
     Arguments:
-        data_tensor (Tensor): contains sample data.
-        target_tensor (Tensor): contains sample targets (labels).
+        train_loader (DataLoader): loader for the training set
+        val_loader (DataLoader): loader for the validation set
+        test_loader (DataLoader): loader for the testing set
+        batch_size (int): batch size
     """
-    def __init__(self, data):
-        self.data = data
 
-
-    def __getitem__(self, index):
-        raise NotImplementedError
-
-    def __len__(self):
-        raise NotImplementedError
+    def __init__(self, train_loader, val_loader, test_loader, batch_size=BATCHES):
+        self.batch_size = batch_size
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+        self.test_loader = test_loader

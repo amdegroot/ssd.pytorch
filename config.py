@@ -8,4 +8,9 @@ ddir = os.path.join(home,"data/VOCdevkit/")
 # note: if you used our download scripts, this should be right
 VOCroot = ddir # path to VOCdevkit root dir
 
-batch_size = 32
+# default batch size
+BATCHES = 32
+# data reshuffled at every epoch 
+SHUFFLE = True
+# number of subprocesses to use for data loading
+WORKERS = 4

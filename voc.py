@@ -1,4 +1,3 @@
-# voc.py
 """VOC Dataset Classes
 
 Original author: Francisco Massa
@@ -6,8 +5,6 @@ https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 
 Ellis Brown
 """
-
-from __future__ import print_function  # py 2.x compatability
 
 import os
 import os.path
