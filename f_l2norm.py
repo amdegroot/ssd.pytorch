@@ -24,7 +24,6 @@ class L2norm(Function):
             for c in range(0, input.size(1)):
                 output[n][c].div_(norms)
                 output[n][c].mul_(weight[c])
-
         return output
 
 

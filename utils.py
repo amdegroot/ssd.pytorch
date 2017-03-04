@@ -1,14 +1,11 @@
 import torch
 import torch.nn as nn
 import math
-#from torch.autograd import Variable
 if torch.cuda.is_available():
     import torch.backends.cudnn as cudnn
 
-def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_target,bboxes):
-    bboxes = bboxes.view(-1,4)
+def decode_boxes(prior_bboxes,prior_variances,bboxes,variance_encoded_in_target = False):
     assert(prior_bboxes.size(0) == prior_variances.size(0))
-
     assert(prior_bboxes.size(0) == bboxes.size(0))
     num_bboxes = prior_bboxes.size(0)
     decode = torch.Tensor(bboxes.size(0), bboxes.size(1))
@@ -37,53 +34,31 @@ def decode_boxes(prior_bboxes,prior_variances,code_type,variance_encoded_in_targ
     decode_w = p_w.new()
     decode_h = p_h.new()
 
-    if code_type == 'CORNER':
-        if variance_encoded_in_target:
-            # variance is encoded in target, we simply need to add the offset predictions
-            torch.add(decode[:,0], torch.add(p_x1, var1))
-            torch.add(decode[:,1], torch.add(p_y1, var2))
-            torch.add(decode[:,2], torch.add(p_x2, var3))
-            torch.add(decode[:,3], torch.add(p_y2, var4))
-        else:
-            # variance is encoded in bbox, we need to scale the offset accordingly.
-            torch.add(p_x1, var1, b_x1, out=decode[:,0])
-            torch.add(p_y1, var2, b_y1, out=decode[:,1])
-            torch.add(p_x2, var3, b_x2, out=decode[:,2])
-            torch.add(p_y2, var4, b_y2, out=decode[:,3])
+    prior_center_x = torch.add(p_x1,p_x2).mul(0.5)
+    prior_center_y = torch.add(p_y1,p_y2).mul(0.5)
+    p_w-=p_x1
+    p_h-=p_y1
 
-    elif code_type == 'CENTER':
-        prior_center_x = torch.add(p_x1,p_x2).mul(0.5)
-        prior_center_y = torch.add(p_y1,p_y2).mul(0.5)
-        p_w-=p_x1
-        p_h-=p_y1
+    if variance_encoded_in_target:
+        # variance is encoded in target, we simply need to restore the offset predictions.
+        torch.add(b_x1, p_w, out=prior_center_x)
+        torch.add(b_y1, p_h, out=prior_center_y)
+        decode_w = torch.addcmul(0.5,torch.exp(b_x2),p_w)
+        decode_h = torch.addcmul(0.5,torch.exp(b_y2),p_h)
 
-
-        if variance_encoded_in_target:
-            # variance is encoded in target, we simply need to restore the offset predictions.
-            print('its encoded')
-            torch.add(b_x1, p_w, out=prior_center_x)
-            torch.add(b_y1, p_h, out=prior_center_y)
-            decode_w = torch.addcmul(0.5,torch.exp(b_x2),p_w)
-            decode_h = torch.addcmul(0.5,torch.exp(b_y2),p_h)
-
-        else:
-            # variance is encoded in bbox, we need to scale the offset accordingly.
-
-            decode_center_x = b_x1.mul(p_w).mul(var1)
-            decode_center_x += prior_center_x
-            decode_center_y = b_y1.mul(p_h).mul(var2)
-            decode_center_y += prior_center_y
-            # torch.addcmul(prior_center_x,var1,b_x1,p_w)
-            # torch.addcmul(prior_center_y,var2,b_y1,p_h)
-            decode_w = torch.exp(b_x2.mul(var3))*p_w.mul(0.5)
-            decode_h = torch.exp(b_y2.mul(var4))*p_h.mul(0.5)
-
-        decode[:,0] = prior_center_x-decode_w# set xmin
-        decode[:,1] = prior_center_y-decode_h# set ymin
-        decode[:,2] = prior_center_x.add(decode_w)# set xmax
-        decode[:,3] = prior_center_y.add(decode_h)# set ymax
     else:
-       print('<Detection_Output> Unknown LocLossType')
+        # variance is encoded in bbox, we need to scale the offset accordingly.
+        decode_center_x = b_x1.mul(p_w).mul(var1)
+        decode_center_x += prior_center_x
+        decode_center_y = b_y1.mul(p_h).mul(var2)
+        decode_center_y += prior_center_y
+        decode_w = torch.exp(b_x2.mul(var3))*p_w.mul(0.5)
+        decode_h = torch.exp(b_y2.mul(var4))*p_h.mul(0.5)
+
+    decode[:,0] = prior_center_x - decode_w     # set xmin
+    decode[:,1] = prior_center_y - decode_h     # set ymin
+    decode[:,2] = prior_center_x + decode_w     # set xmax
+    decode[:,3] = prior_center_y.add(decode_h)  # set ymax
     return decode
 
 def center_size(priors):
@@ -93,12 +68,12 @@ def center_size(priors):
 def intersect(box_a, box_b):
     '''
     Args:
-      box_a: (tensor) bounding boxes, sized [A,4].
-      box_b: (tensor) bounding boxes, sized [B,4].
+      box_a: (tensor) bounding boxes, Shape: [A,4].
+      box_b: (tensor) bounding boxes, Shape: [B,4].
     Return:
-      (tensor) intersection tensor sized [A,B].
+      (tensor) intersection tensor Shape: [A,B].
 
-    expands both tensors to size [A,B,2]
+    both tensors to [A,B,2]
     [A,2] -> [A,1,2] -> [A,B,2]
     [B,2] -> [1,B,2] -> [A,B,2]
     subtracts max from min vals for each dimension from each tensor to get width and height,
@@ -115,13 +90,13 @@ def intersect(box_a, box_b):
         min=0).prod(2) # [A,B] multiplies width & height for each A,B
 
 
-
 def jaccard(box_a, box_b):
     inter = intersect(boxa_a, box_b)
     area_a = (box_a[:,2]-box_a[:,0])*(box_a[:,3]-box_a[:,1]).unsqueeze(1).expand_as(inter)  # [A,B]
     area_b = (box_b[:,2]-box_b[:,0])*(box_b[:,3]-box_b[:,1]).unsqueeze(0).expand_as(inter)  # [A,B]
     union = area_a + area_b - inter
     return inter / union # [A,B]
+
 
 def match(truths, priors, variances, labels, threshold):
     overlaps = jaccard(  # [#obj,8732]
@@ -139,6 +114,7 @@ def match(truths, priors, variances, labels, threshold):
 
     return loc, conf # encoded location of each bounding box, label matched with each bounding box
 
+
 def encode(matched, priors, variances):
     # matched [8732,4] (x1,y1,x2,y2) ... coords of ground truth for each prior
     # priors  [8732,4] (cx,cy,w,h)
@@ -150,6 +126,7 @@ def encode(matched, priors, variances):
     return torch.cat([cx_cy, wh], 1)  # [8732,4]
 
 def apply_nms(boxes, scores, overlap, top_k):
+
 
     pick = torch.zeros(scores.size(0))
     if boxes.numel() == 0:
@@ -218,9 +195,43 @@ def apply_nms(boxes, scores, overlap, top_k):
     return pick[:count]
 
 
+def hard_negative_mining(self, conf_loss, pos):
+        '''Return negative indices that is 3x the number as postive indices.
+        Args:
+          conf_loss: (tensor) cross entroy loss between conf_preds and conf_targets, sized [N*8732,].
+          pos: (tensor) positive(matched) box indices, sized [N,8732].
+        Return:
+          (tensor) negative indices, sized [N,8732].
+        '''
+        batch_size, num_boxes = pos.size()
+
+        conf_loss[pos] = 0  # set pos boxes = 0, the rest are neg conf_loss
+        conf_loss = conf_loss.view(batch_size, -1)  # [N,8732]
+        max_loss,_ = conf_loss.sort(1, descending=True)  # sort by neg conf_loss
+
+        num_pos = pos.long().sum(1)  # [N,1]
+        num_neg = torch.clamp(3*num_pos, max=num_boxes-1)  # [N,1]
+
+        pivot_loss = max_loss.gather(1, num_neg)           # [N,1]
+        neg = conf_loss > pivot_loss.expand_as(conf_loss)  # [N,8732]
+        return neg
+
+
+def cross_entropy_loss(self, x, y):
+        '''Cross entropy loss w/o averaging across all samples.
+        Args:
+          x: (tensor) sized [N,D].
+          y: (tensor) sized [N,].
+        Return:
+          (tensor) cross entroy loss, sized [N,].
+        '''
+        xmax = x.data.max()
+        log_sum_exp = torch.log(torch.sum(torch.exp(x-xmax), 1)) + xmax
+        return log_sum_exp - x.gather(1, y.view(-1,1))
+
+
 def sort(score_pairs, indices_list, label_list, ktk, final_scores, final_indices, final_labels):
-       # note. removed tk field which was -1 for first case and length for second
-    res, i = torch.topk(score_pairs,ktk,0,True,True) # maybe change 0 back to 1 (changed for python)
+    res, i = torch.topk(score_pairs,ktk,0,True,True) 
     for n in range(ktk):
         final_scores[n] = res[n]
         final_indices[n] = indices_list[i[n]]
