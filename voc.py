@@ -10,18 +10,15 @@ import os
 import os.path
 import sys
 
-# from config import VOCroot
-
 import torch
 import torch.utils.data as data
 from PIL import Image, ImageDraw
-import collections
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
     import xml.etree.ElementTree as ET
 
-VOC_CLASSES = ('__background__',  # always index 0
+VOC_CLASSES = ('background',  # always index 0
                'aeroplane', 'bicycle', 'bird', 'boat',
                'bottle', 'bus', 'car', 'cat', 'chair',
                'cow', 'diningtable', 'dog', 'horse',
@@ -108,17 +105,16 @@ class AnnotationTransform(object):
             target (annotation) : the target annotation to be made usable
                 will be an ET.Element
         Returns:
-            a Tensor containing [bbox coords, class name] subarrays
+            a Tensor containing [bbox coords, class name]
         """
         res = []
         for obj in target.iter('object'):
             difficult = int(obj.find('difficult').text) == 1
             if not self.keep_difficult and difficult:
                 continue
-            #name = obj.find('name').text
-            name = obj[0].text.lower().strip()
+            name = obj.find('name').text.lower().strip()
             bbox = obj.find('bndbox')
-            #bbox = obj[4]
+
             # [xmin, ymin, xmax, ymax]
             bndbox = [int(bb.text) - 1 for bb in bbox]
             label_ind = self.class_to_ind[name]
@@ -179,8 +175,9 @@ class VOCDetection(data.Dataset):
     def __len__(self):
         return len(self.ids)
 
-    def show(self, index):
-        '''Shows an image with its bounding box overlaid
+    def show(self, index, subparts=False):
+        '''Shows an image with its ground truth boxes overlaid
+        optionally
 
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
@@ -189,6 +186,8 @@ class VOCDetection(data.Dataset):
 
         Argument:
             index (int): index of img to show
+            subparts (bool, optional): whether or not to display subpart
+            bboxes of ground truths
         '''
         img_id = self.ids[index]
         target = ET.parse(self._annopath % img_id).getroot()
@@ -197,10 +196,16 @@ class VOCDetection(data.Dataset):
         i = 0
         for obj in target.iter('object'):
             bbox = obj.find('bndbox')
-            bndbox = [int(bb.text) - 1 for bb in bbox]  # [x1,y1,x2,y2]
-            draw.rectangle(bndbox, outline=COLORS[i % len(COLORS)])
-            draw.text(bndbox[:2], obj.find('name').text,
-                      fill=COLORS[(i + 3) % len(COLORS)])
-            i += 1
+            name = obj.find('name').text.lower().strip()
+            bndboxs = [(name, [int(bb.text) - 1 for bb in bbox])]
+            if subparts and not obj.find('part') is None:
+                for part in obj.iter('part'):
+                    name = part.find('name').text.lower().strip()
+                    bbox = part.find('bndbox')
+                    bndboxs.append((name, [int(bb.text) - 1 for bb in bbox]))
+            for name, bndbox in bndboxs:
+                draw.rectangle(bndbox, outline=COLORS[i % len(COLORS)])
+                draw.text(bndbox[:2], name, fill=COLORS[(i + 3) % len(COLORS)])
+                i += 1
         img.show()
         return img
