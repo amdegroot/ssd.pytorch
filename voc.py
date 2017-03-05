@@ -184,8 +184,6 @@ class VOCDetection(data.Dataset):
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
 
-        TODO: make colors match per class
-
         Argument:
             index (int): index of img to show
             subparts (bool, optional): whether or not to display subpart
@@ -196,19 +194,27 @@ class VOCDetection(data.Dataset):
         img = Image.open(self._imgpath % img_id).convert('RGB')
         draw = ImageDraw.Draw(img)
         i = 0
+        bndboxs = []
+        classes = dict()
         for obj in target.iter('object'):
             bbox = obj.find('bndbox')
             name = obj.find('name').text.lower().strip()
-            bndboxs = [(name, [int(bb.text) - 1 for bb in bbox])]
+            if not name in classes:
+                classes[name] = i
+                i += 1
+            bndboxs.append((name, [int(bb.text) - 1 for bb in bbox]))
             if subparts and not obj.find('part') is None:
                 for part in obj.iter('part'):
                     name = part.find('name').text.lower().strip()
                     bbox = part.find('bndbox')
                     bndboxs.append((name, [int(bb.text) - 1 for bb in bbox]))
-            for name, bndbox in bndboxs:
-                draw.rectangle(bndbox, outline=COLORS[i % len(COLORS)])
-                draw.text(bndbox[:2], name, fill=COLORS[(i + 3) % len(COLORS)])
-                i += 1
+                    if not name in classes:
+                        classes[name] = i
+                        i += 1
+        for name, bndbox in bndboxs:
+            color = COLORS[classes[name] % len(COLORS)]
+            draw.rectangle(bndbox, outline=color)
+            draw.text(bndbox[:2], name, fill=color)
         img.show()
         return img
 
