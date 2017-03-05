@@ -170,7 +170,9 @@ class SSD(nn.Module):
             output = self.detect(loc_layers,conf_layers,box_layers)
         else:
             conf_layers = conf_layers.view(conf_layers.size(0),-1,self.num_classes)
-            output = [loc_layers, conf_layers, box_layers]
+            loc_layers = loc_layers.view(loc_layers.size(0),-1,4)
+            box_layers = box_layers.squeeze(0)
+            output = (loc_layers, conf_layers, box_layers)
         return output
 
 

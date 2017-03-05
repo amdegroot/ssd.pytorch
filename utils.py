@@ -25,7 +25,7 @@ def decode_boxes(prior_boxes,prior_variances,boxes,variance_encoded_in_target = 
     #decode = Variable(decode)
     if num_boxes >= 1:
         assert(prior_variances[0].size(0) == 4)
-        
+
     prior_center_x = torch.add(prior_boxes[:,0],prior_boxes[:,2]).mul(0.5)
     prior_center_y = torch.add(prior_boxes[:,1],prior_boxes[:,3]).mul(0.5)
     p_w = prior_boxes[:,2] - prior_boxes[:,0]
@@ -84,13 +84,12 @@ def intersect(box_a, box_b):
     """
     A = box_a.size(0)
     B = box_b.size(0)
-
     return torch.clamp(
-        box_a[:,:2].unsqueeze(1).expand(A,B,2).max(
-        box_b[:,:2].unsqueeze(0).expand(A,B,2),)
-        - box_a[:,2:].unsqueeze(1).expand(N,M,2).min(
-        box_b[:,2:].unsqueeze(0).expand(N,M,2)),
-        min=0).prod(2) # [A,B] multiplies width & height for each A,B
+        (torch.max(box_a[:,:2].unsqueeze(1).expand(A,B,2),
+        box_b[:,:2].unsqueeze(0).expand(A,B,2))
+        - torch.min(box_a[:,2:].unsqueeze(1).expand(A,B,2),
+        box_b[:,2:].unsqueeze(0).expand(A,B,2))),
+        min=0).prod(2).squeeze(2) # [A,B] multiplies width & height for each A,B
 
 
 def jaccard(box_a, box_b):
@@ -108,9 +107,9 @@ def jaccard(box_a, box_b):
     Return:
         jaccard overlap: (tensor) Shape: [box_a.size(0), box_b.size(0)]
     """
-    inter = intersect(boxa_a, box_b)
-    area_a = (box_a[:,2]-box_a[:,0])*(box_a[:,3]-box_a[:,1]).unsqueeze(1).expand_as(inter)  # [A,B]
-    area_b = (box_b[:,2]-box_b[:,0])*(box_b[:,3]-box_b[:,1]).unsqueeze(0).expand_as(inter)  # [A,B]
+    inter = intersect(box_a, box_b)
+    area_a = ((box_a[:,2]-box_a[:,0])*(box_a[:,3]-box_a[:,1])).unsqueeze(1).expand_as(inter)  # [A,B]
+    area_b = ((box_b[:,2]-box_b[:,0])*(box_b[:,3]-box_b[:,1])).unsqueeze(0).expand_as(inter)  # [A,B]
     union = area_a + area_b - inter
     return inter / union # [A,B]
 
@@ -137,16 +136,18 @@ def match(truths, priors, variances, labels, threshold):
         center_size(priors)
     )
     best_overlaps, best_idx = overlaps.max(0)  # [#num_priors,1]
-    best_idx.squeeze_(0)                       # [#num_priors]
-    best_overlaps.squeeze_(0)                  # [#num_priors]
-    matches = truths[best_idx]                 # [#num_priors,4]
-
-    conf = classes[max_idx].add(1)             # [num_priors,], bkg class = 0
-    conf[overlaps<threshold] = 0               # label as background
+    print(truths)
+    print(best_idx)
+    # matches = truths[best_idx.squeeze()]                 # [#num_priors,4]
+    matches = truths[best_idx.squeeze().data]
+    conf = labels[best_idx.squeeze().data].add(1)             # [num_priors,], bkg class = 0
+    print(conf.size())
+    print(overlaps.size())
+    conf[best_overlaps.squeeze()<threshold] = 0               # label as background
     loc = encode(matches,priors,variances)     # [num_priors,4]
 
     # encoded location of each bounding box, label matched with each bounding box
-    return loc, conf
+    return loc, conf.long()
 
 
 def encode(matched, priors, variances):
@@ -163,6 +164,7 @@ def encode(matched, priors, variances):
         encoded boxes (tensor), Shape: [num_priors, 4]
 
     """
+    variances = [0.1,0.2]
     cx_cy = (matched[:,:2] + matched[:,2:]) / 2 - priors[:,:2] # dist b/t match center and prior's center
     cx_cy /= (variances[0] * priors[:,2:]) # encode variance
     wh = (matched[:,2:] - matched[:,:2]) / priors[:,2:] # match wh / prior wh

@@ -117,8 +117,8 @@ class AnnotationTransform(object):
                 continue
             #name = obj.find('name').text
             name = obj[0].text.lower().strip()
-            #bb = obj.find('bndbox')
-            bbox = obj[4]
+            bbox = obj.find('bndbox')
+            #bbox = obj[4]
             # [xmin, ymin, xmax, ymax]
             bndbox = [int(bb.text) - 1 for bb in bbox]
             label_ind = self.class_to_ind[name]
