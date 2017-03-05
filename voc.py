@@ -185,6 +185,8 @@ class VOCDetection(data.Dataset):
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
 
+        TODO: make colors match per class
+
         Argument:
             index (int): index of img to show
         '''

@@ -1,4 +1,6 @@
 #!/bin/bash
+# Ellis Brown
+
 start=`date +%s`
 
 # handle optional download dir

@@ -18,7 +18,7 @@ from config import VOCroot, BATCHES, SHUFFLE, WORKERS
 
 
 class BatchIterator(object):
-    """Controlls batches on their way into the network
+    """Controls batches on their way into the network
 
     Arguments:
         train_loader (DataLoader): loader for the training set

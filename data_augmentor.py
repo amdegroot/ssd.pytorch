@@ -79,6 +79,7 @@ def test_transform(dim, mean_values):
     """
 
     return transforms.Compose([
+        transforms.CenterCrop(dim),
         transforms.Scale(dim),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255)),
