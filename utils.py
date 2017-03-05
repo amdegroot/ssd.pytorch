@@ -25,28 +25,7 @@ def decode_boxes(prior_boxes,prior_variances,boxes,variance_encoded_in_target = 
     #decode = Variable(decode)
     if num_boxes >= 1:
         assert(prior_variances[0].size(0) == 4)
-
-    # p_x1 = prior_boxes[:,0]
-    # p_y1 = prior_boxes[:,1]
-    # p_x2 = prior_boxes[:,2]
-    # p_y2 = prior_boxes[:,3]
-    #
-    # b_x1 = boxes[:,0]
-    # b_y1 = boxes[:,1]
-    # b_x2 = boxes[:,2]
-    # b_y2 = boxes[:,3]
-    #
-    # var1 = prior_variances[0][0]
-    # var2 = prior_variances[0][1]
-    # var3 = prior_variances[0][2]
-    # var4 = prior_variances[0][3]
-    #
-    # p_w = p_x2.clone()
-    # p_h = p_y2.clone()
-    #
-    # decode_w = p_w.new()
-    # decode_h = p_h.new()
-
+        
     prior_center_x = torch.add(prior_boxes[:,0],prior_boxes[:,2]).mul(0.5)
     prior_center_y = torch.add(prior_boxes[:,1],prior_boxes[:,3]).mul(0.5)
     p_w = prior_boxes[:,2] - prior_boxes[:,0]
