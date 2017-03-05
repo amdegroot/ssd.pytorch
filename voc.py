@@ -3,13 +3,14 @@
 Original author: Francisco Massa
 https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 
-Ellis Brown
+Updated by: Ellis Brown, Max deGroot
 """
 
 import os
 import os.path
 import sys
-
+import numpy as np
+import collections
 import torch
 import torch.utils.data as data
 from PIL import Image, ImageDraw
@@ -118,10 +119,11 @@ class AnnotationTransform(object):
             # [xmin, ymin, xmax, ymax]
             bndbox = [int(bb.text) - 1 for bb in bbox]
             label_ind = self.class_to_ind[name]
-            res += [bndbox + [label_ind]]  # [xmin, ymin, xmax, ymax, ind]
+            bndbox.append(label_ind)
+            res += [bndbox]  # [xmin, ymin, xmax, ymax, ind]
 
-        return torch.Tensor(res)  # [[xmin, ymin, xmax, ymax, ind], ... ]
-
+        return res  # [[xmin, ymin, xmax, ymax, ind], ... ]
+# torch.Tensor(res)
 
 class VOCDetection(data.Dataset):
     """VOC Detection Dataset Object
@@ -170,7 +172,7 @@ class VOCDetection(data.Dataset):
         if self.target_transform is not None:
             target = self.target_transform(target)
 
-        return img, target
+        return img.squeeze(0), target
 
     def __len__(self):
         return len(self.ids)
@@ -209,3 +211,15 @@ class VOCDetection(data.Dataset):
                 i += 1
         img.show()
         return img
+
+def detection_collate(batch):
+    targets = []
+    imgs = []
+    for i,sample in enumerate(batch):
+        for j, tup in enumerate(sample):
+            if torch.is_tensor(tup):
+                imgs.append(tup)
+            elif isinstance(tup,type([])):
+                targets += [torch.Tensor(x) for x in tup]
+
+    return [torch.stack(imgs,0), targets]
