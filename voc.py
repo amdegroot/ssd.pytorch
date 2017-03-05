@@ -220,6 +220,6 @@ def detection_collate(batch):
             if torch.is_tensor(tup):
                 imgs.append(tup)
             elif isinstance(tup,type([])):
-                targets += [torch.Tensor(x) for x in tup]
+                targets.append([torch.Tensor(x) for x in tup])
 
-    return [torch.stack(imgs,0), targets]
+    return (torch.stack(imgs,0), targets)
