@@ -6,6 +6,12 @@ from torch.autograd import Variable
 from utils import *
 
 class Detect(Function):
+    """At test time, Detect is the final layer of SSD.  Decode location preds,
+    apply non-maximum suppression to location predictions based on conf
+    scores and threshold to a top_k number of output predictions for both
+    confidence score and locations.
+
+    """
     def __init__(self, num_classes, background_label, keep_top_k, conf_thresh, nms_threshold, nms_top_k):
         #super(Detect, self).__init__()
         self.num_classes = num_classes
@@ -21,10 +27,15 @@ class Detect(Function):
             self.top_k = self.nms_top_k
 
     def forward(self, loc_data, conf_data, prior_data):
-
-        # self.loc_data = loc_data    # batch X num_priors*4
-        # self.conf_data = conf_data  # batch*num_priors X num_classes
-        # self.prior_data = prior_data  # 1 X 2 X num_priors*4
+        """
+        Args:
+            loc_data: (tensor) Loc preds from loc layers,
+                Shape: [batch,num_priors*4]
+            conf_data: (tensor) Shape: Conf preds from conf layers,
+                Shape: [batch*num_priors,num_classes]
+            prior_data: (tensor) Prior boxes and variances from priorbox layers,
+                Shape: [1,2,num_priors*4]
+        """
         num = loc_data.size(0) # batch size
         self.output = torch.Tensor(num,self.keep_top_k,7)  # TODO: refactor
 

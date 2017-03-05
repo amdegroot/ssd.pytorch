@@ -25,7 +25,7 @@ class SSD(nn.Module):
     See: https://arxiv.org/pdf/1512.02325.pdf for more details.
 
     Args:
-        features1: (Sequential nn.Module) VGG layers for input
+        features1: (nn.Sequential) VGG layers for input
             size of either 300 or 500
         phase: (string) Can be "test" or "train"
         size: (int) the SSD version for the input size. Can be 300 or 500.
@@ -111,7 +111,7 @@ class SSD(nn.Module):
         self.detect = Detect(21, 0, 200, 0.01, 0.45, 400)
 
     def forward(self, x):
-        """Applies network layers and ops on input x.
+        """Applies network layers and ops on input image(s) x.
 
         Args:
             x: input image or batch of images. Shape: [batch,3*batch,300,300].

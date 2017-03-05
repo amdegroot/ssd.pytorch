@@ -37,7 +37,7 @@ class MultiBoxLoss(nn.Module):
         #     if len(all_gt_bboxes[i]) <= 0: # Check if there is ground truth for current image
         #         continue
         # Find match between predictions and ground truth
-        truths = ground_truths[i]
+        truths = ground_truth[i]
         location_targets, class_targets = match(truths, priors, variances, labels, threshold)
         pos = class_targets > 0  # [N,8732] pos means the box matched.
         num_pos = pos.sum()

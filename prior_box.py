@@ -14,7 +14,7 @@ class PriorBox(Function):
 
         if self.min_size < 0:
             print('<PriorBox> must provide positive min_size')
-
+            return
         self.max_size = max_size or -1
         self.aspect_ratios = aspect_ratios # provided # of aspect ratios correlates to # of different priors
         #asp_ratios = {1} -- always atleast this 1 default
