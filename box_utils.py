@@ -177,9 +177,8 @@ def encode(matched, priors, variances):
 
 
 # Original author: Francisco Massa: https://github.com/fmassa/object-detection.torch
-# Based on matlab code by Pedro Felzenszwalb https://github.com/rbgirshick/voc-dpm/blob/master/test/nms.m
-# Minor changes by Gyeongsik Moon(2016-10-03)
-def apply_nms(boxes, scores, overlap, top_k):
+# Ported to PyTorch by Max deGroot (02/01/2017)
+def nms(boxes, scores, overlap, top_k):
     """Apply non-maximum suppression at test time to avoid detecting too many
     overlapping bounding boxes for a given object.
 

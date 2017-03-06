@@ -67,7 +67,7 @@ class Detect(Function):
             for c in range(self.num_classes):
                 if not c == self.background_label:
                     # Populates overlaps and class_index_table
-                    class_index_table = apply_nms(decode_bboxes, conf_scores[c], self.nms_threshold, self.top_k)
+                    class_index_table = nms(decode_bboxes, conf_scores[c], self.nms_threshold, self.top_k)
                     # Class_index_table now contains the indices (with respect to num_priors)
                     # of highest scoring and non-overlapping bboxes for a given class
                     indices.append(class_index_table)
