@@ -56,8 +56,8 @@ python train.py
 # B. Use a pre-trained SSD network for detection
 
 ## Download a pre-trained network
-A pretrained SSD (pool6/non-bn version) can be found here:
-https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
+A pretrained SSD (pool6/non-bn version) can be found here
+- https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 
 ## Try the demo
 - Make sure you have [jupyter notebook](http://jupyter.readthedocs.io/en/latest/install.html) installed. 
