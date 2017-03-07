@@ -22,7 +22,8 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - First download the [VGG-16](https://arxiv.org/abs/1409.1556) base network weights which can be found [here](https://s3-us-west-2.amazonaws.com/jcjohns-models/vgg16-00b39a1b.pth), courtesy of [Justin Johnson](https://github.com/jcjohnson/pytorch-vgg).
 - Then download the dataset by following the instructions below. 
 - Note: Currently we only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon. 
-### Dataset Download
+
+### Download Dataset
 
 ### VOC Dataset
 ##### VOC2007 trainval & test
