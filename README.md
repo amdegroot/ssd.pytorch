@@ -23,7 +23,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - Then download the dataset by following the instructions below. 
 - Note: Currently we only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon. 
 
-### Download Dataset
+## Download Dataset
 
 ### VOC Dataset
 ##### VOC2007 trainval & test
