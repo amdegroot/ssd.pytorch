@@ -89,11 +89,11 @@ python test.py
 You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
 
 ## TODO 
-We have accumulated the following to-do list, which you can expect to be done in the very near future:
-1. Train SSD300 with batch norm 
-2. Add support for COCO dataset 
-3. Add support for SSD512 training and testing
-4. Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo)
+We have accumulated the following to-do list, which you can expect to be done in the very near future
+- Train SSD300 with batch norm (in progress)
+- Add support for COCO dataset 
+- Add support for SSD512 training and testing
+- Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo) (in progress)
 
 ## Comments
 Please feel-free to post an issue with any questions or suggestions.  We tried to keep this implementation as pure to PyTorch as 
