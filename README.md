@@ -4,9 +4,9 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 ## Contents
 1. [Requirements](#requirements)
 2. [Training](#a-training-ssd)
-3. [Download Dataset](#dataset-download)
+3. [Download Dataset](#download-dataset)
 4. [Demo](#b-use-a-pre-trained-ssd-network-for-detection)
-5. [Test/Eval](#c-test/evaluate)
+5. [Test/Eval](#c-testevaluate)
 6. [Future Work](#todo)
 7. [Comments](#comments)
 8. [Reference](#references)
