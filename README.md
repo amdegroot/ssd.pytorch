@@ -7,8 +7,9 @@ A PyTorch implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs
 3. [Download Dataset](#dataset-download)
 4. [Demo](#b.-Use-a-pre-trained-SSD-network-for-detection)
 5. [Test/Eval](#c.-test/evaluate)
-6. [Comments](#comments)
-7. [Reference](#references)
+6. [Future Work](#todo)
+7. [Comments](#comments)
+8. [Reference](#references)
 
 
 ## Requirements
@@ -17,11 +18,11 @@ A PyTorch implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs
 - Clone this repo 
 - Download the PASCAL VOC Dataset via provided shell scripts
 
-# A. Training SSD
+## A. Training SSD
 - First download the [VGG-16](https://arxiv.org/abs/1409.1556) base network weights which can be found [here](https://s3-us-west-2.amazonaws.com/jcjohns-models/vgg16-00b39a1b.pth), courtesy of [Justin Johnson](https://github.com/jcjohnson/pytorch-vgg).
 - Then download the dataset by following the instructions below. 
 - Note: Currently we only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon. 
-## Dataset Download
+### Dataset Download
 
 ### VOC Dataset
 ##### VOC2007 trainval & test
@@ -53,9 +54,9 @@ VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 python train.py
 ```
  
-# B. Use a pre-trained SSD network for detection
+## B. Use a pre-trained SSD network for detection
 
-## Download a pre-trained network
+### Download a pre-trained network
 A pretrained SSD (pool6/non-bn version) can be found here
 - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 
@@ -80,7 +81,7 @@ jupyter notebook
 - Now navigate to `demo.ipynb` in the browser window that pops up and have at it!
 - This can be done on both CPU and GPU. 
 
-# C. Test/Evaluate
+## C. Test/Evaluate
 To evaluate a trained network:
 ```Shell
 python test.py
