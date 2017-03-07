@@ -1,5 +1,5 @@
 # ssd.pytorch
-A PyTorch implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs/1512.02325)
+A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs/1512.02325)
 
 ## Contents
 1. [Requirements](#requirements)
