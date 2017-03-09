@@ -1,6 +1,7 @@
 # ssd.pytorch
 A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs/1512.02325)
 
+<img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" />
 ## Contents
 1. [Requirements](#requirements)
 2. [Training](#a-training-ssd)
@@ -11,7 +12,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 7. [Comments](#comments)
 8. [Reference](#references)
 
-<img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" />
+
 
 
 ## Requirements
