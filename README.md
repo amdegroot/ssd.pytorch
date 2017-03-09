@@ -23,7 +23,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - Then download the dataset by following the instructions below.
 - Note: For training, we currently only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon.
 
-## A. Datasets
+## Datasets
 To make things easy, we provide a simple VOC dataset loader that enherits `torch.utils.data.Dataset` making it fully compatible with the `torchvision.datasets` [API](http://pytorch.org/docs/torchvision/datasets.html).
 
 ### VOC Dataset
@@ -52,7 +52,7 @@ VOCdevkit/VOC2007/SegmentationObject        % segmentations by object
 VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 ```
 
-## B. Training SSD
+## Training SSD
 - First download the [VGG-16](https://arxiv.org/abs/1409.1556) base network weights which can be found [here](https://s3-us-west-2.amazonaws.com/jcjohns-models/vgg16-00b39a1b.pth), courtesy of [Justin Johnson](https://github.com/jcjohnson/pytorch-vgg).
 - To train SSD using the train script simply specify the parameters listed in `train.py` as a flag or manually change them.
 
@@ -64,7 +64,7 @@ python train.py
   * For training, an NVIDIA GPU is strongly recommended for speed.
   * This repo supports [TensorBoard](https://github.com/torrvision/crayon).
 
-## C. Use a pre-trained SSD network for detection
+## Use a pre-trained SSD network for detection
 
 ### Download a pre-trained network
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
