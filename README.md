@@ -1,6 +1,7 @@
 # SSD: Single Shot MultiBox Object Detector, in PyTorch
 A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs/1512.02325) from the 2016 paper by Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy, Scott Reed, Cheng-Yang, and Alexander C. Berg.  The official and original Caffe code can be found [here](https://github.com/weiliu89/caffe/tree/ssd).  
 
+<img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" />
 ### Table of Contents
 - <a href='#installation'>Installation</a>
 - <a href='#a-datasets'>Datasets</a>
@@ -9,7 +10,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
 
-<img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" />
+
 
 ## Installation
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
