@@ -13,8 +13,11 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - <a href='#references'>Reference</a>
 
 
-
-
+- 
+- 
+- 
+- 
+-
 
 ## Installation
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
@@ -27,11 +30,14 @@ To make things easy, we provide a simple VOC dataset loader that enherits `torch
 
 ### VOC Dataset
 ##### Download VOC2007 trainval & test
+
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
 sh data/scripts/VOC2007.sh # <directory>
 ```
+
 ##### Download VOC2012 trainval
+
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
 sh data/scripts/VOC2012.sh # <directory>
@@ -51,9 +57,11 @@ VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 ## B. Training SSD
 - First download the [VGG-16](https://arxiv.org/abs/1409.1556) base network weights which can be found [here](https://s3-us-west-2.amazonaws.com/jcjohns-models/vgg16-00b39a1b.pth), courtesy of [Justin Johnson](https://github.com/jcjohnson/pytorch-vgg).
 - To train SSD using the train script simply specify the parameters listed in `train.py` as a flag or manually change them.
+
 ```Shell
 python train.py
 ```
+
 - Note:
   * For training, an NVIDIA GPU is strongly recommended for speed.
   * This repo supports [TensorBoard](https://github.com/torrvision/crayon).
@@ -78,6 +86,7 @@ python train.py
     `jupyter notebook` 
 
     2. If using [pip](https://pypi.python.org/pypi/pip):
+    
 ```Shell
 # make sure pip is upgraded
 pip3 install --upgrade pip
@@ -86,6 +95,7 @@ pip install jupyter
 # Run this inside ssd.pytorch
 jupyter notebook
 ```
+
 - Now navigate to `demo.ipynb` in the browser window that pops up and have at it!
 
 ## Testing
