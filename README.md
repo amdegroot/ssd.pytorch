@@ -4,31 +4,28 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 <img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" />
 ### Table of Contents
 - <a href='#installation'>Installation</a>
-- <a href='#a-download-dataset'>Dataset</a>
+- <a href='#a-download-dataset'>Datasets</a>
 - <a href='#b-training-ssd'>Train/Eval</a>
 - <a href='#c-use-a-pre-trained-ssd-network-for-detection'>Demos</a>
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
 
 ## Installation
-- Install [PyTorch](http://pytorch.org/) by selecting your environment on the website.
-- `pip install -r requirements.txt`
-- Clone this repo
-- Download the PASCAL VOC Dataset via provided shell scripts
-
-
+- Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
+- Clone this repository.
 - Then download the dataset by following the instructions below.
-- Note: Currently we only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon.
+- Note: For training, we currently only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon.
 
-## A. Download Dataset
+## A. Datasets
+To make things easy, we have derived a simple VOC dataset loader that enherits `torch.utils.data.Dataset` making it fully compatible with the `torchvision.datasets` [API](http://pytorch.org/docs/torchvision/datasets.html).
 
 ### VOC Dataset
-##### VOC2007 trainval & test
+##### Download VOC2007 trainval & test
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
 sh data/scripts/VOC2007.sh # <directory>
 ```
-##### VOC2012 trainval
+##### Download VOC2012 trainval
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
 sh data/scripts/VOC2012.sh # <directory>
