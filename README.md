@@ -12,12 +12,10 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
 
-
-- 
-- 
-- 
-- 
--
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
 
 ## Installation
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
