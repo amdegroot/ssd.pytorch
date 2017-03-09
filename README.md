@@ -70,7 +70,7 @@ python train.py
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
     * SSD300 trained on VOC0712 
-      - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz 
+      - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc0712.tar.gz 
     * SSD300 (pool6/non-bn version) trained on VOC07
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
