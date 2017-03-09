@@ -106,7 +106,7 @@ possible so as to 1) learn the framework and 2) give back to the [PyTorch](http:
 
 
 ## References
-- Wei Liu, et al. "SSD: Single shot multibox detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
+- Wei Liu, et al. "SSD: Single Shot MultiBox Detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
 - [Original Implementation (CAFFE)](https://github.com/weiliu89/caffe/tree/ssd)
 - A list of other great SSD ports that were sources of inspiration: 
   * [Keras](https://github.com/rykov8/ssd_keras), [Chainer](https://github.com/Hakuyume/chainer-ssd), [MXNet](https://github.com/zhreshold/mxnet-ssd), [Tensorflow](https://github.com/balancap/SSD-Tensorflow) 
