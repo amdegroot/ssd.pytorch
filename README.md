@@ -11,7 +11,8 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 7. [Comments](#comments)
 8. [Reference](#references)
 
-<div style="float: right;"><img src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" width="600px"/></div>
+<img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/ssd.png" />
+
 
 ## Requirements
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website.
