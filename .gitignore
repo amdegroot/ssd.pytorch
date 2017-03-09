@@ -101,3 +101,16 @@ weights/
 ssd.ipynb
 
 .vscode/
+
+# not ready
+videos/
+templates/
+
+
+# dev books
+dev.ipynb
+test.ipynb
+train.ipynb
+
+# not mine
+vizualize.py

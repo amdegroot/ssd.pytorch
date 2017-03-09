@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 if torch.cuda.is_available():
     import torch.backends.cudnn as cudnn
-
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 def decode_boxes(prior_boxes,prior_variances,boxes,variance_encoded_in_target = False):
     """The function decodes predictions by restoring the learned offset
@@ -18,13 +18,13 @@ def decode_boxes(prior_boxes,prior_variances,boxes,variance_encoded_in_target = 
         variance_encoded_in_target: optional flag indicated if we encode variance in
             the ground truth's at train time. False means encoded in loc preds.
     """
-    assert(prior_boxes.size(0) == prior_variances.size(0))
+    assert(prior_boxes.size(1) == prior_variances.size(0))
     assert(prior_boxes.size(0) == boxes.size(0))
     num_boxes = prior_boxes.size(0)
     decode = torch.Tensor(boxes.size(0), boxes.size(1))
     #decode = Variable(decode)
     if num_boxes >= 1:
-        assert(prior_variances[0].size(0) == 4)
+        assert(prior_variances.size(0) == 4)
 
     prior_center_x = torch.add(prior_boxes[:,0],prior_boxes[:,2]).mul(0.5)
     prior_center_y = torch.add(prior_boxes[:,1],prior_boxes[:,3]).mul(0.5)
@@ -40,12 +40,12 @@ def decode_boxes(prior_boxes,prior_variances,boxes,variance_encoded_in_target = 
 
     else:
         # variance is encoded in bbox, we need to scale the offset accordingly.
-        decode_center_x = boxes[:,0].mul(p_w).mul(prior_variances[0][0])
+        decode_center_x = boxes[:,0]*p_w*prior_variances[0]
         decode_center_x += prior_center_x
-        decode_center_y = boxes[:,1].mul(p_h).mul(prior_variances[0][1])
+        decode_center_y = boxes[:,1]*p_h*prior_variances[1]
         decode_center_y += prior_center_y
-        decode_w = torch.exp(boxes[:,2].mul(prior_variances[0][2]))*p_w.mul(0.5)
-        decode_h = torch.exp(boxes[:,3].mul(prior_variances[0][3]))*p_h.mul(0.5)
+        decode_w = torch.exp(boxes[:,2]*prior_variances[2])*p_w.mul(0.5)
+        decode_h = torch.exp(boxes[:,3]*prior_variances[3])*p_h.mul(0.5)
     # instead just torch.cat() these or stack them to avoid Variable() issues
     decode[:,0] = prior_center_x - decode_w     # set xmin
     decode[:,1] = prior_center_y - decode_h     # set ymin
@@ -135,18 +135,25 @@ def match(threshold,truths, priors, variances, labels, loc_targets, conf_targets
         truths,
         center_size(priors)
     )
-
-    best_overlaps, best_idx = overlaps.max(0)  # [1,num_priors]
-    best_idx.squeeze_(0)
-    best_overlaps.squeeze_(0)
-    matches = truths[best_idx]  # Shape: [num_priors,4] the best ground truth coords for each default box
+    best_prior_overlap, best_prior_idx = overlaps.max(1)  # [1,num_priors] # best default box for each ground truth
+    best_truth_overlap, best_truth_idx = overlaps.max(0)
+     # best_truth_overlap best ground truth for each default box
+     # best_truth_idx prints the best ground truth class at each default location
+     # best_prior_overlap best default overlap for each ground truth
+     # best_prior_idx index of this default box for each ground truth
+    best_truth_idx.squeeze_(0)
+    best_truth_overlap.squeeze_(0)
+    best_prior_idx.squeeze_(1)
+    best_prior_overlap.squeeze_(1)
+    # best_gt = torch.zeros(best_truth_overlap.size(0)).scatter_(0,best_prior_idx,1)
+    best_truth_overlap.index_fill_(0,best_prior_idx,1)
+    matches = truths[best_truth_idx]  # Shape: [num_priors,4] the best ground truth coords for each default box
     # need to find the default box that best matches each ground truth regardless of whether it meets the overlap threshold...
     # (bipartite matching)
-    conf = labels[best_idx] + 1         # Shape: [num_priors]  bkg class = 0 so we add 1 to each class
-    conf[best_overlaps<threshold] = 0   # label as background
-
-    print("greater than 0 after threshold:")
-    print((conf > 0).sum())
+    conf = labels[best_truth_idx] + 1         # Shape: [num_priors]  bkg class = 0 so we add 1 to each class
+    conf[best_truth_overlap<threshold] = 0   # label as background
+    # print("greater than 0 after threshold:")
+    # print((conf > 0).sum())
     loc = encode(matches,priors,variances)
     loc_targets[i] =  loc                      # [num_priors,4] encoded offsets to learn
     conf_targets[i] = conf                     # [num_priors] top class label for each prior

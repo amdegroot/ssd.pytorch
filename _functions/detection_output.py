@@ -20,7 +20,7 @@ class Detect(Function):
         # Parameters used in nms.
         self.nms_threshold = nms_threshold
         if nms_threshold <= 0:
-            print('<Detection_Output> nms_threshold must be non negative.')
+            raise ValueError('nms_threshold must be non negative.')
         self.top_k = -1
         self.nms_top_k = nms_top_k or -1
         if self.nms_top_k > 0:
@@ -39,42 +39,42 @@ class Detect(Function):
         num = loc_data.size(0) # batch size
         self.output = torch.Tensor(num,self.keep_top_k,7)  # TODO: refactor
 
-        num_priors = prior_data.size(2) // 4  # height dim of priorbox input / 4
-        if not loc_data.size(1) == prior_data.size(2):
-            print('Number of priors must match number of location predictions.')
+        # num_priors = prior_data.size(0) // 4  # height dim of priorbox input / 4
+        # assert(loc_data.size(1) == prior_data.size(0))
+            # raise ValueError('Number of priors must match number of location predictions.')
 
         # GET CONFIDENCE SCORES FROM CONF_DATA
         # If input is only a single image then we need to add the batch dim
         # that we removed for softmax layer
+        print(prior_data.size())
+        print(loc_data.size())
         if num == 1:
             conf_preds = conf_data.t().contiguous().unsqueeze(0) # size num x 21 x 7308
         else:
             conf_preds = conf_data.view(num,num_priors,self.num_classes).transpose(2,1)
 
         # GET PRIOR BBOXES FROM PRIOR_DATA
-        prior_bboxes = prior_data[0][0].view(-1,4)    # Shape [7308 x 4]
-        prior_variances = prior_data[0][1].view(-1,4) # Shape [7308 x 4]
-
+        # prior_bboxes = prior_data[0][0].view(-1,4)    # Shape [7308 x 4]
+        # prior_variances = prior_data[0][1].view(-1,4) # Shape [7308 x 4]
+        prior_variances = torch.Tensor([0.1,0.1,0.2,0.2])
         #TODO get rid of the batch for loop
         # Decode predictions into bboxes.
         num_kept = 0
         for i in range(num):
-            decode_bboxes = decode_boxes(prior_bboxes,prior_variances,loc_data[i].view(-1,4))
+            decode_bboxes = decode_boxes(prior_data,prior_variances,loc_data[i])
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             indices = []
             num_det = 0
             for c in range(self.num_classes):
                 if not c == self.background_label:
-                    # Populates overlaps and class_index_table
-                    class_index_table = nms(decode_bboxes, conf_scores[c], self.nms_threshold, self.top_k)
-                    # Class_index_table now contains the indices (with respect to num_priors)
-                    # of highest scoring and non-overlapping bboxes for a given class
-                    indices.append(class_index_table)
+                    # idx of highest scoring and non-overlapping boxes for a given class
+                    indices.append(nms(decode_bboxes, conf_scores[c], self.nms_threshold, self.top_k))
+                    # Class_index_table now contains
                     # TODO optimize
                     # indices = (num_classes X num_det(which could vary over classes,
                     # so using table over tensor))
-                    num_det += class_index_table.size(0)
+                    num_det += indices[len(indices)-1].size(0)
             length = num_det  # length of tensors to be created based on num boxes after nms
             score_pairs = torch.Tensor(length)  # scores and corresponding bbox table indices
             indices_list = torch.Tensor(length)

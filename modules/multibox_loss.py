@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from box_utils import *
+cud = False
+if torch.cuda.is_available():
+    cud = True
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 class MultiBoxLoss(nn.Module):
     def __init__(self,num_classes,overlap_thresh,prior_for_matching,bkg_label,neg_mining,neg_pos,neg_overlap,encode_target):
@@ -35,6 +39,9 @@ class MultiBoxLoss(nn.Module):
             variances = priors[1].view(-1,4).data
             match(self.threshold,truths,priorboxes,variances,labels,loc_targets,conf_targets,i)
 
+        if cud:
+            loc_targets = loc_targets.cuda()
+            conf_targets = conf_targets.cuda()
         loc_targets = Variable(loc_targets)
         conf_targets = Variable(conf_targets)
         pos = conf_targets > 0  # [N,8732] pos means the box matched.
@@ -62,13 +69,14 @@ class MultiBoxLoss(nn.Module):
 
         conf_loss[pos] = 0  # set pos boxes = 0, the rest are neg conf_loss
         conf_loss = conf_loss.view(batch_size, -1)  # [N,8732]
-        max_loss,_ = conf_loss.sort(1, descending=True)  # sort by neg conf_loss
+        _,loss = conf_loss.sort(1, descending=True)  # sort by neg conf_loss
+        _,rank = loss.sort(1)
 
         num_pos = pos.long().sum(1)  # [N,1]
         num_neg = torch.clamp(3*num_pos, max=num_boxes-1)  # [N,1]
 
-        pivot_loss = max_loss.gather(1, num_neg)           # [N,1]
-        neg = conf_loss > pivot_loss.expand_as(conf_loss)  # [N,8732]
+        neg = rank < num_neg.expand_as(rank)
+
 
         pos_mask = pos.unsqueeze(2).expand_as(conf_data)  # [N,8732,21]
         neg_mask = neg.unsqueeze(2).expand_as(conf_data)  # [N,8732,21]

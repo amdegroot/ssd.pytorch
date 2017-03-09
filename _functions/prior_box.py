@@ -1,118 +1,83 @@
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-from torch.autograd import Function
-import numpy as np
-import math
+from data import c9_2, pool6
+from math import sqrt as sqrt
+from itertools import product as product
+if torch.cuda.is_available():
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
-class PriorBox(Function):
-    def __init__(self, num_classes, imWidth, imHeight, min_size, max_size, aspect_ratios, variance, flip, clip):
-        #super(PriorBox, self).__init__()
-        self.min_size = min_size
-        self.imWidth = imWidth
-        self.imHeight = imHeight
 
-        if self.min_size < 0:
-            print('<PriorBox> must provide positive min_size')
-            return
-        self.max_size = max_size or -1
-        self.aspect_ratios = aspect_ratios # provided # of aspect ratios correlates to # of different priors
-        #asp_ratios = {1} -- always atleast this 1 default
-
-        self.flip = flip
-        num_priors = len(aspect_ratios)
-        if self.max_size < self.min_size and self.max_size > 0:
-            print('<PriorBox> provided max_size must be greater than min_size')
-            num_priors = num_priors + 1
-        self.clip = clip
-        self.num_priors = num_priors
-        self.variance = variance or [0.1]
-
-        if len(self.variance) != 1 and len(self.variance) != 4:
-            print('<PriorBox> must provide exactly 0 or 4 variances in table format')
-
-        for v in variance:
+class PriorBox(object):
+    def __init__(self, cfg, clip=False):
+        super(PriorBox, self).__init__()
+        # self.type = cfg.name
+        self.image_size = cfg['min_dim']
+        self.num_priors = len(cfg['aspect_ratios']) # number of priors for feature map location (either 4 or 6)
+        self.variance = cfg['variance'] or [0.1]
+        self.feature_maps = cfg['feature_maps']
+        self.min_sizes = cfg['min_sizes']
+        self.max_sizes = cfg['max_sizes']
+        self.steps = cfg['steps']
+        self.aspect_ratios = cfg['aspect_ratios']
+        self.clip = cfg['clip']
+        self.version = cfg['name']
+        for v in self.variance:
             if v <= 0:
-                print('<PriorBox> variances must be greater than 0')
+                raise ValueError('Variances must be greater than 0')
 
-    def forward(self, input):
 
-        dims = input.dim()
-        iheight = input.size(dims-2)
-        iwidth = input.size(dims-1)
-        self.iheight = iheight
-        self.iwidth = iwidth
+    def forward(self):
+        mean = []
+        # TODO merge these
+        if self.version == 'pool6':
+            for i,k in enumerate(self.feature_maps):
+                for h, w in product(range(k), repeat=2):
+                    cx = (w + 0.5) * self.steps[i]
+                    cy = (h + 0.5) * self.steps[i]
+                    # aspect_ratio: 1
+                    # size: min_size
+                    s_k = self.min_sizes[i]/self.image_size
+                    mean += [cx, cy, s_k, s_k]
+                    if(self.max_sizes[i] > 0):
+                        # aspect_ratio: 1
+                        # size: sqrt(min_size * max_size)
+                        s_k = sqrt(self.min_sizes[i] * self.max_sizes[i])
+                        mean += [cx, cy, s_k, s_k]
+                    s_k = self.min_sizes[i]/self.image_size
+                    # rest of prior boxes
+                    for ar in self.aspect_ratios[i]:
+                        if abs(ar-1) < 1e-6:
+                            continue
+                        mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
+                        mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
 
-        output = torch.Tensor(1,2,self.iheight*self.iwidth*self.num_priors*4)
-        step_x = self.imWidth / self.iwidth    # ratio of image width to layer width
 
-        step_y = self.imHeight / self.iheight  # ratio of image height to layer height
-
-        top_data = output[0]
-        mean_coords = top_data[0]
-        dim = self.iheight * self.iwidth * self.num_priors * 4
-        idx = -1
-        for h in range(0,self.iheight):
-            for w in range(0,self.iwidth):
-                center_x = ((w+1)-0.5) * step_x
-                center_y = ((h+1)-0.5) * step_y
-
-                #first prior aspect_ratio=1, size = min_size
-                box_width, box_height = self.min_size, self.min_size
-                idx+=1
-                mean_coords[idx] = (center_x - box_width / 2) / self.imWidth
-                idx +=1
-                # ymin
-                mean_coords[idx] = (center_y - box_height / 2) / self.imHeight
-                idx +=1
-                # xmax
-                mean_coords[idx] = (center_x + box_width / 2) / self.imWidth
-                idx +=1
-                # ymax
-                mean_coords[idx] = (center_y + box_height / 2) / self.imHeight
-                if self.max_size > 0:
-                    box_width = math.sqrt(self.min_size * self.max_size)
-                    box_height = math.sqrt(self.min_size * self.max_size)
-                    idx = idx + 1
-                    # xmin
-                    mean_coords[idx] = (center_x - box_width / 2) / self.imWidth
-                    idx = idx + 1
-                    # ymin
-                    mean_coords[idx] = (center_y - box_height / 2) / self.imHeight
-                    idx = idx + 1
-                    # xmax
-                    mean_coords[idx] = (center_x + box_width / 2) / self.imWidth
-                    idx = idx + 1
-                    # ymax
-                    mean_coords[idx] = (center_y + box_height / 2) / self.imHeight
-                for i in range(0,len(self.aspect_ratios)):
-                    ar = self.aspect_ratios[i]
-                    if not (abs(ar-1) < 1e-6):
-                        box_width = self.min_size * math.sqrt(ar)
-                        box_height = self.min_size / math.sqrt(ar)
-                        idx+=1
-                        # xmin
-
-                        mean_coords[idx] = (center_x - box_width / 2) / self.imWidth
-                        idx +=1
-                        # ymin
-                        mean_coords[idx] = (center_y - box_height / 2) / self.imHeight
-                        idx +=1
-                        # xmax
-                        mean_coords[idx] = (center_x + box_width / 2) / self.imWidth
-                        idx +=1
-                        # ymax
-                        mean_coords[idx] = (center_y + box_height / 2) / self.imHeight
+        else:
+            # original version generation of prior (default) boxes
+            for i,k in enumerate(self.feature_maps):
+                step_x = step_y = self.image_size/k
+                for h, w in product(range(k), repeat=2):
+                   c_x = ((w+0.5) * step_x)
+                   c_y = ((h+0.5) * step_y)
+                   c_w = c_h = self.min_sizes[i] / 2
+                   s_k = self.image_size
+                   # aspect_ratio: 1,
+                   # size: min_size
+                   mean += [(c_x-c_w)/s_k, (c_y-c_h)/s_k, (c_x+c_w)/s_k, (c_y+c_h)/s_k]
+                   if self.max_sizes[i] > 0:
+                       # aspect_ratio: 1
+                       # size: sqrt(min_size * max_size)/2
+                       c_w = c_h = sqrt(self.min_sizes[i] * self.max_sizes[i])/2
+                       mean += [(c_x-c_w)/s_k, (c_y-c_h)/s_k, (c_x+c_w)/s_k, (c_y+c_h)/s_k]
+                   # rest of prior boxes
+                   for ar in self.aspect_ratios[i]:
+                       if not (abs(ar-1) < 1e-6):
+                           c_w = self.min_sizes[i] *sqrt(ar)/2
+                           c_h = self.min_sizes[i] /sqrt(ar)/2
+                           mean += [(c_x-c_w)/s_k, (c_y-c_h)/s_k, (c_x+c_w)/s_k, (c_y+c_h)/s_k]
+        # back to torch land
+        output = torch.Tensor(mean).view(-1,4)
         if self.clip:
-            # TODO look at torch.clamp()
-            clipper = lambda t: min(max(t,0),1)
-            mean_coords.apply_(clipper)
-        variance = torch.Tensor(self.variance)
-        dim = dim//4
-        top_data[1]= variance.repeat(dim)
-
+            output.clamp_(max=1, min=0)
         return output
-
-
-        def backward(self, grad_output):
-            return None

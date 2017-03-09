@@ -2,9 +2,9 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.autograd import Function
 from box_utils import*
-from data import c9_2, pool6
 from _functions import Detect, PriorBox
 from modules import L2Norm
+from data import c9_2, pool6
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torch.utils.serialization import load_lua
@@ -24,13 +24,13 @@ class SSD(nn.Module):
 
     Args:
         features1: (nn.Sequential) VGG layers for input
-            size of either 300 or 512. Default: 300
+            size of either 300 or 500
         phase: (string) Can be "test" or "train"
-        size: (int) the SSD version for the input size. Can be 300 or 500.
+        size: (int) the SSD version for the input size. Can be 300 or 512.
             Defaul: 300
-        num_classes: (int) the number of classes to score. Default: 21.
+        num_classes: (int) the number of classes to score. Default: 21 (VOC).
     """
-
+    ((2,), (2, 3), (2, 3), (2, 3), (2,), (2,))
     def __init__(self, phase, version, sz=300, num_classes=21):
         super(SSD, self).__init__()
         self.phase = phase
@@ -38,68 +38,75 @@ class SSD(nn.Module):
         self.num_classes = num_classes
         param=num_classes*3
         self.base = build_base(cfg[str(sz)] ,3)
-        self.version = pool6 if version == 'pool6' else c9_2
+        if version == 'pool6':
+            self.version = pool6
+        else:
+            self.version = c9_2
+
+        # TODO: Build the rest of the sequentials as we built vgg base.
         self.box_layer = PriorBox(self.version)
-        self.priors = Variable(self.box_layer.forward())
-        # TODO: Build the rest of the sequentials in a for loop.
+
+        # We only have to do this during init because as long as
+        # input images are the same size, default boxes will be the same.
+        self.priors = self.box_layer.forward()
 
         self.features2 = nn.Sequential(
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(512,512,kernel_size=3,padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1), # Conv5_1
             nn.ReLU(inplace=True),
-            nn.Conv2d(512,512,kernel_size=3,padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1), # Conv5_2
             nn.ReLU(inplace=True),
-            nn.Conv2d(512,512,kernel_size=3,padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1), # Conv5_3
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3,stride=1,padding=1),
-            nn.Conv2d(512,1024,kernel_size=3,padding=6,dilation=6),
+            nn.Conv2d(512,1024,kernel_size=3,padding=6,dilation=6), # Conv6
             nn.ReLU(inplace=True),
-            nn.Conv2d(1024,1024,kernel_size=1),
+            nn.Conv2d(1024,1024,kernel_size=1), # Conv7
             nn.ReLU(inplace=True),
-        )
-        self.features3 = nn.Sequential(
-            nn.Conv2d(1024,256,kernel_size=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256,512,kernel_size=3,stride=2,padding=1),
-            nn.ReLU(inplace=True),
-        )
-        self.features4 = nn.Sequential(
-            nn.Conv2d(512,128,kernel_size=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128,256,kernel_size=3,stride=2,padding=1),
-            nn.ReLU(inplace=True),
-        )
-        self.features5 = nn.Sequential(
-            nn.Conv2d(256,128,kernel_size=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128,256,kernel_size=3,stride=2,padding=1),
-            nn.ReLU(inplace=True),
-        )
-        self.pool6 = nn.Sequential(
-            nn.AvgPool2d(kernel_size=3,stride=1),
         )
 
-        # Multibox layers (conv layers to learn features from different scales)
+        self.features3 = nn.Sequential(
+            nn.Conv2d(1024, 256, kernel_size=1), # Conv8_1
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 512, kernel_size=3, padding=1, stride=2), # Conv8_2
+            nn.ReLU(inplace=True),
+        )
+
+        self.features4 = nn.Sequential(
+            nn.Conv2d(512, 128, kernel_size=1), # Conv9_1
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1, stride=2), # Conv9_2
+        )
+
+        self.features5 = nn.Sequential(
+            nn.Conv2d(256, 128, kernel_size=1), # Conv10_1
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 256, kernel_size=3), # Conv10_2
+
+        )
+
+        self.features6 = nn.Sequential(
+            nn.Conv2d(256, 128, kernel_size=1), # Conv11_1
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 256, kernel_size=3), # Conv11_2
+            nn.ReLU(inplace=True),
+        )
+
+        # Layer learns to scale the l2 normalized features from conv4_3
         self.L2Norm = L2Norm(512,20)
 
-        self.l4_3 = nn.Conv2d(512,12,kernel_size=3,padding=1)
-        self.c4_3 = nn.Conv2d(512,param,kernel_size=3,padding=1)
-
-        self.lfc7 = nn.Conv2d(1024,24,kernel_size=3,padding=1)
-        self.cfc7 = nn.Conv2d(1024,param*2,kernel_size=3,padding=1)
-
-        self.l6_2 = nn.Conv2d(512,24,kernel_size=3,padding=1)
-        self.c6_2 = nn.Conv2d(512,param*2,kernel_size=3,padding=1)
-
-        self.l7_2 = nn.Conv2d(256,24,kernel_size=3,padding=1)
-        self.c7_2 = nn.Conv2d(256,param*2,kernel_size=3,padding=1)
-
-        self.l8_2 = nn.Conv2d(256,24,kernel_size=3,padding=1)
-        self.c8_2 = nn.Conv2d(256,param*2,kernel_size=3,padding=1)
-
-        self.lp6 = nn.Conv2d(256,24,kernel_size=3,padding=1)
-        self.cp6 = nn.Conv2d(256,param*2,kernel_size=3,padding=1)
-
+        self.l4_3 = nn.Conv2d(512, 4*4, kernel_size=3, padding=1)
+        self.c4_3 = nn.Conv2d(512, 4*self.num_classes, kernel_size=3, padding=1)
+        self.lfc7 = nn.Conv2d(1024, 6*4, kernel_size=3, padding=1)
+        self.cfc7 = nn.Conv2d(1024, 6*self.num_classes, kernel_size=3, padding=1)
+        self.l6_2 = nn.Conv2d(512, 6*4, kernel_size=3, padding=1)
+        self.c6_2 = nn.Conv2d(512, 6*self.num_classes, kernel_size=3, padding=1)
+        self.l7_2 = nn.Conv2d(256, 6*4, kernel_size=3, padding=1)
+        self.c7_2 = nn.Conv2d(256, 6*self.num_classes, kernel_size=3, padding=1)
+        self.l8_2 = nn.Conv2d(256, 4*4, kernel_size=3, padding=1)
+        self.c8_2 = nn.Conv2d(256, 4*self.num_classes, kernel_size=3, padding=1)
+        self.l9_2 = nn.Conv2d(256, 4*4, kernel_size=3, padding=1)
+        self.c9_2 = nn.Conv2d(256, 4*self.num_classes, kernel_size=3, padding=1)
         self.softmax = nn.Softmax()
         self.detect = Detect(21, 0, 200, 0.01, 0.45, 400)
 
@@ -143,9 +150,9 @@ class SSD(nn.Module):
 
         b5 = [self.l8_2(x).permute(0,2,3,1), self.c8_2(x).permute(0,2,3,1)]
         b5 = [o.view(o.contiguous().size(0),-1) for o in b5]
-        x = self.pool6(x)
+        x = self.features6(x)
 
-        b6 = [self.lp6(x).permute(0,2,3,1), self.cp6(x).permute(0,2,3,1)]
+        b6 = [self.l9_2(x).permute(0,2,3,1), self.c9_2(x).permute(0,2,3,1)]
         b6 = [o.view(o.contiguous().size(0),-1) for o in b6]
         loc = torch.cat((b1[0],b2[0],b3[0],b4[0],b5[0],b6[0]),1)
         conf = torch.cat((b1[1],b2[1],b3[1],b4[1],b5[1],b6[1]),1)
@@ -154,12 +161,12 @@ class SSD(nn.Module):
             output = self.detect(
                 loc.view(loc.size(0),-1,4),                     # loc preds
                 self.softmax(conf.view(-1,self.num_classes)),   # conf preds
-                self.priors                                     # default boxes
+                Variable(self.priors)                           # default boxes
                 )
         else:
             conf = conf.view(conf.size(0),-1,self.num_classes)
             loc = loc.view(loc.size(0),-1,4)
-            output = (loc, conf, priors)
+            output = (loc, conf, self.priors)
         return output
 
 
@@ -176,10 +183,6 @@ class SSD(nn.Module):
             self.load_state_dict(torch.load(base_file))
             print('Finished!')
             return
-        else:
-            print('Error: Sorry Only .t7 and .pkl files currently supported!')
-        py_modules = list(self.modules())
-        next_py_idx = 0
         for i, t7_module in enumerate(other.modules):
             if not hasattr(t7_module, 'weight'):
                 continue
@@ -236,5 +239,6 @@ def build_ssd(phase, size, num_classes):
         return
     if size != 300:
         print("Error: Sorry only SSD300 is supported currently!")
-    version = 'pool6'
+        return
+    version = 'c9_2'
     return SSD(phase, version, size, num_classes)

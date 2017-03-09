@@ -10,7 +10,7 @@ import argparse
 import collections
 import itertools
 from torch.autograd import Variable
-from config import VOCroot
+from data import VOCroot
 import torch.utils.data as data
 from PIL import Image, ImageDraw
 import sys
@@ -26,7 +26,7 @@ from timeit import default_timer as timer
 
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
-parser.add_argument('--batch_size', default=32, type=int, help='Batch size for training')
+parser.add_argument('--batch_size', default=4, type=int, help='Batch size for training')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--epochs', default=70, type=int, help='Number of training epochs')
 parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
@@ -41,6 +41,8 @@ parser.add_argument('--save_folder', default='models/', help='Location to save e
 args = parser.parse_args()
 
 # Model
+ssd_dim = 300
+rgb_means = (104,117,123)
 net = build_ssd('train',300,21)
 if args.cuda:
     net.cuda()
@@ -48,31 +50,34 @@ if args.cuda:
 
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 batch_size = args.batch_size
-
+criterion = MultiBoxLoss(21,0.5,True,0,True,3,0.5, False)
 def train():
     net.train()
     train_loss = 0
-    for epoch in range(args.epochs)
+    dataset = VOCDetection(VOCroot, 'train', test_transform(ssd_dim, rgb_means), AnnotationTransform())
+    batch_iterator = iter(data.DataLoader(dataset,batch_size,shuffle=True,collate_fn=detection_collate))
+    images, targets = next(batch_iterator)
+    if args.cuda:
+        images = images.cuda()
+    images = Variable(images)
+    targets = [Variable(anno).cuda() for anno in targets]
+    torch.save(images, "train_batch1.pkl")
+    torch.save(targets, "train_batch1_annos.pkl")
+    for epoch in range(args.epochs):
         # load train data
-        dataset = VOCDetection(VOCroot, 'train', test_transform(ssd_dim, rgb_means), AnnotationTransform())
         # create batch iterator
-        batch_iterator = iter(data.DataLoader(dataset,batch_size,shuffle=True,collate_fn=detection_collate))
-        for batch_idx in range(len(dataset) / batch_size):
-            images, targets = next(batch_iterator)
-
-            if args.cuda():
-                images = images.cuda()
+        for batch_idx in range(len(dataset) // batch_size):
             optimizer.zero_grad()
-
-            images = Variable(images)
             out = net(images)
-            loss = net.multibox.loss(out, targets)
+            loss = criterion(out, targets)
             loss.backward()
             optimizer.step()
-
             print("Current loss: ", loss.data[0])
-            #train_loss += loss.data[0]
+            train_loss += loss.data[0]
             #print(train_loss/(batch_idx+1))
+        train_loss/= (len(dataset) / batch_size)
+        print("Loss for epoch" '%d': ' %d', epoch, train_loss)
+    torch.save(net,"memo_net1.pkl")
 
 if __name__ == '__main__':
     train()
