@@ -105,4 +105,3 @@ possible so as to 1) learn the framework and 2) give back to the [PyTorch](http:
 ## References
 - Wei Liu, et al. "SSD: Single shot multibox detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
 - [Original Implementation (CAFFE)](https://github.com/weiliu89/caffe/tree/ssd)
-- Justin Johnson, [jcjohnson/pytorch-vgg](https://github.com/jcjohnson/pytorch-vgg)
