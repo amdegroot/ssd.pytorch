@@ -11,7 +11,7 @@ import os.path
 import sys
 import torch
 import torch.utils.data as data
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
@@ -91,7 +91,6 @@ class AnnotationTransform(object):
             (default: alphabetic indexing of VOC's 20 classes)
         keep_difficult (bool, optional): keep difficult instances or not
             (default: False)
-        channels (int): number of channels
         height (int): height
         width (int): width
     """
@@ -101,7 +100,7 @@ class AnnotationTransform(object):
             zip(VOC_CLASSES, range(len(VOC_CLASSES))))
         self.keep_difficult = keep_difficult
 
-    def __call__(self, target, channels, height, width):
+    def __call__(self, target, width, height):
         """
         Arguments:
             target (annotation) : the target annotation to be made usable
@@ -172,12 +171,13 @@ class VOCDetection(data.Dataset):
 
         target = ET.parse(self._annopath % img_id).getroot()
         img = Image.open(self._imgpath % img_id).convert('RGB')
+        width, height = img.size
 
         if self.transform is not None:
             img = self.transform(img)
 
         if self.target_transform is not None:
-            target = self.target_transform(target)
+            target = self.target_transform(target, width, height)
 
         return img.squeeze(0), target
 
@@ -201,6 +201,7 @@ class VOCDetection(data.Dataset):
         img = Image.open(self._imgpath % img_id).convert('RGB')
         draw = ImageDraw.Draw(img)
         i = 0
+        fnt = ImageFont.load_default()
         bndboxs = []
         classes = dict()  # maps class name to a class number
         for obj in target.iter('object'):
@@ -221,7 +222,7 @@ class VOCDetection(data.Dataset):
         for name, bndbox in bndboxs:
             color = COLORS[classes[name] % len(COLORS)]
             draw.rectangle(bndbox, outline=color)
-            draw.text(bndbox[:2], name, fill=color)
+            draw.text(bndbox[:2], name, font=fnt, fill=color)
         img.show()
         return img
 
