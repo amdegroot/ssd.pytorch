@@ -54,7 +54,7 @@ VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 ```
 
 ## Training SSD
-- First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:            https://s3.amazonaws.com/amdegroot-models/vgg16_layers_fc_reduced.pth
+- First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:              https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
 - By default, we assume you have extracted the file in the `ssd.pytorch/weights` dir:
 
 ```Shell
