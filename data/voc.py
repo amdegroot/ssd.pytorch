@@ -184,6 +184,20 @@ class VOCDetection(data.Dataset):
     def __len__(self):
         return len(self.ids)
 
+
+    def pull_image(self, index):
+        '''Returns the original image object at an index
+
+        Note: not using self.__getitem__(), as any transformations passed in
+        could mess up this functionality.
+
+        Argument:
+            index (int): index of img to show
+        '''
+        img_id = self.ids[index]
+        return Image.open(self._imgpath % img_id).convert('RGB')
+
+
     def show(self, index, subparts=False):
         '''Shows an image with its ground truth boxes overlaid optionally
 

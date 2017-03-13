@@ -62,8 +62,8 @@ def data_augment():
     ])
 
 
-def test_transform(dim, mean_values):
-    """Defines the transformations that should be applied to test and val data
+def train_transform(dim, mean_values):
+    """Defines the transformations that should be applied to train data
         for input into the network
 
     dimension -> tensorize -> color adj
