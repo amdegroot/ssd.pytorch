@@ -54,7 +54,7 @@ VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 ```
 
 ## Training SSD
-- First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:        https://s3.amazonaws.com/amdegroot-models/vgg16_layers_fc_reduced.tar.gz
+- First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:            https://s3.amazonaws.com/amdegroot-models/vgg16_layers_fc_reduced.tar.gz
 - By default, we assume you have extracted the file in the `ssd.pytorch/weights` dir:
 
 ```Shell
@@ -79,7 +79,7 @@ python train.py
 '--epochs', default=500, type=int, help='Number of training epochs'
 '--cuda', default=True, type=bool, help='Use cuda to train model'
 '--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate'
-'--momentum', default=0.9, type=float, help='momentum'
+'--momentum', default=0.9, type=float, help='Momentum'
 '--weight_decay', default=1e-4, type=float, help='Weight decay for SGD'
 '--save_folder', default='models/', help='Location to save epoch models'
 ```
