@@ -6,9 +6,10 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 
 ### Table of Contents
 - <a href='#installation'>Installation</a>
-- <a href='#a-datasets'>Datasets</a>
-- <a href='#b-training-ssd'>Train/Eval</a>
-- <a href='#c-use-a-pre-trained-ssd-network-for-detection'>Demos</a>
+- <a href='#datasets'>Datasets</a>
+- <a href='#training-ssd'>Train</a>
+- <a href='#testing'>Test</a>
+- <a href='#demos'>Demos</a>
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
 
@@ -64,9 +65,19 @@ python train.py
   * For training, an NVIDIA GPU is strongly recommended for speed.
   * This repo supports [TensorBoard](https://github.com/torrvision/crayon).
 
-## Use a pre-trained SSD network for detection
 
-### Download a pre-trained network
+## Testing
+To evaluate a trained network:
+```Shell
+python test.py
+```
+You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
+
+## Demos
+
+### Use a pre-trained SSD network for detection
+
+#### Download a pre-trained network
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
     * SSD300 trained on VOC0712 
@@ -77,7 +88,7 @@ python train.py
 <p align="center">
 <img src="http://www.cs.unc.edu/~wliu/papers/ssd_results.png" alt="SSD results on multiple datasets" width="800px"></p>
 
-## Try the demo
+### Try the demo notebook
 - Make sure you have [jupyter notebook](http://jupyter.readthedocs.io/en/latest/install.html) installed.
 - Two alternatives for installing jupyter notebook:
     1. If you installed PyTorch with [conda](https://www.continuum.io/downloads) (recommended), then you should already have it.  (Just  navigate to the ssd.pytorch cloned repo and run): 
@@ -96,18 +107,13 @@ jupyter notebook
 
 - Now navigate to `demo.ipynb` in the browser window that pops up and have at it!
 
-## Testing
-To evaluate a trained network:
-```Shell
-python test.py
-```
-You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
-
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
+- Complete data augmentation (in progress)
 - Train SSD300 with batch norm (in progress)
-- Add support for COCO dataset
+- Webcam demo (in progress)
 - Add support for SSD512 training and testing
+- Add support for COCO dataset
 - Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo) (in progress)
 
 ## Comments
