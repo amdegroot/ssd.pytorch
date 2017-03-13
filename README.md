@@ -6,9 +6,10 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 
 ### Table of Contents
 - <a href='#installation'>Installation</a>
-- <a href='#a-datasets'>Datasets</a>
-- <a href='#b-training-ssd'>Train/Eval</a>
-- <a href='#c-use-a-pre-trained-ssd-network-for-detection'>Demos</a>
+- <a href='#datasets'>Datasets</a>
+- <a href='#training-ssd'>Train</a>
+- <a href='#testing'>Test</a>
+- <a href='#demos'>Demos</a>
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
 
@@ -20,7 +21,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 ## Installation
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
 - Clone this repository.
-- Then download the dataset by following the instructions below.
+- Then download the dataset by following the [instructions](#download-voc2007-trainval--test) below.
 - Note: For training, we currently only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon.
 
 ## Datasets
@@ -53,31 +54,65 @@ VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 ```
 
 ## Training SSD
-- First download the [VGG-16](https://arxiv.org/abs/1409.1556) base network weights which can be found [here](https://s3-us-west-2.amazonaws.com/jcjohns-models/vgg16-00b39a1b.pth), courtesy of [Justin Johnson](https://github.com/jcjohnson/pytorch-vgg).
+- First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:            https://s3.amazonaws.com/amdegroot-models/vgg16_layers_fc_reduced.tar.gz
+- By default, we assume you have extracted the file in the `ssd.pytorch/weights` dir:
+
+```Shell
+mkdir weights
+cd weights
+tar -xzvf vgg16_layers_fc_reduced.tar.gz
+```
+
 - To train SSD using the train script simply specify the parameters listed in `train.py` as a flag or manually change them.
 
 ```Shell
 python train.py
 ```
+- Training Parameter Options: 
+
+```Python
+'--version', default='v2', type=string, help='conv11_2(v2) or pool6(v1) as last layer'
+'--basenet', default='vgg16_layers_fc_reduced.pth', type=string, help='pretrained base model'
+'--jaccard_threshold', type=int, default=0.5, help='Min Jaccard index for matching'
+'--batch_size', default=16, type=int, help='Batch size for training'
+'--num_workers', default=4, type=int, help='Number of workers used in dataloading'
+'--epochs', default=500, type=int, help='Number of training epochs'
+'--cuda', default=True, type=bool, help='Use cuda to train model'
+'--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate'
+'--momentum', default=0.9, type=float, help='Momentum'
+'--weight_decay', default=1e-4, type=float, help='Weight decay for SGD'
+'--save_folder', default='models/', help='Location to save epoch models'
+```
 
 - Note:
   * For training, an NVIDIA GPU is strongly recommended for speed.
-  * This repo supports [TensorBoard](https://github.com/torrvision/crayon).
+  * Currently only v2 has been used for training.
 
-## Use a pre-trained SSD network for detection
+## Testing
+To evaluate a trained network:
 
-### Download a pre-trained network
+```Shell
+python test.py
+```
+
+You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
+
+## Demos
+
+### Use a pre-trained SSD network for detection
+
+#### Download a pre-trained network
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
-    * SSD300 trained on VOC0712 
+    * SSD300 v2 trained on VOC0712 (newest version)
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc0712.tar.gz 
-    * SSD300 (pool6/non-bn version) trained on VOC07
+    * SSD300 v1 (original/old pool6 version) trained on VOC07
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
 <p align="center">
 <img src="http://www.cs.unc.edu/~wliu/papers/ssd_results.png" alt="SSD results on multiple datasets" width="800px"></p>
 
-## Try the demo
+### Try the demo notebook
 - Make sure you have [jupyter notebook](http://jupyter.readthedocs.io/en/latest/install.html) installed.
 - Two alternatives for installing jupyter notebook:
     1. If you installed PyTorch with [conda](https://www.continuum.io/downloads) (recommended), then you should already have it.  (Just  navigate to the ssd.pytorch cloned repo and run): 
@@ -96,18 +131,13 @@ jupyter notebook
 
 - Now navigate to `demo.ipynb` in the browser window that pops up and have at it!
 
-## Testing
-To evaluate a trained network:
-```Shell
-python test.py
-```
-You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
-
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
+- Complete data augmentation (in progress)
 - Train SSD300 with batch norm (in progress)
-- Add support for COCO dataset
+- Webcam demo (in progress)
 - Add support for SSD512 training and testing
+- Add support for COCO dataset
 - Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo) (in progress)
 
 ## Comments
