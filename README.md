@@ -18,6 +18,8 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 &nbsp;
 &nbsp;
 
+
+<img align="center" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_example.jpg" height = 300/>
 ## Installation
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
 - Clone this repository.
