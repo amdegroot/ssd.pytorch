@@ -54,23 +54,47 @@ VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 ```
 
 ## Training SSD
-- First download the [VGG-16](https://arxiv.org/abs/1409.1556) base network weights which can be found [here](https://s3-us-west-2.amazonaws.com/jcjohns-models/vgg16-00b39a1b.pth), courtesy of [Justin Johnson](https://github.com/jcjohnson/pytorch-vgg).
+- First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:        https://s3.amazonaws.com/amdegroot-models/vgg16_layers_fc_reduced.tar.gz
+- By default, we assume you have extracted the file in the `ssd.pytorch/weights` dir:
+
+```Shell
+mkdir weights
+cd weights
+tar -xzvf vgg16_layers_fc_reduced.tar.gz
+```
+
 - To train SSD using the train script simply specify the parameters listed in `train.py` as a flag or manually change them.
 
 ```Shell
 python train.py
 ```
+- Training Parameter Options: 
+
+```Python
+'--version', default='v2', type=string, help='conv11_2(v2) or pool6(v1) as last layer'
+'--basenet', default='vgg16_layers_fc_reduced.pth', type=string, help='pretrained base model'
+'--jaccard_threshold', type=int, default=0.5, help='Min Jaccard index for matching'
+'--batch_size', default=16, type=int, help='Batch size for training'
+'--num_workers', default=4, type=int, help='Number of workers used in dataloading'
+'--epochs', default=500, type=int, help='Number of training epochs'
+'--cuda', default=True, type=bool, help='Use cuda to train model'
+'--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate'
+'--momentum', default=0.9, type=float, help='momentum'
+'--weight_decay', default=1e-4, type=float, help='Weight decay for SGD'
+'--save_folder', default='models/', help='Location to save epoch models'
+```
 
 - Note:
   * For training, an NVIDIA GPU is strongly recommended for speed.
-  * This repo supports [TensorBoard](https://github.com/torrvision/crayon).
-
+  * Currently only v2 has been used for training.
 
 ## Testing
 To evaluate a trained network:
+
 ```Shell
 python test.py
 ```
+
 You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
 
 ## Demos
@@ -80,9 +104,9 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
 #### Download a pre-trained network
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
-    * SSD300 trained on VOC0712 
+    * SSD300 v2 trained on VOC0712 (newest version)
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc0712.tar.gz 
-    * SSD300 (pool6/non-bn version) trained on VOC07
+    * SSD300 v1 (original/old pool6 version) trained on VOC07
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
 <p align="center">
