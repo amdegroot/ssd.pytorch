@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import numpy as np
 from torch.autograd import Function
-import functional as F
 from torch.autograd import Variable
 
 
@@ -19,12 +17,5 @@ class L2Norm(nn.Module):
 
     def forward(self, input):
         norm = input.pow(2).sum(1).sqrt()
-        out = self.scale * input / (norm.expand_as(input) + self.eps)  
+        out = self.scale * input / (norm.expand_as(input) + self.eps)
         return out
-
-        # return l2norm(self.n_channels,self.scale)(input, self.weight)
-
-
-    #
-    # def reset():
-    #     self.weight.fill_(self.scale)

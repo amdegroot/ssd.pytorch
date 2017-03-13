@@ -21,63 +21,76 @@ else:
     import xml.etree.ElementTree as ET
 from data import AnnotationTransform, VOCDetection, detection_collate, test_transform
 from modules import MultiBoxLoss
-from ssd import build_ssd
+from ssd_by_layer import build_ssd
 from timeit import default_timer as timer
+import time
 
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
-parser.add_argument('--batch_size', default=4, type=int, help='Batch size for training')
+parser.add_argument('--version', default='v2', type=string, help='conv11_2(v2) or pool6(v1) as last layer')
+parser.add_argument('--basenet', default='vgg16_layers_fc_reduced.pth', type=string, help='pretrained base model')
+parser.add_argument('--jaccard_threshold', type=int, default=0.5, help='Min Jaccard index for matching')
+parser.add_argument('--batch_size', default=16, type=int, help='Batch size for training')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
-parser.add_argument('--epochs', default=70, type=int, help='Number of training epochs')
+parser.add_argument('--epochs', default=500, type=int, help='Number of training epochs')
 parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight_decay', default=1e-4, type=float, help='Weight decay for SGD')
-parser.add_argument('--silent', default=True, type=bool, help='Turn off progress tracking per iteration')
-parser.add_argument('--epoch_save', default=False, type=bool, help='Save model every epoch')
 parser.add_argument('--save_folder', default='models/', help='Location to save epoch models')
-# parser.add_argument('--final_model_path', default='models/trained_ssd.pth.tar',
-#                     help='Location to save final model')
+
 args = parser.parse_args()
 
 # Model
-ssd_dim = 300
-rgb_means = (104,117,123)
+ssd_dim = 300 # only support 300 now
+rgb_means = (104,117,123) # only support voc now
+num_classes = 21
 net = build_ssd('train',300,21)
+vgg_weights = torch.load('weights/'+ args.basenet)
+net.vgg.load_state_dict(vgg_weights)
 if args.cuda:
     net.cuda()
     cudnn.benchmark = True
-
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 batch_size = args.batch_size
-criterion = MultiBoxLoss(21,0.5,True,0,True,3,0.5, False)
+criterion = MultiBoxLoss(num_classes,0.5,True,0,True,3,0.5, False)
 def train():
     net.train()
     train_loss = 0
-    dataset = VOCDetection(VOCroot, 'train', test_transform(ssd_dim, rgb_means), AnnotationTransform())
-    batch_iterator = iter(data.DataLoader(dataset,batch_size,shuffle=True,collate_fn=detection_collate))
-    images, targets = next(batch_iterator)
-    if args.cuda:
-        images = images.cuda()
-    images = Variable(images)
-    targets = [Variable(anno).cuda() for anno in targets]
-    torch.save(images, "train_batch1.pkl")
-    torch.save(targets, "train_batch1_annos.pkl")
+    dataset = VOCDetection(VOCroot, 'train',test_transform(ssd_dim, rgb_means), AnnotationTransform())
+
     for epoch in range(args.epochs):
         # load train data
         # create batch iterator
+        batch_iterator = iter(data.DataLoader(dataset,batch_size,shuffle=True,collate_fn=detection_collate))
+        adjust_learning_rate(optimizer, epoch)
         for batch_idx in range(len(dataset) // batch_size):
+            images, targets = next(batch_iterator)
+
+            if args.cuda:
+                images = images.cuda()
+                targets = [anno.cuda() for anno in targets]
+            images = Variable(images)
+            targets = [Variable(anno, volatile=True) for anno in targets]
             optimizer.zero_grad()
+            t0 = time.time()
             out = net(images)
             loss = criterion(out, targets)
             loss.backward()
             optimizer.step()
-            print("Current loss: ", loss.data[0])
+            t1 = time.time()
+            print(t1-t0)
+            print(repr(batch_idx) + ": Current loss: ", loss.data[0])
             train_loss += loss.data[0]
-            #print(train_loss/(batch_idx+1))
         train_loss/= (len(dataset) / batch_size)
-        print("Loss for epoch" '%d': ' %d', epoch, train_loss)
-    torch.save(net,"memo_net1.pkl")
+        print('Avg loss for epoch ' + repr(epoch) + ': ' + repr(train_loss))
+    torch.save(net,args.save_folder + '/ssd'+args.version+'.pth')
 
+
+def adjust_learning_rate(optimizer, epoch):
+    """Sets the learning rate to the initial LR decayed by 10 every 70 epochs"""
+    lr = args.lr * (0.1 ** (epoch // 70))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
 if __name__ == '__main__':
     train()

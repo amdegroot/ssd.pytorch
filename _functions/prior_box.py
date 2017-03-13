@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-from data import c9_2, pool6
+from data import v2, v1
 from math import sqrt as sqrt
 from itertools import product as product
 if torch.cuda.is_available():
@@ -9,7 +9,15 @@ if torch.cuda.is_available():
 
 
 class PriorBox(object):
-    def __init__(self, cfg, clip=False):
+    """Compute priorbox coordinates in center-offset form for each source
+    feature map.
+    Note:
+    This 'layer' has changed between versions of the original SSD
+    paper, so we include both versions, but note v2 is the most tested and most
+    recent version of the paper.
+
+    """
+    def __init__(self, cfg):
         super(PriorBox, self).__init__()
         # self.type = cfg.name
         self.image_size = cfg['min_dim']
@@ -26,32 +34,30 @@ class PriorBox(object):
             if v <= 0:
                 raise ValueError('Variances must be greater than 0')
 
-
     def forward(self):
         mean = []
         # TODO merge these
-        if self.version == 'pool6':
-            for i,k in enumerate(self.feature_maps):
-                for h, w in product(range(k), repeat=2):
-                    cx = (w + 0.5) * self.steps[i]
-                    cy = (h + 0.5) * self.steps[i]
-                    # aspect_ratio: 1
-                    # size: min_size
-                    s_k = self.min_sizes[i]/self.image_size
-                    mean += [cx, cy, s_k, s_k]
-                    if(self.max_sizes[i] > 0):
-                        # aspect_ratio: 1
-                        # size: sqrt(min_size * max_size)
-                        s_k = sqrt(self.min_sizes[i] * self.max_sizes[i])
-                        mean += [cx, cy, s_k, s_k]
-                    s_k = self.min_sizes[i]/self.image_size
-                    # rest of prior boxes
-                    for ar in self.aspect_ratios[i]:
-                        if abs(ar-1) < 1e-6:
-                            continue
-                        mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
-                        mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
+        if self.version == 'conv9_2':
+            for k,f in enumerate(self.feature_maps):
+                for i, j in product(range(f), repeat=2):
+                    f_k = self.image_size / self.steps[k]
+                    # unit center x,y
+                    cx = (i + 0.5) / f_k
+                    cy = (j + 0.5) / f_k
 
+                    # aspect_ratio: 1
+                    # rel size: min_size
+                    s_k = self.min_sizes[k]/self.image_size
+                    mean += [cx, cy, s_k, s_k]
+
+                    # aspect_ratio: 1
+                    # rel size: sqrt(s_k * s_(k+1))
+                    s_k_prime = sqrt(s_k * (self.max_sizes[k]/self.image_size))
+                    mean += [cx, cy, s_k_prime, s_k_prime]
+
+                    # rest of aspect ratios
+                    for ar in self.aspect_ratios[k]:
+                        mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
 
         else:
             # original version generation of prior (default) boxes
@@ -61,7 +67,7 @@ class PriorBox(object):
                    c_x = ((w+0.5) * step_x)
                    c_y = ((h+0.5) * step_y)
                    c_w = c_h = self.min_sizes[i] / 2
-                   s_k = self.image_size
+                   s_k = self.image_size # 300
                    # aspect_ratio: 1,
                    # size: min_size
                    mean += [(c_x-c_w)/s_k, (c_y-c_h)/s_k, (c_x+c_w)/s_k, (c_y+c_h)/s_k]

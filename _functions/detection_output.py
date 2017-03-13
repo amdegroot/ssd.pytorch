@@ -46,8 +46,7 @@ class Detect(Function):
         # GET CONFIDENCE SCORES FROM CONF_DATA
         # If input is only a single image then we need to add the batch dim
         # that we removed for softmax layer
-        print(prior_data.size())
-        print(loc_data.size())
+
         if num == 1:
             conf_preds = conf_data.t().contiguous().unsqueeze(0) # size num x 21 x 7308
         else:
@@ -61,7 +60,9 @@ class Detect(Function):
         # Decode predictions into bboxes.
         num_kept = 0
         for i in range(num):
-            decode_bboxes = decode_boxes(prior_data,prior_variances,loc_data[i])
+            print(loc_data[i].size())
+            print(prior_data.size())
+            decode_bboxes = decode(loc_data[i],prior_data,prior_variances)
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             indices = []
@@ -106,8 +107,12 @@ class Detect(Function):
                 self.output[i][j][0] = i+1
                 self.output[i][j][1] = final_labels[j]
                 self.output[i][j][2] = final_scores[j]
-                self.output[i][j][3] = max(min(decode_bboxes[idx][0], 1), 0)
-                self.output[i][j][4] = max(min(decode_bboxes[idx][1], 1), 0)
-                self.output[i][j][5] = max(min(decode_bboxes[idx][2], 1), 0)
-                self.output[i][j][6] = max(min(decode_bboxes[idx][3], 1), 0)
-        return self.output
+                self.output[i][j][3] = min(max(decode_bboxes[idx][0],0),1)
+                self.output[i][j][4] = min(max(decode_bboxes[idx][1],0),1)
+                self.output[i][j][5] = min(max(decode_bboxes[idx][2],0),1)
+                self.output[i][j][6] = min(max(decode_bboxes[idx][3],0),1)
+                # self.output[i][j][3] = decode_bboxes[idx][0]
+                # self.output[i][j][4] = decode_bboxes[idx][1]
+                # self.output[i][j][5] = decode_bboxes[idx][2]
+                # self.output[i][j][6] = decode_bboxes[idx][3]
+            return self.output

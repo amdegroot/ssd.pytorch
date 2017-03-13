@@ -25,11 +25,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
 ]]--
 
-local base = '~/models/VGGNet/VOC0712/SSD_300x300/'
-local model = loadcaffe.load(base..'deploy.prototxt', base..'VGG_VOC0712_SSD_300x300_iter_120000.caffemodel', 'nn')
+-- local base = '~/models/VGGNet/VOC0712/SSD_300x300/'
+-- base..
+ -- base..
+model = loadcaffe.load('../../weights/VGG_ILSVRC_16_layers_fc_reduced_deploy.prototxt','../weights/VGG_ILSVRC_16_layers_fc_reduced.caffemodel', 'nn')
 -- model:remove() -- Remove the softmax at the end
--- assert(torch.isTypeOf(model:get(#model), nn.Linear))
+-- assert(torch.isTypeOf(model:get(#model), nn.SpatialConvolution())) -- reduced version w/o linear layers
 -- model:evaluate()
 -- model:float()
 
-torch.save('weights/VOC0712.t7',model)
+torch.save('../../weights/vgg16_fc_reduced.t7',model)

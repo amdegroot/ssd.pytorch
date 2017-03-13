@@ -5,6 +5,7 @@ if torch.cuda.is_available():
     import torch.backends.cudnn as cudnn
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
+
 def point_form(boxes):
     """ Convert prior_boxes to (xmin, ymin, xmax, ymax)
     representation for comparison to point form ground truth data.
@@ -100,11 +101,12 @@ def match(threshold,truths, priors, variances, labels, loc_t, conf_t, idx):
         The matched indices corresponding to 1)location and 2)confidence preds.
 
     """
-    overlaps = jaccard(  # [num_obj,num_priors]
+    # jaccard index
+    overlaps = jaccard(
         truths,
         point_form(priors)
     )
-    # (bipartite matching)
+    # (Bipartite Matching)
     # [1,num_objects] best prior for each ground truth
     best_prior_overlap, best_prior_idx = overlaps.max(1)
     # [1,num_priors] best ground truth for each prior
@@ -124,7 +126,6 @@ def match(threshold,truths, priors, variances, labels, loc_t, conf_t, idx):
     loc = encode(matches,priors,variances)
     loc_t[idx] =  loc                   # [num_priors,4] encoded offsets to learn
     conf_t[idx] = conf                  # [num_priors] top class label for each prior
-    # encoded location of each bounding box, label matched with each bounding box
 
 
 def encode(matched, priors, variances):
@@ -140,12 +141,12 @@ def encode(matched, priors, variances):
     Return:
         encoded boxes (tensor), Shape: [num_priors, 4]
     """
-    #[num_priors,4] filled in with ground truth coordinates in point form
+
     # dist b/t match center and prior's center
     g_cxcy = (matched[:,:2] + matched[:,2:])/2 - priors[:,:2]
     g_cxcy /= (variances[0] * priors[:,2:])               # encode variance
     g_wh = (matched[:,2:] - matched[:,:2]) / priors[:,2:] # match wh / prior wh
-    g_wh = torch.log(wh) / variances[1]
+    g_wh = torch.log(g_wh) / variances[1]
     # return target for smooth_l1_loss
     return torch.cat([g_cxcy, g_wh], 1)  # [num_priors,4]
 
@@ -171,6 +172,17 @@ def decode(loc, priors, variances):
     boxes[:, :2] -= boxes[:, 2:] / 2
     boxes[:, 2:] += boxes[:, :2]
     return boxes
+
+
+def log_sum_exp(x):
+    """Utility function for computing log_sum_exp while determining
+    This will be used to determine unaveraged confidence loss across
+    all examples in a batch.
+    Args:
+        x (Variable(tensor)): conf_preds from conf layers
+    """
+    x_max = x.data.max()
+    return torch.log(torch.sum(torch.exp(x-x_max), 1)) + x_max
 
 
 # Original author: Francisco Massa: https://github.com/fmassa/object-detection.torch
