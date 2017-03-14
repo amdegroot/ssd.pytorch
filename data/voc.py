@@ -194,9 +194,32 @@ class VOCDetection(data.Dataset):
 
         Argument:
             index (int): index of img to show
+        Return:
+            PIL img
         '''
         img_id = self.ids[index]
         return Image.open(self._imgpath % img_id).convert('RGB')
+
+    def pull_anno(self, index):
+        '''Returns the original annotation of image at index
+
+        Note: not using self.__getitem__(), as any transformations passed in
+        could mess up this functionality.
+
+        Argument:
+            index (int): index of img to get annotation of
+        Return:
+            tuple:  (img_id, [(label, bbox coords),...])
+                eg: ('001718', [('dog', [96, 13, 438, 332])])
+        '''
+        gts = []
+        img_id = self.ids[index]
+        anno = ET.parse(self._annopath % img_id).getroot()
+        for obj in anno.iter('object'):
+            bbox = obj.find('bndbox')
+            label = obj.find('name').text.lower().strip()
+            gts.append((label, [int(bb.text) - 1 for bb in bbox]))
+        return (img_id, gts)
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
@@ -206,6 +229,8 @@ class VOCDetection(data.Dataset):
 
         Argument:
             index (int): index of img to show
+        Return:
+            tensorized version of img, squeezed
         '''
         to_tensor = transforms.ToTensor()
         return to_tensor(self.pull_image(index)).unsqueeze_(0)
