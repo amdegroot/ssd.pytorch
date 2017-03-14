@@ -27,8 +27,8 @@ import time
 
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
-parser.add_argument('--version', default='v2', type=string, help='conv11_2(v2) or pool6(v1) as last layer')
-parser.add_argument('--basenet', default='vgg16_layers_fc_reduced.pth', type=string, help='pretrained base model')
+parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
+parser.add_argument('--basenet', default='vgg16_reducedfc.pth', help='pretrained base model')
 parser.add_argument('--jaccard_threshold', type=int, default=0.5, help='Min Jaccard index for matching')
 parser.add_argument('--batch_size', default=16, type=int, help='Batch size for training')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
@@ -83,8 +83,9 @@ def train():
             print(repr(batch_idx) + ": Current loss: ", loss.data[0])
             train_loss += loss.data[0]
         train_loss/= (len(dataset) / batch_size)
+        torch.save(net.state_dict(),'ssd_models/'+repr(epoch)+'.pth')
         print('Avg loss for epoch ' + repr(epoch) + ': ' + repr(train_loss))
-    torch.save(net,args.save_folder + '/ssd'+args.version+'.pth')
+    torch.save(net,args.save_folder + 'ssd_models/'+args.version+'.pth')
 
 
 def adjust_learning_rate(optimizer, epoch):

@@ -60,8 +60,6 @@ class Detect(Function):
         # Decode predictions into bboxes.
         num_kept = 0
         for i in range(num):
-            print(loc_data[i].size())
-            print(prior_data.size())
             decode_bboxes = decode(loc_data[i],prior_data,prior_variances)
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
