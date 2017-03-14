@@ -11,18 +11,19 @@ import os.path
 import sys
 import torch
 import torch.utils.data as data
+import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
     import xml.etree.ElementTree as ET
 
-VOC_CLASSES = ( # always index 0
-               'aeroplane', 'bicycle', 'bird', 'boat',
-               'bottle', 'bus', 'car', 'cat', 'chair',
-               'cow', 'diningtable', 'dog', 'horse',
-               'motorbike', 'person', 'pottedplant',
-               'sheep', 'sofa', 'train', 'tvmonitor')
+VOC_CLASSES = (  # always index 0
+    'aeroplane', 'bicycle', 'bird', 'boat',
+    'bottle', 'bus', 'car', 'cat', 'chair',
+    'cow', 'diningtable', 'dog', 'horse',
+    'motorbike', 'person', 'pottedplant',
+    'sheep', 'sofa', 'train', 'tvmonitor')
 
 # for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
@@ -106,7 +107,7 @@ class AnnotationTransform(object):
             target (annotation) : the target annotation to be made usable
                 will be an ET.Element
         Returns:
-            a Tensor containing [bbox coords, class name]
+            a list containing lists of bounding boxes  [bbox coords, class name]
         """
         res = []
         for obj in target.iter('object'):
@@ -175,18 +176,18 @@ class VOCDetection(data.Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
+            img.squeeze(0)
 
         if self.target_transform is not None:
             target = self.target_transform(target, width, height)
 
-        return img.squeeze(0), target
+        return img, target
 
     def __len__(self):
         return len(self.ids)
 
-
     def pull_image(self, index):
-        '''Returns the original image object at an index
+        '''Returns the original image object at index in PIL form
 
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
@@ -197,6 +198,17 @@ class VOCDetection(data.Dataset):
         img_id = self.ids[index]
         return Image.open(self._imgpath % img_id).convert('RGB')
 
+    def pull_tensor(self, index):
+        '''Returns the original image at an index in tensor form
+
+        Note: not using self.__getitem__(), as any transformations passed in
+        could mess up this functionality.
+
+        Argument:
+            index (int): index of img to show
+        '''
+        to_tensor = transforms.ToTensor()
+        return to_tensor(self.pull_image(index)).unsqueeze_(0)
 
     def show(self, index, subparts=False):
         '''Shows an image with its ground truth boxes overlaid optionally
