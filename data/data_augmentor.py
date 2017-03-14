@@ -33,9 +33,10 @@ def random_sample():
     raise NotImplementedError
 
 
-def data_augment():
+def train_transform():
     """Defines the squential transformations to the input image that help make
-        the model more robust to various input object sizes and shapes.
+        the model more robust to various input object sizes and shapes during
+        training.
 
     sample -> resize -> flip -> photometric (?)
 
@@ -62,8 +63,24 @@ def data_augment():
     ])
 
 
-def train_transform(dim, mean_values):
-    """Defines the transformations that should be applied to train data
+def swap_channels(tensor, swap):
+    """Swaps the channels as specified in the swap
+
+    modifies the input tensor
+
+    Arguments:
+        tensor (Tensor): tensor to be permuted
+        swaps (int list): final order of channels
+            eg: (2, 1, 0)
+    """
+    temp = tensor.clone()
+    for i in range(3):
+        temp[i] = tensor[swap[i]]
+    tensor.copy_(temp)
+
+
+def test_transform(dim, mean_values):
+    """Defines the transformations that should be applied to test PIL image
         for input into the network
 
     dimension -> tensorize -> color adj
@@ -78,10 +95,13 @@ def train_transform(dim, mean_values):
         data
     """
 
+    swap = (2, 1, 0)
+
     return transforms.Compose([
-        transforms.CenterCrop(dim),
         transforms.Scale(dim),
+        transforms.CenterCrop(dim),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255)),
+        transforms.Lambda(lambda x: swap_channels(x, swap)),
         transforms.Normalize(mean_values, (1, 1, 1))
     ])
