@@ -127,9 +127,9 @@ class AnnotationTransform(object):
 
             label_ind = self.class_to_ind[name]
             bndbox.append(label_ind)
-            res += [bndbox]  # [xmin, ymin, xmax, ymax, ind]
+            res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
 
-        return res  # [[xmin, ymin, xmax, ymax, ind], ... ]
+        return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
 
 class VOCDetection(data.Dataset):
@@ -176,7 +176,7 @@ class VOCDetection(data.Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
-            img.squeeze(0)
+            img.squeeze_(0)
 
         if self.target_transform is not None:
             target = self.target_transform(target, width, height)
