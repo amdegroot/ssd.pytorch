@@ -2,7 +2,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.autograd import Function
 from box_utils import*
-from data import c9_2, pool6
+from data import v2, v1
 from functions import Detect, PriorBox
 from modules import L2Norm
 import torchvision.transforms as transforms
@@ -38,7 +38,7 @@ class SSD(nn.Module):
         self.num_classes = num_classes
         param=num_classes*3
         self.base = build_base(cfg[str(sz)] ,3)
-        self.version = pool6 if version == 'pool6' else c9_2
+        self.version = v1 
         self.box_layer = PriorBox(self.version)
         self.priors = Variable(self.box_layer.forward())
         # TODO: Build the rest of the sequentials in a for loop.
