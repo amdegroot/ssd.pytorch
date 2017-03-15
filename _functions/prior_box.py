@@ -37,13 +37,13 @@ class PriorBox(object):
     def forward(self):
         mean = []
         # TODO merge these
-        if self.version == 'conv9_2':
+        if self.version == 'v2':
             for k,f in enumerate(self.feature_maps):
                 for i, j in product(range(f), repeat=2):
                     f_k = self.image_size / self.steps[k]
                     # unit center x,y
-                    cx = (i + 0.5) / f_k
-                    cy = (j + 0.5) / f_k
+                    cx = (j + 0.5) / f_k
+                    cy = (i + 0.5) / f_k
 
                     # aspect_ratio: 1
                     # rel size: min_size
@@ -58,6 +58,7 @@ class PriorBox(object):
                     # rest of aspect ratios
                     for ar in self.aspect_ratios[k]:
                         mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
+                        mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
 
         else:
             # original version generation of prior (default) boxes
