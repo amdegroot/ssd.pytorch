@@ -98,7 +98,7 @@ python test.py
 You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
 
 
-<img align="center" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_example.png" height = 400/>
+<img align="left" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_examples.png">
 
 ## Demos
 
@@ -112,7 +112,7 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
     * SSD300 v1 (original/old pool6 version) trained on VOC07
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
-<p align="center">
+<p align="left">
 <img src="http://www.cs.unc.edu/~wliu/papers/ssd_results.png" alt="SSD results on multiple datasets" width="800px"></p>
 
 ### Try the demo notebook
