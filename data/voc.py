@@ -127,9 +127,9 @@ class AnnotationTransform(object):
 
             label_ind = self.class_to_ind[name]
             bndbox.append(label_ind)
-            res += [bndbox]  # [xmin, ymin, xmax, ymax, ind]
+            res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
 
-        return res  # [[xmin, ymin, xmax, ymax, ind], ... ]
+        return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
 
 class VOCDetection(data.Dataset):

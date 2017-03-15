@@ -198,12 +198,12 @@ def nms(boxes, scores, overlap, top_k):
         top_k: (int) The Maximum number of box preds to consider.
 
     Return:
-        The indices of the picked boxes with respect to num_priors.
+        The indices of the kept boxes with respect to num_priors.
     """
 
-    pick = torch.zeros(scores.size(0))
+    keep = torch.zeros(scores.size(0)).long()
     if boxes.numel() == 0:
-        return pick
+        return keep
     x1 = boxes[:,0]
     y1 = boxes[:,1]
     x2 = boxes[:,2]
@@ -211,7 +211,7 @@ def nms(boxes, scores, overlap, top_k):
 
     area = torch.mul(x2 - x1 + 1, y2 - y1 + 1)
     v, I = scores.sort(0) # sort in ascending order
-    I = I[-top_k:]
+    I = I[-top_k:]  # indices of the top-k largest vals
 
     xx1 = boxes.new()
     yy1 = boxes.new()
@@ -222,28 +222,31 @@ def nms(boxes, scores, overlap, top_k):
 
     count = 0
     while I.numel() > 0:
-        last = I.size(0)
-        i = I[last-1]
+        
+        i = I[-1]  # index of current largest val
 
-        pick[count] = i
+        keep[count] = i
         count += 1
-        if last == 1:
+
+        # is this necessary? could handle in while stmt condition..
+        if I.size(0) == 1:
             break
 
-        I = I[:-1] # remove picked element from view
+        I = I[:-1] # remove kept element from view
 
-        # load values
+        # load bboxes of next highest vals
         torch.index_select(x1, 0, I, out=xx1)
         torch.index_select(y1, 0, I, out=yy1)
         torch.index_select(x2, 0, I, out=xx2)
         torch.index_select(y2, 0, I, out=yy2)
 
         # TODO: time comparison using map_() and xx1 < x1[i] instead
+
         # store element-wise max with next highest score
-        torch.clamp(xx1,min = x1[i])
-        torch.clamp(yy1,min = y1[i])
-        torch.clamp(xx2,max = x2[i])
-        torch.clamp(yy2,max = y2[i])
+        torch.clamp(xx1,min=x1[i])
+        torch.clamp(yy1,min=y1[i])
+        torch.clamp(xx2,max=x2[i])
+        torch.clamp(yy2,max=y2[i])
         w.resize_as_(xx2)
         h.resize_as_(yy2)
 
@@ -251,21 +254,25 @@ def nms(boxes, scores, overlap, top_k):
         h = yy2 - yy1
         w += 1
         h +=1
-        w.max(torch.zeros(w.size(0)))
-        h.max(torch.zeros(h.size(0)))
+        torch.clamp(w, min=0)
+        torch.clamp(h, min=0)
+        
+
+        inter = w*h
 
         # reuse existing tensors
-        inter = w*h
-        # IoU .= i / (area(a) + area(b) - i)
-        xx1 = torch.index_select(area, 0, I) # load remaining areas into xx1
-        IoU = inter.div(xx1 + area[i] - inter) # store result in iou
-        mask = IoU.le(overlap)
+        rem_areas = w
+        IoU = h
 
-        # keep only elements with a IoU < overlap
-        I = torch.masked_select(I,IoU.le(overlap))
+        # IoU = i / (area(a) + area(b) - i)
+        rem_areas = torch.index_select(area, 0, I) # load remaining areas
+        IoU = inter.div(remareas + area[i] - inter) # store result in iou
+
+        # keep only elements with a IoU <= overlap
+        I = I[IoU <= overlap]
 
     # reduce size to actual count
-    return pick[:count]
+    return keep[:count]
 
 #TODO refactor
 def sort(score_pairs, indices_list, label_list, ktk, final_scores, final_indices, final_labels):
