@@ -63,7 +63,7 @@ def train_transform():
     ])
 
 
-class SwapChannelTransform(object):
+class SwapChannel(object):
     """Transforms a tensorized image by swapping the channels as specified in the swap
 
     modifies the input tensor
@@ -88,7 +88,7 @@ class SwapChannelTransform(object):
         return temp
 
 
-def test_transform(dim, mean_values):
+def base_transform(dim, mean_values):
     """Defines the transformations that should be applied to test PIL image
         for input into the network
 
@@ -111,6 +111,6 @@ def test_transform(dim, mean_values):
         transforms.CenterCrop(dim),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255)),
-        SwapChannelTransform(swap),
+        SwapChannel(swap),
         transforms.Normalize(mean_values, (1, 1, 1))
     ])

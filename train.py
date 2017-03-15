@@ -19,7 +19,7 @@ if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
     import xml.etree.ElementTree as ET
-from data import AnnotationTransform, VOCDetection, detection_collate, test_transform
+from data import AnnotationTransform, VOCDetection, detection_collate, base_transform
 from modules import MultiBoxLoss
 from ssd import build_ssd
 from timeit import default_timer as timer
@@ -62,7 +62,7 @@ criterion = MultiBoxLoss(num_classes,0.5,True,0,True,3,0.5, False)
 def train():
     net.train()
     train_loss = 0
-    dataset = VOCDetection(VOCroot, 'train',test_transform(ssd_dim, rgb_means), AnnotationTransform())
+    dataset = VOCDetection(VOCroot, 'train',base_transform(ssd_dim, rgb_means), AnnotationTransform())
 
     for epoch in range(args.epochs):
         # load train data & create batch iterator

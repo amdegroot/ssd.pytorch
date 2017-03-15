@@ -219,8 +219,8 @@ class VOCDetection(data.Dataset):
         for obj in anno.iter('object'):
             bbox = obj.find('bndbox')
             label = obj.find('name').text.lower().strip()
-            gts.append((label, tuple([int(bb.text) - 1 for bb in bbox])))
-        return [img_id, gts]
+            gts.append([label, *(int(bb.text) - 1 for bb in bbox)])
+        return img_id, gts
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
