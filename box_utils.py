@@ -266,7 +266,7 @@ def nms(boxes, scores, overlap, top_k):
 
         # IoU = i / (area(a) + area(b) - i)
         rem_areas = torch.index_select(area, 0, I) # load remaining areas
-        IoU = inter.div(remareas + area[i] - inter) # store result in iou
+        IoU = inter.div(rem_areas + area[i] - inter) # store result in iou
 
         # keep only elements with a IoU <= overlap
         I = I[IoU <= overlap]
