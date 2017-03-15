@@ -98,9 +98,7 @@ python test.py
 You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
 
 
-<img align="left" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_example.png" width = 400/>
-<img align="right" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_example2.png" width = 400/>
-
+<img align="left" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_examples.png">
 
 ## Demos
 
