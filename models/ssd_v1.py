@@ -3,7 +3,7 @@ from torch.autograd import Variable
 from torch.autograd import Function
 from box_utils import*
 from data import c9_2, pool6
-from _functions import Detect, PriorBox
+from functions import Detect, PriorBox
 from modules import L2Norm
 import torchvision.transforms as transforms
 import torchvision.models as models
@@ -174,8 +174,6 @@ class SSD(nn.Module):
             print('Error: Sorry Only .pth and .pkl files currently supported!')
 
 
-    def load_vgg(self, base_file):
-        py_modules = self.base.state_dict()
 
 # This function is derived from torchvision VGG make_layers()
 # https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py

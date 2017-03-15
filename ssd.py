@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from box_utils import*
-from _functions import Detect, PriorBox
+from functions import Detect, PriorBox
 from modules import L2Norm
 from data import v2,v1
 import torchvision.transforms as transforms
