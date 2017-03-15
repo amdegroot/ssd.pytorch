@@ -21,7 +21,7 @@ else:
     import xml.etree.ElementTree as ET
 from data import AnnotationTransform, VOCDetection, detection_collate, test_transform
 from modules import MultiBoxLoss
-from ssd_by_layer import build_ssd
+from ssd import build_ssd
 from timeit import default_timer as timer
 import time
 
