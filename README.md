@@ -108,7 +108,7 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
     * SSD300 v2 trained on VOC0712 (newest version)
-      - https://s3.amazonaws.com/amdegroot-models/SSD_300_VOC0712.pth
+      - https://s3.amazonaws.com/amdegroot-models/ssd_300_VOC0712.pth
     * SSD300 v1 (original/old pool6 version) trained on VOC07
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
@@ -145,12 +145,10 @@ We have accumulated the following to-do list, which you can expect to be done in
 
 ## Comments
 Please feel-free to post an issue with any questions or suggestions.  We tried to keep this implementation as pure to PyTorch as
-possible so as to 1) learn the framework and 2) give back to the [PyTorch](http://pytorch.org/) community.  That being said, there are ports of the original [SSD](https://github.com/weiliu89/caffe/tree/ssd) to other frameworks now, so some of those were taken into consideration when optimizing our code.  We would also like to acknowledge Soumith Chintala and Adam Paszke for their dedication and support on the
-[PyTorch Discussion Page](https://discuss.pytorch.org/), as well as Jimmy Whitaker for introducing me to the framework and to this paper.
-
+possible so as to 1) learn the framework and 2) give back to the [PyTorch](http://pytorch.org/) community.  That being said, there are ports of the original [SSD](https://github.com/weiliu89/caffe/tree/ssd) to other frameworks now, so some of those were taken into consideration when optimizing our code.  
 
 ## References
 - Wei Liu, et al. "SSD: Single Shot MultiBox Detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
 - [Original Implementation (CAFFE)](https://github.com/weiliu89/caffe/tree/ssd)
-- A list of other great SSD ports that were sources of inspiration: 
-  * [Keras](https://github.com/rykov8/ssd_keras), [Chainer](https://github.com/Hakuyume/chainer-ssd), [MXNet](https://github.com/zhreshold/mxnet-ssd), [Tensorflow](https://github.com/balancap/SSD-Tensorflow) 
+- A list of other great SSD ports that were sources of inspiration (especially the Chainer repo): 
+  * [Chainer](https://github.com/Hakuyume/chainer-ssd), [Keras](https://github.com/rykov8/ssd_keras), [MXNet](https://github.com/zhreshold/mxnet-ssd), [Tensorflow](https://github.com/balancap/SSD-Tensorflow) 
