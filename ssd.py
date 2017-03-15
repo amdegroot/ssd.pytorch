@@ -4,7 +4,7 @@ from torch.autograd import Variable
 from box_utils import*
 from _functions import Detect, PriorBox
 from modules import L2Norm
-from data import v2, v1
+from data import v2,v1
 import torchvision.transforms as transforms
 import torchvision.models as models
 import torch.backends.cudnn as cudnn
@@ -35,7 +35,7 @@ class SSD(nn.Module):
         # TODO: implement __call__ in PriorBox
         self.priorbox = PriorBox(v2)
         self.priors = self.priorbox.forward()
-
+        self.size = 300
         # Layer learns to scale the l2 normalized features from conv4_3
         self.L2Norm = L2Norm(512,20)
 
@@ -48,7 +48,7 @@ class SSD(nn.Module):
 
         if phase == 'test':
             self.softmax = nn.Softmax()
-            self.detect = Detect(21, 0, 200, 0.01, 0.45, 400)
+            self.detect = Detect(21, 0, 200, 0.01, 0.25, 400)
 
     def forward(self, x):
         """Applies network layers and ops on input image(s) x.
@@ -110,7 +110,7 @@ class SSD(nn.Module):
         else:
             conf = conf.view(conf.size(0),-1,self.num_classes)
             loc = loc.view(loc.size(0),-1,4)
-            output = (loc, conf, Variable(self.priors, volatile=True))
+            output = (loc, conf, self.priors)
         return output
 
 
@@ -151,17 +151,18 @@ def vgg(cfg, i, batch_norm=False):
 
 def add_extras(cfg, i, batch_norm=False):
     # Extra layers added to VGG for feature scaling
-    layers = [
-    nn.Conv2d(1024, 256, kernel_size=1),
-    nn.Conv2d(256, 512, kernel_size=3, padding=1, stride=2),
-    nn.Conv2d(512, 128, kernel_size=1), # Conv9_1
-    nn.Conv2d(128, 256, kernel_size=3, padding=1, stride=2), # Conv9_2
-    nn.Conv2d(256, 128, kernel_size=1), # Conv10_1
-    nn.Conv2d(128, 256, kernel_size=3),
-    nn.Conv2d(256, 128, kernel_size=1),
-    nn.Conv2d(128, 256, kernel_size=3)] # Conv11_2
+    layers = []
+    in_channels = 1024
+    flag = False
+    for k, v in enumerate(cfg):
+        if in_channels != 'S':
+            if v == 'S':
+                layers += [nn.Conv2d(in_channels, cfg[k+1], kernel_size=(1,3)[flag], stride=2, padding=1)]
+            else:
+                layers += [nn.Conv2d(in_channels, v, kernel_size = (1,3)[flag])]
+            flag = not flag
+        in_channels = v
     return layers
-
 
 
 def multibox(vgg, extra_layers, cfg, num_classes):

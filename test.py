@@ -17,51 +17,79 @@ import numpy as np
 from ssd import build_ssd
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
-parser.add_argument('--image_file', default='data/example.jpg', type=str, help='image file path to open')
-parser.add_argument('--trained_model', default='weights/', type=str, help='image file path to open')
+parser.add_argument('--trained_model', default='weights/', type=str, help='Trained state_dict file path to open')
+parser.add_argument('--save_folder', default='eval/', type=str, help='File path to save results')
+parser.add_argument('--confidence_threshold', default=0.6, type=float, help='Detection confidence threshold')
+parser.add_argument('--top_k', default=5, type=int, help='Further restrict the number of predictions to parse')
+parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
 args = parser.parse_args()
-#
-# img = cv2.imread(args.image_file)
 
-image = Image.open(args.image_file).convert('RGB')
+args.trained_model = 'ssd_models/123.pth'
+if not os.path.exists(args.save_folder):
+    os.mkdir(args.save_folder)
+    
 
-x = test_trasform()
-x = Variable(x) # wrap tensor in Variable
-y = net(x)      # forward pass
+def get_labelname(labelmap, top_label_indices):
+    return [labelmap[int(l)-1] for l in top_label_indices]
 
 
+def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
+    for i in range(len(valset)):
 
-detections = y.data.cpu().numpy()
-# Parse the outputs.
-det_label = detections[0,:,1]
-det_conf = detections[0,:,2]
-det_xmin = detections[0,:,3]
-det_ymin = detections[0,:,4]
-det_xmax = detections[0,:,5]
-det_ymax = detections[0,:,6]
+        img = valset.pull_image(i)
+        annotation = valset.pull_anno(i)
+        x = Variable(transform(img).unsqueeze_(0)) # wrap tensor in Variable
+        #
+        if cuda:
+            x = x.cuda()
 
-label = labelmap[int(det_label[0])-1]
-score = det_conf[0]
-x1 = det_xmin[0]*image.size[0]
-y1 = det_ymin[0]*image.size[1]
-x2 = det_xmax[0]*image.size[0]
-y2 = det_ymax[0]*image.size[1]
+        y = net(x)      # forward pass
+        detections = y.data.cpu().numpy()
+        # Parse the outputs.
+        det_label = detections[0,:,1]
+        det_conf = detections[0,:,2]
+        det_xmin = detections[0,:,3]
+        det_ymin = detections[0,:,4]
+        det_xmax = detections[0,:,5]
+        det_ymax = detections[0,:,6]
+        # Get detections with confidence higher than thresh param.
+        top_indices = [i for i, conf in enumerate(det_conf) if conf >= thresh and i < top_k]
+        top_conf = det_conf[top_indices]
+        top_label_indices = det_label[top_indices]
+        top_labels = get_labelname(labelmap, top_label_indices)
+        top_xmin = det_xmin[top_indices]
+        top_ymin = det_ymin[top_indices]
+        top_xmax = det_xmax[top_indices]
+        top_ymax = det_ymax[top_indices]
 
-coords = (x1, y1), x2-x1+1, y2-y1+1
-return label,coords
+        for i in range(top_conf.shape[0]):
+            if i>top_k:
+                break
+            xmin = int(round(top_xmin[i] * img.size[0]))
+            ymin = int(round(top_ymin[i] * img.size[1]))
+            xmax = int(round(top_xmax[i] * img.size[0]))
+            ymax = int(round(top_ymax[i] * img.size[1]))
+            score = top_conf[i]
+            label = int(top_label_indices[i])
+            label_name = top_labels[i]
+            coords = (xmin, ymin, xmax-xmin, ymax-ymin)
+            filename = save_folder+label_name+'.txt'
+            with open(filename, mode='a') as f:
+                print('GROUND TRUTH: {}  ||| PREDICTION: label: {} score: {} coords: {} {} {} {}'.format(annotation, label_name, score, *coords))
+            f.closed
+
 
 if __name__ == '__main__':
-    # load data
-    valset = VOCDetection(VOCroot, 'val', test_transform(ssd_dim, rgb_means), AnnotationTransform())
-    for i in len(valset):
-        valset.pull_image()
     # load net
     net = build_ssd('test', 300, 21)    # initialize SSD
-    net.load_weights(args.trained_model)
-    print('load model successfully!')
-
-    net.cuda()
+    net.load_state_dict(torch.load(args.trained_model))
     net.eval()
-
+    print('Finished loading model!')
+    # load data
+    valset = VOCDetection(VOCroot, 'val', None, AnnotationTransform())
+    if args.cuda:
+        net = net.cuda()
+        cudnn.benchmark = True
+        cuda=True
     # evaluation
-    test_net(save_name, net, valset, max_per_image, thresh=thresh, vis=vis)
+    test_net(args.save_folder, net, cuda, valset, test_transform(net.size,(104,117,123)), args.top_k, thresh=args.confidence_threshold)

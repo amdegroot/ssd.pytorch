@@ -9,13 +9,10 @@ if torch.cuda.is_available():
 def point_form(boxes):
     """ Convert prior_boxes to (xmin, ymin, xmax, ymax)
     representation for comparison to point form ground truth data.
-
     Args:
         boxes: (tensor) center-size default boxes from priorbox layers.
-
     Return:
         boxes: (tensor) Converted xmin, ymin, xmax, ymax form of boxes.
-
     """
     return torch.cat((boxes[:,:2] - boxes[:,2:]/2,       # xmin, ymin
                         boxes[:,:2] + boxes[:,2:]/2), 1) # xmax, ymax
@@ -24,13 +21,10 @@ def point_form(boxes):
 def center_size(boxes):
     """ Convert prior_boxes to (cx, cy, w, h)
     representation for comparison to center-size form ground truth data.
-
     Args:
         boxes: (tensor) point_form boxes
-
     Return:
         boxes: (tensor) Converted xmin, ymin, xmax, ymax form of boxes.
-
     """
     return torch.cat((boxes[:,2:] + boxes[:,:2])/2,  # cx, cy
                      boxes[:,2:] - boxes[:,:2], 1)  # w, h
@@ -41,13 +35,11 @@ def intersect(box_a, box_b):
     [A,2] -> [A,1,2] -> [A,B,2]
     [B,2] -> [1,B,2] -> [A,B,2]
     Then we compute the area of intersect between box_a and box_b.
-
     Args:
       box_a: (tensor) bounding boxes, Shape: [A,4].
       box_b: (tensor) bounding boxes, Shape: [B,4].
     Return:
       (tensor) intersection area, Shape: [A,B].
-
     """
     A = box_a.size(0)
     B = box_b.size(0)
@@ -63,14 +55,11 @@ def jaccard(box_a, box_b):
     """Compute the jaccard overlap of two sets of boxes.  The jaccard overlap
     is simply the intersection over union of two boxes.  Here we operate on
     ground truth boxes and default boxes.
-
     E.g.:
         A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
-
     Args:
         box_a: (tensor) Ground truth bounding boxes, Shape: [num_objects,4]
         box_b: (tensor) Prior boxes from priorbox layers, Shape: [num_priors,4]
-
     Return:
         jaccard overlap: (tensor) Shape: [box_a.size(0), box_b.size(0)]
     """
@@ -85,7 +74,6 @@ def match(threshold,truths, priors, variances, labels, loc_t, conf_t, idx):
     """Match each prior box with the ground truth box of the highest jaccard
     overlap, encode the bounding boxes, then return the matched indices corresp.
     to both confidence and location preds.
-
     Args:
         threshold: (float) The overlap threshold used when mathing boxes.
         truths: (tensor) Ground truth boxes, Shape: [num_obj, num_priors].
@@ -96,10 +84,8 @@ def match(threshold,truths, priors, variances, labels, loc_t, conf_t, idx):
         loc_t: (tensor) Tensor to be filled with endcoded location targets
         conf_t: (tensor) Tensor to be filled with matched indices for conf preds
         idx: (int) current batch index
-
     Return:
         The matched indices corresponding to 1)location and 2)confidence preds.
-
     """
     # jaccard index
     overlaps = jaccard(
@@ -131,7 +117,6 @@ def match(threshold,truths, priors, variances, labels, loc_t, conf_t, idx):
 def encode(matched, priors, variances):
     """Encode the variances from the priorbox layers into the ground truth boxes
     we have matched (based on jaccard overlap) with the prior boxes.
-
     Args:
         matched: (tensor) Coords of ground truth for each prior in point-form
             Shape: [num_priors, 4].
@@ -155,7 +140,6 @@ def encode(matched, priors, variances):
 def decode(loc, priors, variances):
     """Decode locations from predictions using priors to undo
     the encoding we did for offset regression at train time.
-
     Args:
         loc (tensor): location predictions for loc layers,
             Shape: [num_priors,4]
@@ -190,20 +174,18 @@ def log_sum_exp(x):
 def nms(boxes, scores, overlap, top_k):
     """Apply non-maximum suppression at test time to avoid detecting too many
     overlapping bounding boxes for a given object.
-
     Args:
         boxes: (tensor) The location preds for the image, Shape: [num_priors,4].
         scores: (tensor) The class predicted scores for the image, Shape:[num_priors]
         overlap: (float) The overlap threshold for suppressing unnecessary boxes.
         top_k: (int) The Maximum number of box preds to consider.
-
     Return:
-        The indices of the picked boxes with respect to num_priors.
+        The indices of the kept boxes with respect to num_priors.
     """
 
-    pick = torch.zeros(scores.size(0))
+    keep = torch.zeros(scores.size(0)).long()
     if boxes.numel() == 0:
-        return pick
+        return keep
     x1 = boxes[:,0]
     y1 = boxes[:,1]
     x2 = boxes[:,2]
@@ -211,7 +193,7 @@ def nms(boxes, scores, overlap, top_k):
 
     area = torch.mul(x2 - x1 + 1, y2 - y1 + 1)
     v, I = scores.sort(0) # sort in ascending order
-    I = I[-top_k:]
+    I = I[-top_k:]  # indices of the top-k largest vals
 
     xx1 = boxes.new()
     yy1 = boxes.new()
@@ -222,28 +204,31 @@ def nms(boxes, scores, overlap, top_k):
 
     count = 0
     while I.numel() > 0:
-        last = I.size(0)
-        i = I[last-1]
 
-        pick[count] = i
+        i = I[-1]  # index of current largest val
+
+        keep[count] = i
         count += 1
-        if last == 1:
+
+        # is this necessary? could handle in while stmt condition..
+        if I.size(0) == 1:
             break
 
-        I = I[:-1] # remove picked element from view
+        I = I[:-1] # remove kept element from view
 
-        # load values
+        # load bboxes of next highest vals
         torch.index_select(x1, 0, I, out=xx1)
         torch.index_select(y1, 0, I, out=yy1)
         torch.index_select(x2, 0, I, out=xx2)
         torch.index_select(y2, 0, I, out=yy2)
 
         # TODO: time comparison using map_() and xx1 < x1[i] instead
+
         # store element-wise max with next highest score
-        torch.clamp(xx1,min = x1[i])
-        torch.clamp(yy1,min = y1[i])
-        torch.clamp(xx2,max = x2[i])
-        torch.clamp(yy2,max = y2[i])
+        torch.clamp(xx1,min=x1[i])
+        torch.clamp(yy1,min=y1[i])
+        torch.clamp(xx2,max=x2[i])
+        torch.clamp(yy2,max=y2[i])
         w.resize_as_(xx2)
         h.resize_as_(yy2)
 
@@ -251,21 +236,25 @@ def nms(boxes, scores, overlap, top_k):
         h = yy2 - yy1
         w += 1
         h +=1
-        w.max(torch.zeros(w.size(0)))
-        h.max(torch.zeros(h.size(0)))
+        torch.clamp(w, min=0)
+        torch.clamp(h, min=0)
+
+
+        inter = w*h
 
         # reuse existing tensors
-        inter = w*h
-        # IoU .= i / (area(a) + area(b) - i)
-        xx1 = torch.index_select(area, 0, I) # load remaining areas into xx1
-        IoU = inter.div(xx1 + area[i] - inter) # store result in iou
-        mask = IoU.le(overlap)
+        rem_areas = w
+        IoU = h
 
-        # keep only elements with a IoU < overlap
-        I = torch.masked_select(I,IoU.le(overlap))
+        # IoU = i / (area(a) + area(b) - i)
+        rem_areas = torch.index_select(area, 0, I) # load remaining areas
+        IoU = inter.div(rem_areas + area[i] - inter) # store result in iou
+
+        # keep only elements with a IoU <= overlap
+        I = I[IoU <= overlap]
 
     # reduce size to actual count
-    return pick[:count]
+    return keep[:count]
 
 #TODO refactor
 def sort(score_pairs, indices_list, label_list, ktk, final_scores, final_indices, final_labels):

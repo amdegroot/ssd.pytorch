@@ -92,8 +92,7 @@ class Detect(Function):
                     # label is added to label list at same location
                     label_list[ref] = label
                     ref +=1
-            if num_det > self.keep_top_k: # narrow results further
-                length = self.keep_top_k
+            length = min(num_det,self.keep_top_k) # narrow results further
             final_indices = torch.Tensor(length).zero_()
             final_scores = torch.Tensor(length).zero_()
             final_labels = torch.Tensor(length).zero_()
@@ -105,12 +104,12 @@ class Detect(Function):
                 self.output[i][j][0] = i+1
                 self.output[i][j][1] = final_labels[j]
                 self.output[i][j][2] = final_scores[j]
-                self.output[i][j][3] = min(max(decode_bboxes[idx][0],0),1)
-                self.output[i][j][4] = min(max(decode_bboxes[idx][1],0),1)
-                self.output[i][j][5] = min(max(decode_bboxes[idx][2],0),1)
-                self.output[i][j][6] = min(max(decode_bboxes[idx][3],0),1)
-                # self.output[i][j][3] = decode_bboxes[idx][0]
-                # self.output[i][j][4] = decode_bboxes[idx][1]
-                # self.output[i][j][5] = decode_bboxes[idx][2]
-                # self.output[i][j][6] = decode_bboxes[idx][3]
+                # self.output[i][j][3] = min(max(decode_bboxes[idx][0],0),1)
+                # self.output[i][j][4] = min(max(decode_bboxes[idx][1],0),1)
+                # self.output[i][j][5] = min(max(decode_bboxes[idx][2],0),1)
+                # self.output[i][j][6] = min(max(decode_bboxes[idx][3],0),1)
+                self.output[i][j][3] = decode_bboxes[idx][0]
+                self.output[i][j][4] = decode_bboxes[idx][1]
+                self.output[i][j][5] = decode_bboxes[idx][2]
+                self.output[i][j][6] = decode_bboxes[idx][3]
             return self.output

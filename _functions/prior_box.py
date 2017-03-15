@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-from data import v2, v1
+from data import v2,v1
 from math import sqrt as sqrt
 from itertools import product as product
 if torch.cuda.is_available():
@@ -37,7 +37,7 @@ class PriorBox(object):
     def forward(self):
         mean = []
         # TODO merge these
-        if self.version == 'conv9_2':
+        if self.version == 'v2':
             for k,f in enumerate(self.feature_maps):
                 for i, j in product(range(f), repeat=2):
                     f_k = self.image_size / self.steps[k]
