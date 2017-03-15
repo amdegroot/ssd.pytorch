@@ -63,20 +63,29 @@ def train_transform():
     ])
 
 
-def swap_channels(tensor, swap):
-    """Swaps the channels as specified in the swap
+class SwapChannelTransform(object):
+    """Transforms a tensorized image by swapping the channels as specified in the swap
 
     modifies the input tensor
 
     Arguments:
-        tensor (Tensor): tensor to be permuted
-        swaps (int list): final order of channels
+        swaps (int triple): final order of channels
             eg: (2, 1, 0)
     """
-    temp = tensor.clone()
-    for i in range(3):
-        temp[i] = tensor[swap[i]]
-    tensor.copy_(temp)
+    def __init__(self, swaps):
+        self.swaps = swaps
+
+    def __call__(self, image):
+        """
+        Arguments:
+            image (Tensor): image tensor to be transformed
+        Returns:
+            a tensor with channels swapped according to swap
+        """
+        temp = image.clone()
+        for i in range(3):
+            temp[i] = image[self.swaps[i]]
+        return temp
 
 
 def test_transform(dim, mean_values):
@@ -102,6 +111,6 @@ def test_transform(dim, mean_values):
         transforms.CenterCrop(dim),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255)),
-        transforms.Lambda(lambda x: swap_channels(x, swap)),
+        SwapChannelTransform(swap),
         transforms.Normalize(mean_values, (1, 1, 1))
     ])

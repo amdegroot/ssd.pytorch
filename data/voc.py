@@ -176,7 +176,7 @@ class VOCDetection(data.Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
-            img.squeeze(0)
+            img.squeeze_(0)
 
         if self.target_transform is not None:
             target = self.target_transform(target, width, height)
