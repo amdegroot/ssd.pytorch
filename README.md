@@ -8,7 +8,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - <a href='#installation'>Installation</a>
 - <a href='#datasets'>Datasets</a>
 - <a href='#training-ssd'>Train</a>
-- <a href='#testing'>Test</a>
+- <a href='#evaluation'>Evaluate</a>
 - <a href='#demos'>Demos</a>
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
@@ -86,9 +86,9 @@ python train.py
 
 - Note:
   * For training, an NVIDIA GPU is strongly recommended for speed.
-  * Currently only v2 has been used for training.
+  * Currently we only support training on v2 (the newest version).
 
-## Testing
+## Evaluation
 To evaluate a trained network:
 
 ```Shell
@@ -143,9 +143,6 @@ We have accumulated the following to-do list, which you can expect to be done in
 - Add support for COCO dataset
 - Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo) (in progress)
 
-## Comments
-Please feel-free to post an issue with any questions or suggestions.  We tried to keep this implementation as pure to PyTorch as
-possible so as to 1) learn the framework and 2) give back to the [PyTorch](http://pytorch.org/) community.  That being said, there are ports of the original [SSD](https://github.com/weiliu89/caffe/tree/ssd) to other frameworks now, so some of those were taken into consideration when optimizing our code.  
 
 ## References
 - Wei Liu, et al. "SSD: Single Shot MultiBox Detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
