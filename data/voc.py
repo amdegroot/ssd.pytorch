@@ -128,6 +128,7 @@ class AnnotationTransform(object):
             label_ind = self.class_to_ind[name]
             bndbox.append(label_ind)
             res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
+            # img_id = target.find('filename').text[:-4]
 
         return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
@@ -209,8 +210,8 @@ class VOCDetection(data.Dataset):
         Argument:
             index (int): index of img to get annotation of
         Return:
-            tuple:  (img_id, [(label, bbox coords),...])
-                eg: ('001718', [('dog', [96, 13, 438, 332])])
+            list:  [img_id, [(label, bbox coords),...]]
+                eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
         gts = []
         img_id = self.ids[index]
@@ -218,8 +219,8 @@ class VOCDetection(data.Dataset):
         for obj in anno.iter('object'):
             bbox = obj.find('bndbox')
             label = obj.find('name').text.lower().strip()
-            gts.append((label, [int(bb.text) - 1 for bb in bbox]))
-        return (img_id, gts)
+            gts.append((label, tuple([int(bb.text) - 1 for bb in bbox])))
+        return [img_id, gts]
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
