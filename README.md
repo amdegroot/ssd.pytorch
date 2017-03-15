@@ -55,12 +55,12 @@ VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
 
 ## Training SSD
 - First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:              https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
-- By default, we assume you have extracted the file in the `ssd.pytorch/weights` dir:
+- By default, we assume you have downloaded the file in the `ssd.pytorch/weights` dir:
 
 ```Shell
 mkdir weights
 cd weights
-tar -xzvf vgg16_layers_fc_reduced.tar.gz
+wget https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
 ```
 
 - To train SSD using the train script simply specify the parameters listed in `train.py` as a flag or manually change them.
@@ -71,7 +71,7 @@ python train.py
 - Training Parameter Options: 
 
 ```Python
-'--version', default='v2', type=string, help='conv11_2(v2) or pool6(v1) as last layer'
+'--version', default='v2', type=string, help='conv11_2(v2) or pool6(v1) as final layer'
 '--basenet', default='vgg16_layers_fc_reduced.pth', type=string, help='pretrained base model'
 '--jaccard_threshold', type=int, default=0.5, help='Min Jaccard index for matching'
 '--batch_size', default=16, type=int, help='Batch size for training'
@@ -81,7 +81,7 @@ python train.py
 '--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate'
 '--momentum', default=0.9, type=float, help='Momentum'
 '--weight_decay', default=1e-4, type=float, help='Weight decay for SGD'
-'--save_folder', default='models/', help='Location to save epoch models'
+'--save_folder', default='weights/', help='Location to save epoch models'
 ```
 
 - Note:
@@ -132,7 +132,7 @@ pip install jupyter
 jupyter notebook
 ```
 
-- Now navigate to `demo.ipynb` in the browser window that pops up and have at it!
+- Now navigate to `demo.ipynb` at localhost:8888 (by default) and have at it!
 
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
