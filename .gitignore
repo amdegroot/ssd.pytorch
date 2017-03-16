@@ -107,3 +107,5 @@ templates/
 # dev books
 dev.ipynb
 
+# attributes
+.gitattributes
