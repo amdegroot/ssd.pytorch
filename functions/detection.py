@@ -12,8 +12,8 @@ class Detect(Function):
     confidence score and locations.
 
     """
+
     def __init__(self, num_classes, background_label, keep_top_k, conf_thresh, nms_threshold, nms_top_k):
-        #super(Detect, self).__init__()
         self.num_classes = num_classes
         self.background_label = background_label
         self.keep_top_k = keep_top_k
@@ -36,31 +36,19 @@ class Detect(Function):
             prior_data: (tensor) Prior boxes and variances from priorbox layers,
                 Shape: [1,2,num_priors*4]
         """
+
         num = loc_data.size(0) # batch size
         self.output = torch.Tensor(num,self.keep_top_k,7)  # TODO: refactor
-
-        # num_priors = prior_data.size(0) // 4  # height dim of priorbox input / 4
-        # assert(loc_data.size(1) == prior_data.size(0))
-            # raise ValueError('Number of priors must match number of location predictions.')
-
-        # GET CONFIDENCE SCORES FROM CONF_DATA
-        # If input is only a single image then we need to add the batch dim
-        # that we removed for softmax layer
-
         if num == 1:
             conf_preds = conf_data.t().contiguous().unsqueeze(0) # size num x 21 x 7308
         else:
             conf_preds = conf_data.view(num,num_priors,self.num_classes).transpose(2,1)
-
-        # GET PRIOR BBOXES FROM PRIOR_DATA
-        # prior_bboxes = prior_data[0][0].view(-1,4)    # Shape [7308 x 4]
-        # prior_variances = prior_data[0][1].view(-1,4) # Shape [7308 x 4]
-        prior_variances = torch.Tensor([0.1,0.1,0.2,0.2])
+        variances = torch.Tensor([0.1,0.1,0.2,0.2])
         #TODO get rid of the batch for loop
         # Decode predictions into bboxes.
         num_kept = 0
         for i in range(num):
-            decode_bboxes = decode(loc_data[i],prior_data,prior_variances)
+            decode_bboxes = decode(loc_data[i],prior_data,variances)
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             indices = []
@@ -69,11 +57,7 @@ class Detect(Function):
                 if not c == self.background_label:
                     # idx of highest scoring and non-overlapping boxes for a given class
                     indices.append(nms(decode_bboxes, conf_scores[c], self.nms_threshold, self.top_k))
-                    # Class_index_table now contains
-                    # TODO optimize
-                    # indices = (num_classes X num_det(which could vary over classes,
-                    # so using table over tensor))
-                    num_det += indices[len(indices)-1].size(0)
+                    num_det += indices[-1].size(0)
             length = num_det  # length of tensors to be created based on num boxes after nms
             score_pairs = torch.Tensor(length)  # scores and corresponding bbox table indices
             indices_list = torch.Tensor(length)
@@ -84,12 +68,9 @@ class Detect(Function):
                 label_indices = indices[number]  # top bbox table indices for each class
                 for index in range(label_indices.size(0)):
                     idx = int(label_indices[index])
-                    # inserting index of highest conf scores into indices list
                     indices_list[ref] = idx
                     assert(idx <= conf_scores[label].size(0))
-                    # corresp. score is inserted into score_pairs at same location
                     score_pairs[ref] = conf_scores[label][idx]
-                    # label is added to label list at same location
                     label_list[ref] = label
                     ref +=1
             length = min(num_det,self.keep_top_k) # narrow results further
@@ -104,10 +85,6 @@ class Detect(Function):
                 self.output[i][j][0] = i+1
                 self.output[i][j][1] = final_labels[j]
                 self.output[i][j][2] = final_scores[j]
-                # self.output[i][j][3] = min(max(decode_bboxes[idx][0],0),1)
-                # self.output[i][j][4] = min(max(decode_bboxes[idx][1],0),1)
-                # self.output[i][j][5] = min(max(decode_bboxes[idx][2],0),1)
-                # self.output[i][j][6] = min(max(decode_bboxes[idx][3],0),1)
                 self.output[i][j][3] = decode_bboxes[idx][0]
                 self.output[i][j][4] = decode_bboxes[idx][1]
                 self.output[i][j][5] = decode_bboxes[idx][2]
