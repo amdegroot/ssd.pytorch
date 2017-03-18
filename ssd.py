@@ -34,7 +34,7 @@ class SSD(nn.Module):
         self.num_classes = num_classes
         # TODO: implement __call__ in PriorBox
         self.priorbox = PriorBox(v2)
-        self.priors = self.priorbox.forward()
+        self.priors = Variable(self.priorbox.forward(),volatile=True)
         self.size = 300
         # Layer learns to scale the l2 normalized features from conv4_3
         self.L2Norm = L2Norm(512, 20)
@@ -104,13 +104,15 @@ class SSD(nn.Module):
         if self.phase == "test":
             output = self.detect(
                 loc.view(loc.size(0), -1, 4),                    # loc preds
-                self.softmax(conf.view(-1, self.num_classes)),  # conf preds
-                Variable(self.priors, volatile=True)           # default boxes
+                self.softmax(conf.view(-1, self.num_classes)),   # conf preds
+                self.priors                                      # default boxes
             )
         else:
-            conf = conf.view(conf.size(0), -1, self.num_classes)
-            loc = loc.view(loc.size(0), -1, 4)
-            output = (loc, conf, self.priors)
+            output = (
+                loc.view(loc.size(0), -1, 4),
+                conf.view(conf.size(0), -1, self.num_classes),
+                self.priors
+            )
         return output
 
     def load_weights(self, base_file):

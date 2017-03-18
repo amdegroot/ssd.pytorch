@@ -156,7 +156,7 @@ class VOCDetection(data.Dataset):
         self.image_set = image_set
         self.transform = transform
         self.target_transform = target_transform
-
+        self.name = dataset_name
         self._annopath = os.path.join(
             self.root, dataset_name, 'Annotations', '%s.xml')
         self._imgpath = os.path.join(
