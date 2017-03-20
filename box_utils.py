@@ -183,7 +183,7 @@ def nms(boxes, scores, overlap, top_k):
         The indices of the kept boxes with respect to num_priors.
     """
 
-    keep = torch.zeros(scores.size(0)).long()
+    keep = torch.Tensor(scores.size(0)).fill_(-1).long()
     if boxes.numel() == 0:
         return keep
     x1 = boxes[:,0]
@@ -239,7 +239,6 @@ def nms(boxes, scores, overlap, top_k):
         torch.clamp(w, min=0)
         torch.clamp(h, min=0)
 
-
         inter = w*h
 
         # reuse existing tensors
@@ -252,9 +251,9 @@ def nms(boxes, scores, overlap, top_k):
 
         # keep only elements with a IoU <= overlap
         I = I[IoU <= overlap]
-
     # reduce size to actual count
-    return keep[:count]
+    # return torch.cat((torch.zeros(top_k).scatter_(0,idx, scores[keep[:count]]), torch.zeros(top_k,4).scatter_(0,idx,boxes[keep[:count]])),1)
+    return torch.cat((scores[keep[:count]],boxes[keep[:count]]),1),count
 
 #TODO refactor
 def sort(score_pairs, indices_list, label_list, ktk, final_scores, final_indices, final_labels):
