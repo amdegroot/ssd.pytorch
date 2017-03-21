@@ -31,10 +31,6 @@ if not os.path.exists(args.save_folder):
 
 
 
-def get_labelname(labelmap, top_label_indices):
-    return [labelmap[int(l)-1] for l in top_label_indices]
-
-
 def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
 
     # dump predictions and assoc. ground truth to text file for now
@@ -47,46 +43,33 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
         x = Variable(transform(img).unsqueeze_(0))
 
         with open(filename, mode='a') as f:
-            f.write('GROUND TRUTH FOR: '+img_id+'\n')
+            f.write('\nGROUND TRUTH FOR: '+img_id+'\n')
             for box in annotation:
                 f.write('label: '+' || '.join(str(b) for b in box)+'\n')
         if cuda:
             x = x.cuda()
 
         y = net(x)      # forward pass
-        detections = y.data.cpu().numpy()
+        detections = y.data
+        # scale each detection back up to the image
+        scale = torch.Tensor([img.size[0],img.size[1],img.size[0],img.size[1]])
+        pred_num = 0
+        for i in range(detections.size(1)):
+            j = 0
+            while detections[0,i,j,0] >= 0.6:
+                if pred_num == 0:
+                    with open(filename, mode='a') as f:
+                        f.write('PREDICTIONS: '+'\n')
+                score = detections[0,i,j,0]
+                label_name = labelmap[i-1]
+                pt = (detections[0,i,j,1:]*scale).cpu().numpy()
+                coords = (pt[0], pt[1], pt[2], pt[3])
+                pred_num+=1
+                with open(filename, mode='a') as f:
+                    f.write(str(pred_num)+' label: '+label_name+' score: ' \
+                            +str(score) +' '+' || '.join(str(c) for c in coords)+'\n')
+                j+=1
 
-        # Parse the outputs.
-        det_label = detections[0,:,1]
-        det_conf = detections[0,:,2]
-        det_xmin = detections[0,:,3]
-        det_ymin = detections[0,:,4]
-        det_xmax = detections[0,:,5]
-        det_ymax = detections[0,:,6]
-        # Get detections with confidence higher than thresh param.
-        top_indices = [i for i, conf in enumerate(det_conf) if conf >= thresh and i < top_k]
-        top_conf = det_conf[top_indices]
-        top_label_indices = det_label[top_indices]
-        top_labels = get_labelname(labelmap, top_label_indices)
-        top_xmin = det_xmin[top_indices]
-        top_ymin = det_ymin[top_indices]
-        top_xmax = det_xmax[top_indices]
-        top_ymax = det_ymax[top_indices]
-
-        for j in range(top_conf.shape[0]):
-            if j>top_k:
-                break
-            xmin = top_xmin[j] * img.size[0]
-            ymin = top_ymin[j] * img.size[1]
-            xmax = top_xmax[j] * img.size[0]
-            ymax = top_ymax[j] * img.size[1]
-            score = top_conf[j]
-            label_name = top_labels[j]
-            # print(img_id)
-            coords = [xmin, ymin, xmax-xmin, ymax-ymin,score, img_id]
-            with open(filename, mode='a') as f:
-                f.write('PREDICTION: '+ repr(j)+ '\n')
-                f.write('label: '+label_name+' score: '+str(score) +' '+' || '.join(str(c) for c in coords)+'\n\n')
 
 
 if __name__ == '__main__':
