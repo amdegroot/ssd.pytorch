@@ -1,7 +1,7 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from box_utils import*
 from functions import Detect, PriorBox
 from modules import L2Norm
 from data import v2, v1
@@ -34,13 +34,13 @@ class SSD(nn.Module):
         self.num_classes = num_classes
         # TODO: implement __call__ in PriorBox
         self.priorbox = PriorBox(v2)
-        self.priors = Variable(self.priorbox.forward(),volatile=True)
+        self.priors = Variable(self.priorbox.forward(), volatile=True)
         self.size = 300
-        # Layer learns to scale the l2 normalized features from conv4_3
-        self.L2Norm = L2Norm(512, 20)
 
         # SSD network
         self.vgg = nn.ModuleList(base)
+        # Layer learns to scale the l2 normalized features from conv4_3
+        self.L2Norm = L2Norm(512, 20)
         self.extras = nn.ModuleList(extras)
 
         self.loc = nn.ModuleList(head[0])
@@ -49,6 +49,7 @@ class SSD(nn.Module):
         if phase == 'test':
             self.softmax = nn.Softmax()
             self.detect = Detect(21, 0, 200, 0.01, 0.25, 400)
+
 
     def forward(self, x):
         """Applies network layers and ops on input image(s) x.
@@ -69,7 +70,6 @@ class SSD(nn.Module):
                     2: localization layers, Shape: [batch,num_priors*4]
                     3: priorbox layers, Shape: [2,num_priors*4]
         """
-
         sources = list()
         loc = list()
         conf = list()
@@ -84,7 +84,6 @@ class SSD(nn.Module):
         # apply vgg up to fc7
         for k in range(23, len(self.vgg)):
             x = self.vgg[k](x)
-
         sources.append(x)
 
         # apply extra layers and cache source layer outputs
@@ -102,7 +101,7 @@ class SSD(nn.Module):
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
 
         if self.phase == "test":
-            output = self.detect(
+            output =  self.detect(
                 loc.view(loc.size(0), -1, 4),                    # loc preds
                 self.softmax(conf.view(-1, self.num_classes)),   # conf preds
                 self.priors                                      # default boxes
