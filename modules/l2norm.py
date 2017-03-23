@@ -14,7 +14,7 @@ class L2Norm(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        init(self.weight,self.gamma)
+        init.constant(self.weight,self.gamma)
 
     def forward(self, x):
         norm = x.pow(2).sum(1).sqrt()+self.eps
