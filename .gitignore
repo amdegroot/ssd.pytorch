@@ -109,3 +109,6 @@ dev.ipynb
 
 # attributes
 .gitattributes
+
+# pycharm
+.idea/
