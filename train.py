@@ -105,7 +105,8 @@ def train():
             X=torch.zeros((1,)).cpu(),
             Y=torch.zeros((1, 3)).cpu(),
             opts=dict(
-                xlabel='Epoch',
+                # xlabel='Epoch',
+                xlabel='Iteration',
                 ylabel='Loss',
                 title='Current SSD Training Loss',
                 legend=['Loc Loss', 'Conf Loss', 'Loss']
@@ -115,7 +116,8 @@ def train():
             X=torch.zeros((1,)).cpu(),
             Y=torch.zeros((1, 3)).cpu(),
             opts=dict(
-                xlabel='Epoch',
+                # xlabel='Epoch',
+                xlabel='Iteration',
                 ylabel='Loss',
                 title='Cumulative SSD Training Loss',
                 legend=['Loc Loss', 'Conf Loss', 'Loss']
@@ -131,21 +133,21 @@ def train():
                 adjust_learning_rate(optimizer, args.gamma, step_index)
             cum_loc_loss += loc_loss
             cum_conf_loss += conf_loss
-            if args.visdom:
-                viz.line(
-                    X=torch.ones((1, 3)).cpu() * epoch,
-                    Y=torch.Tensor([loc_loss, conf_loss,
-                        loc_loss + conf_loss]).unsqueeze(0).cpu(),
-                    win=lot,
-                    update='append'
-                )
-                viz.line(
-                    X=torch.ones((1, 3)).cpu() * epoch,
-                    Y=torch.Tensor([cum_loc_loss, cum_conf_loss,
-                        cum_loc_loss + cum_conf_loss]).unsqueeze(0).cpu(),
-                    win=cum_lot,
-                    update='append'
-                )
+            # if args.visdom:
+            #     viz.line(
+            #         X=torch.ones((1, 3)).cpu() * epoch,
+            #         Y=torch.Tensor([loc_loss, conf_loss,
+            #             loc_loss + conf_loss]).unsqueeze(0).cpu(),
+            #         win=lot,
+            #         update='append'
+            #     )
+            #     viz.line(
+            #         X=torch.ones((1, 3)).cpu() * epoch,
+            #         Y=torch.Tensor([cum_loc_loss, cum_conf_loss,
+            #             cum_loc_loss + cum_conf_loss]).unsqueeze(0).cpu(),
+            #         win=cum_lot,
+            #         update='append'
+            #     )
             # reset epoch loss counters
             loc_loss = 0
             conf_loss = 0
@@ -174,6 +176,21 @@ def train():
         if iteration % 10 == 0:
             print('Timer: ', t1 - t0)
             print(repr(iteration) + ' => Loss: %f' % (loss.data[0]), end=' ')
+            if args.visdom:
+                viz.line(
+                    X=torch.ones((1, 3)).cpu() * iteration,
+                    Y=torch.Tensor([loc_loss, conf_loss,
+                        loc_loss + conf_loss]).unsqueeze(0).cpu(),
+                    win=lot,
+                    update='append'
+                )
+                viz.line(
+                    X=torch.ones((1, 3)).cpu() * iteration,
+                    Y=torch.Tensor([cum_loc_loss, cum_conf_loss,
+                        cum_loc_loss + cum_conf_loss]).unsqueeze(0).cpu(),
+                    win=cum_lot,
+                    update='append'
+                )
         if iteration % 5000 == 0:
             torch.save(net.state_dict(), 'weights/ssd_iter_new' +
                        repr(iteration) + '.pth')
