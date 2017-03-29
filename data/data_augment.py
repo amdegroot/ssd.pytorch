@@ -4,8 +4,6 @@ Dataset classes.
 The data augmentation procedures were interpreted from @weiliu89's SSD paper
 http://arxiv.org/abs/1512.02325
 
-TODO: explore https://github.com/ncullen93/torchsample/blob/master/torchsample/transforms
-    for any useful tranformations
 TODO: implement data_augment for training
 
 Ellis Brown
