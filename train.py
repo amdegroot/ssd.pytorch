@@ -21,16 +21,16 @@ parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Trai
 parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
 parser.add_argument('--basenet', default='vgg16_reducedfc.pth', help='pretrained base model')
 parser.add_argument('--jaccard_threshold', default=0.5, type=float, help='Min Jaccard index for matching')
-parser.add_argument('--batch_size', default=32, type=int, help='Batch size for training')
+parser.add_argument('--batch_size', default=1, type=int, help='Batch size for training')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training epochs')
-parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
+parser.add_argument('--cuda', default=False, type=bool, help='Use cuda to train model')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
 parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
-parser.add_argument('--visdom', default=False, type=bool, help='Use visdom to for loss visualization')
+parser.add_argument('--visdom', default=True, type=bool, help='Use visdom to for loss visualization')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 args = parser.parse_args()
 
@@ -131,7 +131,7 @@ def train():
                 ]
                 viz.line(
                     X=torch.ones((1, 6)) * epoch,
-                    Y=torch.tensor(loss_list).unsqueeze(0),
+                    Y=torch.Tensor(loss_list).unsqueeze(0),
                     win=lot,
                     update='append'
                 )
@@ -141,8 +141,12 @@ def train():
 
         # load train data
         images, targets = next(batch_iterator)
-        images = Variable(images.cuda())
-        targets = [Variable(anno.cuda()) for anno in targets]
+        if args.cuda:
+            images = Variable(images.cuda())
+            targets = [Variable(anno.cuda()) for anno in targets]
+        else:
+            images = Variable(images)
+            targets = [Variable(anno) for anno in targets]
         # forward
         t0 = time.time()
         out = net(images)
