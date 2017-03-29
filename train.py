@@ -102,15 +102,23 @@ def train():
     if args.visdom:
         # initialize visdom loss plot
         lot = viz.line(
-            X=torch.zeros((1,)),
-            Y=torch.zeros((1, 6)),
+            X=torch.zeros((1,)).cpu(),
+            Y=torch.zeros((1, 3)).cpu(),
             opts=dict(
                 xlabel='Epoch',
                 ylabel='Loss',
-                title='Real-time SSD Training Loss',
-                legend=[
-                    'Cur Loc Loss', 'Cur Conf Loss', 'Cur Loss',
-                    'Cum Loc Loss', 'Cum Conf Loss', 'Cum Loss']
+                title='Current SSD Training Loss',
+                legend=['Loc Loss', 'Conf Loss', 'Loss']
+            )
+        )
+        cum_lot = viz.line(
+            X=torch.zeros((1,)).cpu(),
+            Y=torch.zeros((1, 3)).cpu(),
+            opts=dict(
+                xlabel='Epoch',
+                ylabel='Loss',
+                title='Cumulative SSD Training Loss',
+                legend=['Loc Loss', 'Conf Loss', 'Loss']
             )
         )
     for iteration in range(max_iter):
@@ -123,21 +131,25 @@ def train():
                 adjust_learning_rate(optimizer, args.gamma, step_index)
             cum_loc_loss += loc_loss
             cum_conf_loss += conf_loss
-            epoch += 1
             if args.visdom:
-                loss_list = [
-                    loc_loss, conf_loss, loc_loss + conf_loss,
-                    cum_loc_loss, cum_conf_loss, cum_loc_loss + cum_conf_loss
-                ]
                 viz.line(
-                    X=torch.ones((1, 6)) * epoch,
-                    Y=torch.Tensor(loss_list).unsqueeze(0),
+                    X=torch.ones((1, 3)).cpu() * epoch,
+                    Y=torch.Tensor([loc_loss, conf_loss,
+                        loc_loss + conf_loss]).unsqueeze(0).cpu(),
                     win=lot,
+                    update='append'
+                )
+                viz.line(
+                    X=torch.ones((1, 3)).cpu() * epoch,
+                    Y=torch.Tensor([cum_loc_loss, cum_conf_loss,
+                        cum_loc_loss + cum_conf_loss]).unsqueeze(0).cpu(),
+                    win=cum_lot,
                     update='append'
                 )
             # reset epoch loss counters
             loc_loss = 0
             conf_loss = 0
+            epoch += 1
 
         # load train data
         images, targets = next(batch_iterator)
@@ -161,7 +173,7 @@ def train():
         conf_loss += loss_c.data[0]
         if iteration % 10 == 0:
             print('Timer: ', t1 - t0)
-            print('Loss: %f' % (loss.data[0]), end=' ')
+            print(repr(iteration) + ' => Loss: %f' % (loss.data[0]), end=' ')
         if iteration % 5000 == 0:
             torch.save(net.state_dict(), 'weights/ssd_iter_new' +
                        repr(iteration) + '.pth')
