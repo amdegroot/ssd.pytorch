@@ -23,7 +23,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - Clone this repository.
   * Note: We only guarantee full functionality with Python 3.
 - Then download the dataset by following the [instructions](#download-voc2007-trainval--test) below.
-- We now support Visdom for real-time loss visualization during training! 
+- We now support [Visdom](https://github.com/facebookresearch/visdom) for real-time loss visualization during training! 
   * To use Visdom in the browser: 
   ```Shell
   # First install Python server and client 
