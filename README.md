@@ -145,7 +145,7 @@ pip install jupyter
 jupyter notebook
 ```
 
-- Now navigate to `demo.ipynb` at localhost:8888 (by default) and have at it!
+- Now navigate to `demo.ipynb` at http://localhost:8888 (by default) and have at it!
 
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
