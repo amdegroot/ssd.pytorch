@@ -238,4 +238,4 @@ def nms(boxes, scores, overlap, top_k):
         # keep only elements with a IoU <= overlap
         I = I[IoU <= overlap]
     # reduce size to actual count
-    return torch.cat((scores[keep[:count]],boxes[keep[:count]]),1),count
+    return torch.cat((scores[keep[:count]].unsqueeze(1),boxes[keep[:count]]),1),count
