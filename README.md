@@ -23,6 +23,15 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - Clone this repository.
   * Note: We only guarantee full functionality with Python 3.
 - Then download the dataset by following the [instructions](#download-voc2007-trainval--test) below.
+- We now support [Visdom](https://github.com/facebookresearch/visdom) for real-time loss visualization during training! 
+  * To use Visdom in the browser: 
+  ```Shell
+  # First install Python server and client 
+  pip install visdom
+  # Start the server (probably in a screen or tmux)
+  python -m visdom.server
+  ```
+  * Then (during training) navigate to http://localhost:8097/ (see the Train section below for training details).
 - Note: For training, we currently only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon.
 
 ## Datasets
@@ -72,23 +81,26 @@ python train.py
 - Training Parameter Options: 
 
 ```Python
-'--version', default='v2', type=string, help='conv11_2(v2) or pool6(v1) as final layer'
-'--basenet', default='vgg16_layers_fc_reduced.pth', type=string, help='pretrained base model'
-'--jaccard_threshold', type=int, default=0.5, help='Min Jaccard index for matching'
+'--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer'
+'--basenet', default='vgg16_reducedfc.pth', help='pretrained base model'
+'--jaccard_threshold', default=0.5, type=float, help='Min Jaccard index for matching'
 '--batch_size', default=16, type=int, help='Batch size for training'
 '--num_workers', default=4, type=int, help='Number of workers used in dataloading'
-'--epochs', default=500, type=int, help='Number of training epochs'
+'--iterations', default=120000, type=int, help='Number of training epochs'
 '--cuda', default=True, type=bool, help='Use cuda to train model'
 '--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate'
-'--momentum', default=0.9, type=float, help='Momentum'
-'--weight_decay', default=1e-4, type=float, help='Weight decay for SGD'
-'--save_folder', default='weights/', help='Location to save epoch models'
+'--momentum', default=0.9, type=float, help='momentum'
+'--weight_decay', default=5e-4, type=float, help='Weight decay for SGD'
+'--gamma', default=0.1, type=float, help='Gamma update for SGD'
+'--log_iters', default=True, type=bool, help='Print the loss at each iteration'
+'--visdom', default=True, type=bool, help='Use visdom to for loss visualization'
+'--save_folder', default='weights/', help='Location to save checkpoint models'
 ```
-
 - Note:
   * For training, an NVIDIA GPU is strongly recommended for speed.
   * Currently we only support training on v2 (the newest version).
-
+  * For instructions on Visdom usage/installation, see the <a href='#installation'>Installation</a> section.
+  
 ## Evaluation
 To evaluate a trained network:
 
@@ -133,7 +145,7 @@ pip install jupyter
 jupyter notebook
 ```
 
-- Now navigate to `demo.ipynb` at localhost:8888 (by default) and have at it!
+- Now navigate to `demo.ipynb` at http://localhost:8888 (by default) and have at it!
 
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
