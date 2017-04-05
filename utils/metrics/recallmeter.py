@@ -90,7 +90,8 @@ class RecallMeter(meter.Meter):
         """Returns the model's recall @ a specific threshold or all thresholds
         - if t is not specified, returns a list containing the recall of the
         model predictions measured at all thresholds specified at initialization
-
+        - if perclass was set True at initialization, the recall at each
+        threshold will be a list of thresholds per class instead of an average
         Args:
             t (optional, double): the threshold [0,1] for which the recall
                 should be returned. Note: t must be a member of self.threshold
