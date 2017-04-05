@@ -1,6 +1,6 @@
 """Meter for monitoring recall
 
-based on
+inspired by
 https://github.com/torchnet/torchnet/blob/f1d43f6a31d56072c88fecf4d255fca2dccc7458/meter/recallmeter.lua
 
 Ellis Brown, Max deGroot
