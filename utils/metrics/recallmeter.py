@@ -38,8 +38,8 @@ class RecallMeter(meter.Meter):
 
     def reset(self):
         """Resets the meter with empty member variables"""
-        self.tp = {}  # true positives
-        self.tpfn = {}  # true positives & false negatives
+        self.tp = {}  # true positives dict
+        self.tpfn = {}  # true positives & false negatives dict
         for t in self.threshold:
             self.tp[t] = torch.Tensor()
             self.tpfn[t] = torch.Tensor()
@@ -92,15 +92,18 @@ class RecallMeter(meter.Meter):
         - if t is not specified, returns a list containing the recall of the
         model predictions measured at all thresholds specified at initialization
         - if perclass was set True at initialization, the recall at each
-        threshold will be a list of thresholds per class instead of an average
+        threshold will be a tensor of recalls per class instead of an average
+        recall of all classes at the threshold (double)
+
         Args:
             t (optional, double): the threshold [0,1] for which the recall
                 should be returned. Note: t must be a member of self.threshold
                 (default: None)
         Return:
             recall:
-                (double): the recall @ specified threshold
-                (double list): recall @ each t specified at initialization
+                (double or Tensor): the recall @ specified threshold
+                (dict of doubles or Tensors): recall @ each t specified at
+                    initialization
         """
 
         if t:  # the recall @ specified threhsold
@@ -115,7 +118,7 @@ class RecallMeter(meter.Meter):
                     return 100
                 return (self.tp[t].sum() / self.tpfn[t].sum()) * 100
         else:  # recall @ each threshold specified at initialization
-            value = {}
+            values = {}
             for t in self.threshold:
                 value[t] = self.value(t)
-            return value
+            return values
