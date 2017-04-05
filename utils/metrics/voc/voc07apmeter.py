@@ -97,41 +97,6 @@ class VOC07APMeter(meter.Meter):
                 if records.size > 0:
                     self._insert(cid, records, gt_count)
 
-
-    def _average_precision(self, rec, prec):
-        """
-        calculate average precision, override the default one,
-        special 11-point metric
-        Params:
-        ----------
-        rec : numpy.array
-            cumulated recall
-        prec : numpy.array
-            cumulated precision
-        Returns:
-        ----------
-        ap as float
-        """
-        ap = 0.
-        for t in np.arange(0., 1.1, 0.1):
-            if np.sum(rec >= t) == 0:
-                p = 0
-            else:
-                p = np.max(prec[rec >= t])
-            ap += p / 11.
-        return ap
-
-    def _insert(self, key, records, count):
-        """ Insert records according to key """
-        if key not in self.records:
-            assert key not in self.counts
-            self.records[key] = records
-            self.counts[key] = count
-        else:
-            self.records[key] = np.vstack((self.records[key], records))
-            assert key in self.counts
-            self.counts[key] += count
-
     def value(self):
         """Get the current evaluation result.
         Returns
@@ -165,6 +130,40 @@ class VOC07APMeter(meter.Meter):
             values = [x / y if y != 0 else float('nan') \
                 for x, y in zip(self.sum_metric, self.num_inst)]
             return (names, values)
+            
+    def _average_precision(self, rec, prec):
+        """
+        calculate average precision, override the default one,
+        special 11-point metric
+        Params:
+        ----------
+        rec : numpy.array
+            cumulated recall
+        prec : numpy.array
+            cumulated precision
+        Returns:
+        ----------
+        ap as float
+        """
+        ap = 0.
+        for t in np.arange(0., 1.1, 0.1):
+            if np.sum(rec >= t) == 0:
+                p = 0
+            else:
+                p = np.max(prec[rec >= t])
+            ap += p / 11.
+        return ap
+
+    def _insert(self, key, records, count):
+        """ Insert records according to key """
+        if key not in self.records:
+            assert key not in self.counts
+            self.records[key] = records
+            self.counts[key] = count
+        else:
+            self.records[key] = np.vstack((self.records[key], records))
+            assert key in self.counts
+            self.counts[key] += count
 
     def _recall_prec(self, record, count):
         """ get recall and precision from internal records """
