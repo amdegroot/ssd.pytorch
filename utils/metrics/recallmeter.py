@@ -31,7 +31,7 @@ class RecallMeter(meter.Meter):
         """
         # verify all thresholds between 0 & 1
         self.threshold = sorted(thresholds)
-        assert self.threshold[0] >= 0 and self.threshold[-1] <= 1,
+        assert self.threshold[0] >= 0 and self.threshold[-1] <= 1, \
             'threshold should be between 0 and 1'
         self.perclass = perclass
         self.reset()
@@ -67,7 +67,7 @@ class RecallMeter(meter.Meter):
         else:
             assert target.dim() == 2, 'wrong target size (1D or 2D expected)'
         for i, s in enumerate(output.size()):
-            assert s == target.size(i),
+            assert s == target.size(i), \
                 'target and output do not match on dim %d' % (i)
 
         # initialize upon receiving first inputs:
@@ -88,6 +88,7 @@ class RecallMeter(meter.Meter):
 
     def value(self, t=None):
         """Returns the model's recall @ a specific threshold or all thresholds
+        Note:
         - if t is not specified, returns a list containing the recall of the
         model predictions measured at all thresholds specified at initialization
         - if perclass was set True at initialization, the recall at each
@@ -103,12 +104,12 @@ class RecallMeter(meter.Meter):
         """
 
         if t:  # the recall @ specified threhsold
-            assert self.tp[t] and self.tpfn[t],
+            assert self.tp[t] and self.tpfn[t], \
                 '%f is an incorrect threshold [not set]' % (t)
             if self.perclass:
-                recallPerClass = (self.tp[t] / self.tpfn[t]) * 100
-                recallPerClass[self.tpfn[t] == 0] = 100
-                return recallPerClass
+                recall_per_class = (self.tp[t] / self.tpfn[t]) * 100
+                recall_per_class[self.tpfn[t] == 0] = 100
+                return recall_per_class
             else:
                 if self.tpfn[t].sum() == 0:
                     return 100
