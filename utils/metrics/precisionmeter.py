@@ -103,8 +103,9 @@ class PrecisionMeter(meter.Meter):
                 (default: None)
         Return:
             precision:
-                (double): the precision @ specified threshold
-                (double dict): precision @ each t specified at initialization
+                (double or Tensor): the precision @ specified threshold
+                (dict of doubles or Tensors): precision @ each t specified at
+                    initialization
         """
 
         if t:  # the precision @ specified threhsold
