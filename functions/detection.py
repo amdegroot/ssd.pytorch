@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.autograd import Function
 from torch.autograd import Variable
-from box_utils import *
+from utils.box_utils import decode, nms
 
 class Detect(Function):
     """At test time, Detect is the final layer of SSD.  Decode location preds,
@@ -52,7 +52,6 @@ class Detect(Function):
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             num_det = 0
-
             for c in range(1,self.num_classes):
                 # idx of highest scoring and non-overlapping boxes for a given class
                 score_points,count = nms(decoded_boxes, conf_scores[c], \
