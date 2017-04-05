@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from . import meter
-
 class VOC07APMeter(meter.Meter):
 
     def __init__(self, ovp_thresh=0.5, use_difficult=False, class_names=None, pred_idx=0):

@@ -7,8 +7,9 @@ import torch
 from . import meter
 import numpy as np
 import math
+from . import mAPmeter
 
-class VOC07mAPMeter(mAPMeter):
+class VOC07mAPMeter(mAPmeter.mAPMeter):
     """ Mean average precision metric for PASCAL V0C 07 dataset """
     def __init__(self, *args, **kwargs):
         super(VOC07mAPMeter, self).__init__(*args, **kwargs)

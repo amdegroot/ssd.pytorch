@@ -22,9 +22,9 @@ class APMeter(meter.Meter):
         if target.dim() == 1:
             target = target.unsqueeze(1)
         if weight:
-            assert(weight.numel()==target.size(0), 'Weight dimension 1 should be the same as that of target')
+            assert weight.numel()==target.size(0), 'Weight dimension 1 should be the same as that of target'
         if self.scores.numel()>0:
-            assert(target.size(1)==self.targets.size(1), 'dimensions for output should match previously added examples.')
+            assert target.size(1)==self.targets.size(1), 'dimensions for output should match previously added examples.'
 
         if self.scores.storage().size() < self.scores.numel() + output.numel():
             new_size = math.ceil(self.scores.storage().size() * 1.5)
@@ -53,7 +53,7 @@ class APMeter(meter.Meter):
         if self.weights.numel() > 0:
             weight = self.weights.new(self.weights.size())
             weightedtruth = self.weights.new(self.weights.size())
-        for k in range(self.scores.size(1))
+        for k in range(self.scores.size(1)):
             # sort scores:
             scores = self.scores[:,k]
             targets = self.targets[:,k]
