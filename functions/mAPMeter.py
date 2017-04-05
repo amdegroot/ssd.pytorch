@@ -85,8 +85,23 @@ class RecallMeter(meter.Meter):
     recall = num returned true / num gt true
     """
 
-    def __init__(self, threshold, ):
-
+    def __init__(self, thresholds=[0.5], perclass=False):
+        """
+        Args:
+            thresholds (optional, double list): list of thresholds [0,1] at which
+                therecall is measured
+                (default: [0.5])
+            perclass (optional, bool): measure recall per class if true, average
+                over all examples if false
+                (default: False)
+        """
+        # verify all thresholds between 0 & 1
+        for thresh in thresholds:
+            assert(thresh >= 0 and thresh <= 1,
+                'threshold should be between 0 and 1')
+        self.thresholds = thresholds.sort()
+        self.perclass = perclass
+        self.reset()
 
     def reset(self):
         self.tp = {} # true positives
