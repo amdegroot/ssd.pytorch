@@ -13,17 +13,18 @@ class VOC07mAPMeter(mAPMeter):
     def __init__(self, *args, **kwargs):
         super(VOC07mAPMeter, self).__init__(*args, **kwargs)
 
-    def add(self,rec,prec):
-        """
-       calculate average precision, override the default one,
-       special 11-point metric
-       Params:
-       ----------
-       rec : numpy.array
-           cumulated recall
-       prec : numpy.array
-           cumulated precision
-       Returns:
-       ----------
-       ap as float
-       """
+    # def add(self,rec,prec):
+    #     """
+    #    calculate average precision, override the default one,
+    #    special 11-point metric
+    #    Params:
+    #    ----------
+    #    rec : numpy.array
+    #        cumulated recall
+    #    prec : numpy.array
+    #        cumulated precision
+    #    Returns:
+    #    ----------
+    #    ap as float
+    #    """
+    #

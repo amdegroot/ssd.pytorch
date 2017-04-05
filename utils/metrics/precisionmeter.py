@@ -1,3 +1,8 @@
+import torch
+from . import meter
+import numpy as np
+import math
+
 class PrecisionMeter(meter.Meter):
     def __init__(self, threshold = [0.5], perclass=False):
          self.threshold = sorted(thresholds)

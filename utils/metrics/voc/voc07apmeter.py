@@ -1,3 +1,7 @@
+import torch
+import numpy as np
+from . import meter
+
 class VOC07APMeter(meter.Meter):
 
     def __init__(self, ovp_thresh=0.5, use_difficult=False, class_names=None, pred_idx=0):
@@ -130,7 +134,7 @@ class VOC07APMeter(meter.Meter):
             values = [x / y if y != 0 else float('nan') \
                 for x, y in zip(self.sum_metric, self.num_inst)]
             return (names, values)
-            
+
     def _average_precision(self, rec, prec):
         """
         calculate average precision, override the default one,
