@@ -1,18 +1,24 @@
+"""Custom meters for monitoring Precision and Recall metrics
+
+Ellis Brown, Max deGroot
+"""
+
 import torch
 from . import meter
 import numpy as np
 import math
 
 class APMeter(meter.Meter):
+    """Average Precision meter"""
     def __init__(self):
         self.reset()
 
     def reset(self):
-        self.scores =torch.DoubleTensor(torch.DoubleStorage())
+        self.scores = torch.DoubleTensor(torch.DoubleStorage())
         self.targets = torch.LongTensor(torch.LongStorage())
         self.weights = torch.DoubleTensor(torch.DoubleStorage())
 
-    def add(output,target,weight):
+    def add(self, output,target,weight):
         if weight:
             weight = weight.squeeze()
         if output.dim() == 1:
@@ -72,8 +78,29 @@ class APMeter(meter.Meter):
             ap[k] = precision[truth.byte()].sum() / max(truth.sum(), 1)
         return ap
 
+class RecallMeter(meter.Meter):
+    """Recall Meter
+    tracks percentage of the class that the system correctly retrieves
+
+    recall = num returned true / num gt true
+    """
+
+    def __init__(self, threshold, ):
+
+
+    def reset(self):
+        self.tp = {} # true positives
+        self.tpfn = {} # true positives & false negatives
+        for _,t in
+
+    def add(self):
+        pass
+
+    def value(self):
+        pass
 
 class mAPMeter(meter.Meter):
+    """Mean Average Precision Meter"""
     def __init__(self, ovp_thresh=0.5, use_difficult=False, class_names=None, pred_idx=0):
         self.apmeter = APMeter()
 
