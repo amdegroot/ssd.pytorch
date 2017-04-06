@@ -1,48 +1,30 @@
 import torch
 import numpy as np
 from . import meter
-class VOC07APMeter(meter.Meter):
 
-    def __init__(self, ovp_thresh=0.5, use_difficult=False, class_names=None, pred_idx=0):
-        # self.recallmeter = RecallMeter()
-        # self.precisionmeter = PrecisionMeter()
+
+class VOC07APMeter(meter.Meter):
+    def __init__(self, ovp_thresh=0.5, use_difficult=False,
+                 class_names=None, pred_idx=0):
         self.use_difficult = use_difficult
         self.class_names = class_names
         self.pred_idx = int(pred_idx)
-        self.records = {}
-        self.counts = {}
-        self.num = 0
-        self.num_inst = 0
-        self.sum_metric =  [0]*self.class_names if self.class_names else 0
+        self.reset()
 
-    def add(self,labels, preds):
-        def iou(x, ys):
-            """
-            Calculate intersection-over-union overlap
-            Params:
-            ----------
-            x : numpy.array
-                single box [xmin, ymin ,xmax, ymax]
-            ys : numpy.array
-                multiple box [[xmin, ymin, xmax, ymax], [...], ]
-            Returns:
-            -----------
-            numpy.array
-                [iou1, iou2, ...], size == ys.shape[0]
-            """
-            ixmin = np.maximum(ys[:, 0], x[0])
-            iymin = np.maximum(ys[:, 1], x[1])
-            ixmax = np.minimum(ys[:, 2], x[2])
-            iymax = np.minimum(ys[:, 3], x[3])
-            iw = np.maximum(ixmax - ixmin, 0.)
-            ih = np.maximum(iymax - iymin, 0.)
-            inters = iw * ih
-            uni = (x[2] - x[0]) * (x[3] - x[1]) + (ys[:, 2] - ys[:, 0]) * \
-                (ys[:, 3] - ys[:, 1]) - inters
-            ious = inters / uni
-            ious[uni < 1e-12] = 0  # in case bad boxes
-            return ious
+    def reset(self):
+        """Resets the meter with empty member variables"""
+        self.scores = torch.FloatTensor(torch.FloatStorage())
+        self.pred_boxes = torch.LongTensor(torch.LongStorage())
+        self.target_boxes = torch.LongTensor(torch.LongStorage())
+        self.true_positives = torch.FloatTensor(torch.FloatStorage())
+        self.false_positives = torch.FloatTensor(torch.FloatStorage())
 
+        self.n_gtboxes = 0
+        self.d_n_gbboxes = {}
+        self.d_tp = {}
+        self.d_fp = {}
+
+    def add(self, labels, preds):
         # independant execution for each image
         for i in range(labels[0].shape[0]):
             # get as numpy arrays
@@ -58,8 +40,9 @@ class VOC07APMeter(meter.Meter):
                 dets = pred[indices]
                 pred = np.delete(pred, indices, axis=0)
                 # sort by score, desceding
-                dets[dets[:,1].argsort()[::-1]]
-                records = np.hstack((dets[:, 1][:, np.newaxis], np.zeros((dets.shape[0], 1))))
+                dets[dets[:, 1].argsort()[::-1]]
+                records = np.hstack((dets[:, 1][:, np.newaxis],
+                                     np.zeros((dets.shape[0], 1))))
                 # ground-truths
                 gts = label[np.where(label[:, 0].astype(int) == cid)[0], :]
                 if gts.size > 0:
@@ -98,6 +81,7 @@ class VOC07APMeter(meter.Meter):
                 # 0: not set(matched to difficult or something), 1: tp, 2: fp
                 records = records[np.where(records[:, -1] > 0)[0], :]
                 if records.size > 0:
+
                     self._insert(cid, records, gt_count)
 
     def value(self):
@@ -111,18 +95,18 @@ class VOC07APMeter(meter.Meter):
         """
         aps = []
         for k, v in self.records.items():
-           recall, prec = self._recall_prec(v, self.counts[k])
-           ap = self._average_precision(recall, prec)
-           aps.append(ap)
-           if self.num is not None and k < (self.num - 1):
-               self.sum_metric[k] = ap
-               self.num_inst[k] = 1
-           if self.num is None:
-               self.num_inst = 1
-               self.sum_metric = np.mean(aps)
-           else:
-               self.num_inst[-1] = 1
-               self.sum_metric[-1] = np.mean(aps)
+            recall, prec = self._recall_prec(v, self.counts[k])
+            ap = self._average_precision(recall, prec)
+            aps.append(ap)
+            if self.num is not None and k < (self.num - 1):
+                self.sum_metric[k] = ap
+                self.num_inst[k] = 1
+            if self.num is None:
+                self.num_inst = 1
+                self.sum_metric = np.mean(aps)
+            else:
+                self.num_inst[-1] = 1
+                self.sum_metric[-1] = np.mean(aps)
         if self.num is None:
             if self.num_inst == 0:
                 return (self.class_names, float('nan'))

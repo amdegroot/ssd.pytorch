@@ -12,7 +12,8 @@ from . import mAPmeter, VOC07APMeter
 class VOC07mAPMeter(mAPmeter.mAPMeter):
     """Mean average precision meter for PASCAL V0C 2007 dataset """
 
-    def __init__(self, ovp_thresh=0.5, use_difficult=False, class_names=None, pred_idx=0):
+    def __init__(self, ovp_thresh=0.5, use_difficult=False,
+                 class_names=None, pred_idx=0):
         """
         Param:
             ovp_thresh (optional, float): overlap threshold for TP
