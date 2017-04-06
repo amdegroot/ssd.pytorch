@@ -60,7 +60,7 @@ class APMeter(meter.Meter):
             assert weight.numel() == target.size(0), \
                 'Weight dimension 1 should be the same as that of target'
             assert torch.min(weight) > 0, 'Weight should be non-negative only'
-        assert (weight.eq(0) + weight.eq(1)).sum() == weight.numel(), \
+        assert torch.equal(weight.float().sqrt(), weight.float()), \
             'targets should be binary (0 or 1)'
         if self.scores.numel() > 0:
             assert target.size(1) == self.targets.size(1), \
@@ -87,23 +87,12 @@ class APMeter(meter.Meter):
             self.weights.narrow(1, offset + 1, weight.size(0)).copy_(weight)
 
     def value(self):
-        """Returns the model's precision @ a specific threshold or all
-        thresholds
-        Note:
-        - if t is not specified, returns a list containing the precision of the
-        model predictions measured at all thresholds specified at initialization
-        - if perclass was set True at initialization, the precision at each
-        threshold will be a tensor of precisions per class instead of an average
-        precision of all classes at the threshold (double)
+        """Returns the model's average precision for each class
 
         Return:
-            precision:
-                (double or Tensor): the precision @ specified threshold
-                (dict of doubles or Tensors): precision @ each t specified at
-                    initialization
+            ap (DoubleTensor): 1xK tensor, with avg precision for each class k
         """
 
-        # compute average precision for each class:
         if not self.scores.numel() == 0:
             return 0
         ap = torch.DoubleTensor(self.scores.size(1)).fill(0)
@@ -111,6 +100,8 @@ class APMeter(meter.Meter):
         if self.weights.numel() > 0:
             weight = self.weights.new(self.weights.size())
             weighted_truth = self.weights.new(self.weights.size())
+
+        # compute average precision for each class:
         for k in range(1, self.scores.size(1)):
             # sort scores:
             scores = self.scores[:, k]
