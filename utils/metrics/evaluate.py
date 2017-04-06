@@ -47,7 +47,7 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
         if(boxes.dim() == 1):
             boxes.unsqueeze_(0)
 
-        det = [False] * len(objects)  # detected in given image
+        det = [False] * boxes.size(0) # detected in given image
         x = Variable(transform(img).unsqueeze_(0))
         if cuda:
             x = x.cuda()
@@ -61,9 +61,10 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
             j = 0
             # filter out detections that scored less than 0.01
             while detections[0,i,j,0] >= 0.01:
-                label_name = labelmap[i-1]
+                label = i
                 pt = (detections[0,i,j,1:]*scale)
                 pred_num+=1
+
 
 
 
