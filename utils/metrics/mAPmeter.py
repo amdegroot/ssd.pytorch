@@ -11,8 +11,10 @@ from . import meter, APMeter
 import numpy as np
 import math
 
+
 class mAPMeter(meter.Meter):
     """Mean Average Precision Meter"""
+
     def __init__(self):
         self.apmeter = APMeter()
 
