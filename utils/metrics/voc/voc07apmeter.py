@@ -1,11 +1,28 @@
 import torch
 import numpy as np
 from . import meter
+
+
 class VOC07APMeter(meter.Meter):
+    """Average precision meter for PASCAL V0C 2007 dataset"""
 
     def __init__(self, ovp_thresh=0.5, use_difficult=False, class_names=None, pred_idx=0):
+        """
+        Param:
+            ovp_thresh (optional, float): overlap threshold for TP
+                (default: 0.5)
+            use_difficult (optional, boolean) use difficult ground-truths if
+                applicable, otherwise just ignore
+                (default: False)
+            class_names (optional, list of str): if provided, will print out AP
+                for each class
+                (default: None)
+            pred_idx (optional, int): prediction index in network output list
+                (default: 0)
+        """
         # self.recallmeter = RecallMeter()
         # self.precisionmeter = PrecisionMeter()
+        self.ovp_thresh = ovp_thresh
         self.use_difficult = use_difficult
         self.class_names = class_names
         self.pred_idx = int(pred_idx)
@@ -13,7 +30,7 @@ class VOC07APMeter(meter.Meter):
         self.counts = {}
         self.num = 0
         self.num_inst = 0
-        self.sum_metric =  [0]*self.class_names if self.class_names else 0
+        self.sum_metric = [0]*self.class_names if self.class_names else 0
 
     def add(self,labels, preds):
         def iou(x, ys):
