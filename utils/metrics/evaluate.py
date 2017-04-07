@@ -65,6 +65,16 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
                 pt = (detections[0,i,j,1:]*scale)
                 pred_num+=1
 
+            # compute overlaps
+            # if overlap > threshold (0.5)
+                # if not found => true positive, mark as found
+                # else => duplicate... false positive
+            # else => false positive
+    # for each class, calc
+        # precision (fp / tp+fp)
+        # recall (tp+fp / #gt) => gt = tp + fn
+    # calc avg prec for each class
+    # mAP = mean of APs for all classes
 
 
 
