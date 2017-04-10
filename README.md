@@ -146,15 +146,22 @@ jupyter notebook
 ```
 
 - Now navigate to `demo.ipynb` at http://localhost:8888 (by default) and have at it!
+### Try the webcam demo
+- Works on CPU (may have to tweak `cv2.waitkey` for optimal fps) or on an NVIDIA GPU
+- This demo requires opencv2+ w/ python and an onboard webcam
+  * You can change the default webcam in `live_demo.py`
+- Running `python live_demo.py` opens the webcam and begins detecting!
 
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
-- Complete data augmentation (in progress)
-- Train SSD300 with batch norm (in progress)
-- Webcam demo (in progress)
-- Add support for SSD512 training and testing
-- Add support for COCO dataset
-- Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo) (in progress)
+- In progress:
+  * Complete data augmentation (progress in augmentation branch)
+  * Produce a purely PyTorch mAP matching the original Caffe result
+- Still to come:
+  * Train SSD300 with batch norm
+  * Add support for SSD512 training and testing
+  * Add support for COCO dataset
+  * Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo)
 
 
 ## References
