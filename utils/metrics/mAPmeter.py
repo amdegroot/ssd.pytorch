@@ -1,5 +1,5 @@
 import math
-from . import meter, APMeter
+from . import meter, apmeter
 import numpy as np
 import torch
 
@@ -19,7 +19,7 @@ class mAPMeter(meter.Meter):
     each sample.
     """
     def __init__(self):
-        self.apmeter = APMeter()
+        self.apmeter = apmeter.APMeter()
 
     def reset(self):
         self.apmeter.reset()
