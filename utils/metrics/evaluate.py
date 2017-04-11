@@ -59,7 +59,7 @@ def voc_ap(rec, prec):
     return ap
 
 
-def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
+def test_net(net, cuda, valset, transform, top_k):
     # dump predictions and assoc. ground truth to text file for now
     num_images = len(valset)
     ovthresh = 0.5
@@ -68,7 +68,7 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
     # per class
     fp = defaultdict(list)
     tp = defaultdict(list)
-    gt = defaultdict(list)
+    gts = defaultdict(list)
     precision = Counter()
     recall = Counter()
     ap = Counter()
@@ -78,7 +78,7 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
         print('Evaluating image {:d}/{:d}....'.format(i + 1, num_images))
         img = valset.pull_image(i)
         anno = valset.pull_anno(i)
-        print(anno)
+        # print(anno)
         anno = torch.Tensor(anno).long()
         gt_classes = list(set(anno[:, 4]))
         x = Variable(transform(img).unsqueeze_(0))
@@ -99,15 +99,18 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
             dets = torch.masked_select(dets, mask).view(-1, 5)
             mask = anno[:, 4].eq(cl).expand(5, anno.size(0)).t()
             # all gts for class
-            truths = torch.masked_select(anno, mask).view(-1, 5)[:, :-1]
-            gt[cl].extend([1] * truths.size(0))
-            if cl in gt_classes:
+            truths = torch.masked_select(anno, mask).view(-1, 5)
+            if truths.numel() > 0:
+                truths = truths[:, :-1]
+                gts[cl].extend([1] * truths.size(0))  # count gts
+                if dets.numel() < 1:
+                    continue  # no detections to count
                 # there exist gt of this class in the image
                 # check for tp & fp
-                priors = dets[:, 1:]
-                priors *= scale.unsqueeze(0).expand_as(priors)
+                preds = dets[:, 1:]
+                preds *= scale.unsqueeze(0).expand_as(preds)
                 # compute overlaps
-                overlaps = jaccard(truths, priors)
+                overlaps = jaccard(truths.float(), preds)
                 # if each gt obj is found yet
                 found = [False] * overlaps.size(0)
                 maxes = overlaps.max(0)
@@ -130,13 +133,14 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
             else:
                 # there are no gts of this class in the image
                 # all dets > 0.01 are fp
-                fp[cl].extend([1] * dets.size(0))
-                tp[cl].extend([0] * dets.size(0))
+                if dets.numel() > 0:
+                    fp[cl].extend([1] * dets.size(0))
+                    tp[cl].extend([0] * dets.size(0))
     for cl in range(num_classes):
         # for each class calc rec, prec, ap
         tp_cumsum = torch.cumsum(torch.Tensor(tp[cl]), 0)
         fp_cumsum = torch.cumsum(torch.Tensor(fp[cl]), 0)
-        gt_cumsum = torch.cumsum(torch.Tensor(gt[cl]), 0)
+        gt_cumsum = torch.cumsum(torch.Tensor(gts[cl]), 0)
         pos_det = max(tp_cumsum) + max(fp_cumsum)
         # precision (tp / tp+fp)
         # recall (tp+fp / #gt) => gt = tp + fn
@@ -148,6 +152,7 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
         ap[cl] = voc_ap(rec, prec)
         recall[cl] = max(rec)
         precision[cl] = max(prec)
+        print('class', cl, 'rec', recall[cl], 'prec', precision[cl], 'AP', ap[cl])
     # mAP = mean of APs for all classes
     mAP = sum(ap.values()) / len(ap)
     return mAP
