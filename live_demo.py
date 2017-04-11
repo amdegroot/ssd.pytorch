@@ -29,7 +29,7 @@ def predict(frame):
     height, width = frame.shape[:2]
     img = Image.fromarray(frame)
     x = Variable(transform(img).unsqueeze_(0))
-    y = net(x)      # forward pass
+    y = net(x)  # forward pass
     detections = y.data
     # scale each detection back up to the image
     scale = torch.Tensor([width, height, width, height])

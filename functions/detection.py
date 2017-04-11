@@ -5,6 +5,7 @@ from torch.autograd import Function
 from torch.autograd import Variable
 from box_utils import *
 
+
 class Detect(Function):
     """At test time, Detect is the final layer of SSD.  Decode location preds,
     apply non-maximum suppression to location predictions based on conf
@@ -12,8 +13,8 @@ class Detect(Function):
     confidence score and locations.
 
     """
-
-    def __init__(self, num_classes, background_label, keep_top_k, conf_thresh, nms_threshold, nms_top_k):
+    def __init__(self, num_classes, background_label, keep_top_k, conf_thresh,
+                 nms_threshold, nms_top_k):
         self.num_classes = num_classes
         self.background_label = background_label
         self.keep_top_k = keep_top_k
@@ -30,32 +31,33 @@ class Detect(Function):
     def forward(self, loc_data, conf_data, prior_data):
         """
         Args:
-            loc_data: (tensor) Loc preds from loc layers,
+            loc_data: (tensor) Loc preds from loc layers
                 Shape: [batch,num_priors*4]
-            conf_data: (tensor) Shape: Conf preds from conf layers,
+            conf_data: (tensor) Shape: Conf preds from conf layers
                 Shape: [batch*num_priors,num_classes]
-            prior_data: (tensor) Prior boxes and variances from priorbox layers,
+            prior_data: (tensor) Prior boxes and variances from priorbox layers
                 Shape: [1,num_priors,4]
         """
 
-        num = loc_data.size(0) # batch size
-        self.output = torch.zeros(num,self.num_classes,self.keep_top_k,5)  # TODO: refactor
+        num = loc_data.size(0)  # batch size
+        self.output = torch.zeros(num, self.num_classes, self.keep_top_k, 5)
         if num == 1:
-            conf_preds = conf_data.t().contiguous().unsqueeze(0) # size num x 21 x 7308
+            # size batch x num_classes x 7308
+            conf_preds = conf_data.t().contiguous().unsqueeze(0)
         else:
-            conf_preds = conf_data.view(num,num_priors,self.num_classes).transpose(2,1)
-        variances = torch.Tensor([0.1,0.1,0.2,0.2])
+            conf_preds = conf_data.view(num, num_priors,
+                                        self.num_classes).transpose(2, 1)
+        variances = torch.Tensor([0.1, 0.1, 0.2, 0.2])
         # Decode predictions into bboxes.
-        num_kept = 0
         for i in range(num):
-            decoded_boxes = decode(loc_data[i],prior_data,variances)
+            decoded_boxes = decode(loc_data[i], prior_data, variances)
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             num_det = 0
 
-            for c in range(1,self.num_classes):
-                # idx of highest scoring and non-overlapping boxes for a given class
-                score_points,count = nms(decoded_boxes, conf_scores[c], \
-                                         self.nms_threshold, self.keep_top_k)
-                self.output[i,c,:count] = score_points
+            for c in range(1, self.num_classes):
+                # idx of highest scoring and non-overlapping boxes per class
+                score_points, count = nms(decoded_boxes, conf_scores[c],
+                                          self.nms_threshold, self.keep_top_k)
+                self.output[i, c, :count] = score_points
             return self.output
