@@ -102,7 +102,7 @@ def test_net(net, cuda, valset, transform, top_k):
             truths = torch.masked_select(anno, mask).view(-1, 5)
             if truths.numel() > 0:
                 truths = truths[:, :-1]
-                gts[cl].extend([1] * truths.size(0))  # count gts
+                # gts[cl].extend([1] * truths.size(0))  # count gts
                 if dets.numel() < 1:
                     continue  # no detections to count
                 # there exist gt of this class in the image
@@ -122,21 +122,27 @@ def test_net(net, cuda, valset, transform, top_k):
                             # duplicate
                             fp[cl].append(1)
                             tp[cl].append(0)
+                            gts[cl].append(0) # tp
                         else:
                             # not yet found
                             tp[cl].append(1)
                             fp[cl].append(0)
                             found[gt] = True  # mark gt as found
+                            gts[cl].append(1) # tp
                     else:
                         fp[cl].append(1)
                         tp[cl].append(0)
+                        gts[cl].append(0) # tp
             else:
                 # there are no gts of this class in the image
                 # all dets > 0.01 are fp
                 if dets.numel() > 0:
                     fp[cl].extend([1] * dets.size(0))
                     tp[cl].extend([0] * dets.size(0))
+                    gts[cl].extend([0] * dets.size(0))  # fn
     for cl in range(num_classes):
+        if len(gts[cl]) < 1:
+            continue
         # for each class calc rec, prec, ap
         tp_cumsum = torch.cumsum(torch.Tensor(tp[cl]), 0)
         fp_cumsum = torch.cumsum(torch.Tensor(fp[cl]), 0)
@@ -144,15 +150,15 @@ def test_net(net, cuda, valset, transform, top_k):
         pos_det = max(tp_cumsum) + max(fp_cumsum)
         # precision (tp / tp+fp)
         # recall (tp+fp / #gt) => gt = tp + fn
-        precision[cl] = max(tp_cumsum) * 1.0 / pos_det
-        recall[cl] = pos_det * 1.0 / max(gt_cumsum)
         # avoid div by 0 with .clamp(min=1e-12)
         rec = tp_cumsum / gt_cumsum.clamp(min=1e-12)
         prec = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
         ap[cl] = voc_ap(rec, prec)
         recall[cl] = max(rec)
         precision[cl] = max(prec)
-        print('class', cl, 'rec', recall[cl], 'prec', precision[cl], 'AP', ap[cl])
+        print('class', cl, 'rec', recall[cl],
+              'prec', precision[cl], 'AP', ap[cl],
+              'tp', sum(tp[cl]), 'fp', sum(fp[cl]), 'gt', sum(gts[cl]))
     # mAP = mean of APs for all classes
     mAP = sum(ap.values()) / len(ap)
     return mAP
