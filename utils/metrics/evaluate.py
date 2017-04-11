@@ -80,7 +80,6 @@ def test_net(net, cuda, valset, transform, top_k):
         anno = valset.pull_anno(i)
         # print(anno)
         anno = torch.Tensor(anno).long()
-        gt_classes = list(set(anno[:, 4]))
         x = Variable(transform(img).unsqueeze_(0))
         if cuda:
             x = x.cuda()
@@ -94,24 +93,27 @@ def test_net(net, cuda, valset, transform, top_k):
             num_classes = detections.size(1)
         for cl in range(detections.size(1)):
             dets = detections[0, cl, :, :]
-            mask = dets[:, 0].ge(0.01).expand(5, dets.size(0)).t()
+            mask = dets[:, 0].ge(confidence_threshold).expand(
+                5, dets.size(0)).t()
             # all dets w > 0.01 conf for class
             dets = torch.masked_select(dets, mask).view(-1, 5)
             mask = anno[:, 4].eq(cl).expand(5, anno.size(0)).t()
             # all gts for class
             truths = torch.masked_select(anno, mask).view(-1, 5)
             if truths.numel() > 0:
-                truths = truths[:, :-1]
-                # gts[cl].extend([1] * truths.size(0))  # count gts
-                if dets.numel() < 1:
-                    continue  # no detections to count
                 # there exist gt of this class in the image
                 # check for tp & fp
+                truths = truths[:, :-1]
+                if dets.numel() < 1:
+                    fp[cl].extend([0] * truths.size(0))
+                    tp[cl].extend([0] * truths.size(0))
+                    gts[cl].extend([1] * truths.size(0))
+                    continue
                 preds = dets[:, 1:]
                 preds *= scale.unsqueeze(0).expand_as(preds)
                 # compute overlaps
                 overlaps = jaccard(truths.float(), preds)
-                # if each gt obj is found yet
+                # found = if each gt obj is found yet
                 found = [False] * overlaps.size(0)
                 maxes = overlaps.max(0)
                 for pb in range(overlaps.size(1)):
@@ -122,24 +124,24 @@ def test_net(net, cuda, valset, transform, top_k):
                             # duplicate
                             fp[cl].append(1)
                             tp[cl].append(0)
-                            gts[cl].append(0) # tp
+                            gts[cl].append(0)  # tp
                         else:
                             # not yet found
                             tp[cl].append(1)
                             fp[cl].append(0)
                             found[gt] = True  # mark gt as found
-                            gts[cl].append(1) # tp
+                            gts[cl].append(1)  # tp
                     else:
                         fp[cl].append(1)
                         tp[cl].append(0)
-                        gts[cl].append(0) # tp
+                        gts[cl].append(0)  # tp
             else:
                 # there are no gts of this class in the image
                 # all dets > 0.01 are fp
                 if dets.numel() > 0:
                     fp[cl].extend([1] * dets.size(0))
                     tp[cl].extend([0] * dets.size(0))
-                    gts[cl].extend([0] * dets.size(0))  # fn
+                    gts[cl].extend([0] * dets.size(0))
     for cl in range(num_classes):
         if len(gts[cl]) < 1:
             continue
@@ -147,15 +149,15 @@ def test_net(net, cuda, valset, transform, top_k):
         tp_cumsum = torch.cumsum(torch.Tensor(tp[cl]), 0)
         fp_cumsum = torch.cumsum(torch.Tensor(fp[cl]), 0)
         gt_cumsum = torch.cumsum(torch.Tensor(gts[cl]), 0)
-        pos_det = max(tp_cumsum) + max(fp_cumsum)
+        # pos_det = max(tp_cumsum) + max(fp_cumsum)
         # precision (tp / tp+fp)
         # recall (tp+fp / #gt) => gt = tp + fn
         # avoid div by 0 with .clamp(min=1e-12)
-        rec = tp_cumsum / gt_cumsum.clamp(min=1e-12)
-        prec = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
-        ap[cl] = voc_ap(rec, prec)
-        recall[cl] = max(rec)
-        precision[cl] = max(prec)
+        rec_cumsum = tp_cumsum / gt_cumsum.clamp(min=1e-12)
+        prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
+        ap[cl] = voc_ap(rec_cumsum, prec_cumsum)
+        recall[cl] = max(rec_cumsum)
+        precision[cl] = max(prec_cumsum)
         print('class', cl, 'rec', recall[cl],
               'prec', precision[cl], 'AP', ap[cl],
               'tp', sum(tp[cl]), 'fp', sum(fp[cl]), 'gt', sum(gts[cl]))
@@ -175,5 +177,5 @@ if __name__ == '__main__':
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
-    test_net(args.save_folder, net, args.cuda, valset, base_transform(
-        net.size, (104, 117, 123)), args.top_k, thresh=args.confidence_threshold)
+    test_net(net, args.cuda, valset, base_transform(
+        net.size, (104, 117, 123)), args.top_k)
