@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from PIL import Image
 import sys
 import os
-from timeit import default_timer as timer
+import time
 import argparse
 import numpy as np
 import pickle
@@ -74,14 +74,16 @@ def eval_net(net, cuda, valset, transform, top_k):
     recall = Counter()
     ap = Counter()
 
-    for i in range(num_images // 100):
+    for i in range(num_images//10):
         confidence_threshold = 0.01
-        print('Evaluating image {:d}/{:d}....'.format(i + 1, num_images))
+        if i % 10 == 0:
+            print('Evaluating image {:d}/{:d}....'.format(i + 1, num_images))
+        t1 = time.time()
         img = valset.pull_image(i)
         anno = valset.pull_anno(i)
         # print(anno)
         anno = torch.Tensor(anno).long()
-        x = Variable(transform(img).unsqueeze_(0))
+        x = Variable(transform(img).unsqueeze_(0), volatile=True)
         if cuda:
             x = x.cuda()
         y = net(x)  # forward pass
@@ -144,25 +146,30 @@ def eval_net(net, cuda, valset, transform, top_k):
                     fp[cl].extend([1] * dets.size(0))
                     tp[cl].extend([0] * dets.size(0))
                     gts[cl].extend([0] * dets.size(0))
+        if i % 10 == 0:
+            print('Timer: %.4f' % (time.time()-t1))
     for cl in range(num_classes):
         if len(gts[cl]) < 1:
             continue
         # for each class calc rec, prec, ap
         tp_cumsum = torch.cumsum(torch.Tensor(tp[cl]), 0)
         fp_cumsum = torch.cumsum(torch.Tensor(fp[cl]), 0)
-        gt_cumsum = torch.cumsum(torch.Tensor(gts[cl]), 0)
+        # gt_cumsum = torch.cumsum(torch.Tensor(gts[cl]), 0)
+        gt_cumsum = sum(gts[cl]) or 1e-12
         # pos_det = max(tp_cumsum) + max(fp_cumsum)
         # precision (tp / tp+fp)
         # recall (tp+fp / #gt) => gt = tp + fn
         # avoid div by 0 with .clamp(min=1e-12)
-        rec_cumsum = tp_cumsum / gt_cumsum.clamp(min=1e-12)
+        # rec_cumsum = tp_cumsum / gt_cumsum.clamp(min=1e-12)
+        # prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
+        rec_cumsum = tp_cumsum / gt_cumsum
         prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
         ap[cl] = voc_ap(rec_cumsum, prec_cumsum)
         recall[cl] = max(rec_cumsum)
         precision[cl] = max(prec_cumsum)
-        print('class', cl, 'rec', recall[cl],
-              'prec', precision[cl], 'AP', ap[cl],
-              'tp', sum(tp[cl]), 'fp', sum(fp[cl]), 'gt', sum(gts[cl]))
+        print('class %.4f rec %.4f prec %.4f AP %.4f tp %.4f fp %.4f, \
+        gt %.4f,' % (cl, recall[cl], precision[cl], ap[cl], sum(tp[cl]),
+              sum(fp[cl]), sum(gts[cl])))
     # mAP = mean of APs for all classes
     mAP = sum(ap.values()) / len(ap)
     print('mAP', mAP)
