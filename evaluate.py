@@ -4,21 +4,22 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.autograd import Variable
-from data import VOCroot
-from data import VOC_CLASSES as labelmap
-import torch.utils.data as data
 from PIL import Image
 import sys
 import os
-from data import AnnotationTransform, VOCDetection, base_transform
 from timeit import default_timer as timer
 import argparse
 import numpy as np
-from ssd import build_ssd
 import pickle
 from collections import Counter, defaultdict
 
 from utils.box_utils import jaccard, point_form
+from data import AnnotationTransform, VOCDetection, base_transform
+from data import VOCroot
+from data import VOC_CLASSES as labelmap
+from ssd import build_ssd
+import torch.utils.data as data
+import numpy as np
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
 parser.add_argument('--trained_model', default='weights/',
@@ -29,7 +30,7 @@ parser.add_argument('--confidence_threshold', default=0.6,
                     type=float, help='Detection confidence threshold')
 parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
-parser.add_argument('--cuda', default=False, type=bool,
+parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to train model')
 args = parser.parse_args()
 
@@ -49,8 +50,8 @@ def voc_ap(rec, prec):
         average precision (float)
     """
     ap = 0.
-    for threshold in torch.range(0., 1., 0.1):
-        if torch.sum(rec >= threshold) == 0:  # if no recs are >= this thresh
+    for threshold in np.arange(0., 1., 0.1):
+        if torch.sum((rec >= threshold)) == 0:  # if no recs are >= this thresh
             p = 0
         else:
             # largest prec where rec >= thresh
@@ -73,7 +74,7 @@ def test_net(net, cuda, valset, transform, top_k):
     recall = Counter()
     ap = Counter()
 
-    for i in range(num_images):
+    for i in range(num_images // 100):
         confidence_threshold = 0.01
         print('Evaluating image {:d}/{:d}....'.format(i + 1, num_images))
         img = valset.pull_image(i)
@@ -91,13 +92,13 @@ def test_net(net, cuda, valset, transform, top_k):
         # for each class
         if num_classes == 0:
             num_classes = detections.size(1)
-        for cl in range(detections.size(1)):
-            dets = detections[0, cl, :, :]
+        for cl in range(1, detections.size(1)):
+            dets = detections[0, cl, :]
             mask = dets[:, 0].ge(confidence_threshold).expand(
                 5, dets.size(0)).t()
             # all dets w > 0.01 conf for class
             dets = torch.masked_select(dets, mask).view(-1, 5)
-            mask = anno[:, 4].eq(cl).expand(5, anno.size(0)).t()
+            mask = anno[:, 4].eq(cl-1).expand(5, anno.size(0)).t()
             # all gts for class
             truths = torch.masked_select(anno, mask).view(-1, 5)
             if truths.numel() > 0:
@@ -115,10 +116,11 @@ def test_net(net, cuda, valset, transform, top_k):
                 overlaps = jaccard(truths.float(), preds)
                 # found = if each gt obj is found yet
                 found = [False] * overlaps.size(0)
-                maxes = overlaps.max(0)
+                maxes, max_ids = overlaps.max(0)
+                maxes.squeeze_(0), max_ids.squeeze_(0)
                 for pb in range(overlaps.size(1)):
-                    max_overlap = maxes[0][0, pb]
-                    gt = maxes[1][0, pb]
+                    max_overlap = maxes[pb]
+                    gt = max_ids[pb]
                     if max_overlap > ovthresh:  # 0.5
                         if found[gt]:
                             # duplicate
@@ -163,6 +165,7 @@ def test_net(net, cuda, valset, transform, top_k):
               'tp', sum(tp[cl]), 'fp', sum(fp[cl]), 'gt', sum(gts[cl]))
     # mAP = mean of APs for all classes
     mAP = sum(ap.values()) / len(ap)
+    print('mAP', mAP)
     return mAP
 
 if __name__ == '__main__':

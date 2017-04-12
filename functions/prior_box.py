@@ -15,7 +15,6 @@ class PriorBox(object):
     This 'layer' has changed between versions of the original SSD
     paper, so we include both versions, but note v2 is the most tested and most
     recent version of the paper.
-
     """
     def __init__(self, cfg):
         super(PriorBox, self).__init__()
