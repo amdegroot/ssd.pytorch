@@ -60,7 +60,7 @@ def voc_ap(rec, prec):
     return ap
 
 
-def test_net(net, cuda, valset, transform, top_k):
+def eval_net(net, cuda, valset, transform, top_k):
     # dump predictions and assoc. ground truth to text file for now
     num_images = len(valset)
     ovthresh = 0.5
@@ -180,5 +180,5 @@ if __name__ == '__main__':
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
-    test_net(net, args.cuda, valset, base_transform(
+    eval_net(net, args.cuda, valset, base_transform(
         net.size, (104, 117, 123)), args.top_k)
