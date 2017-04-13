@@ -30,7 +30,7 @@ parser.add_argument('--confidence_threshold', default=0.6,
                     type=float, help='Detection confidence threshold')
 parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
-parser.add_argument('--cuda', default=True, type=bool,
+parser.add_argument('--cuda', default=False, type=bool,
                     help='Use cuda to train model')
 args = parser.parse_args()
 
@@ -68,6 +68,7 @@ def eval_net(net, cuda, valset, transform, top_k):
     num_classes = 0
 
     # per class
+
     fp = defaultdict(list)
     tp = defaultdict(list)
     gts = defaultdict(list)
@@ -81,7 +82,6 @@ def eval_net(net, cuda, valset, transform, top_k):
         t1 = time.time()
         img = valset.pull_image(i)
         anno = valset.pull_anno(i)
-        # print(anno)
         anno = torch.Tensor(anno).long()
         x = Variable(transform(img).unsqueeze_(0), volatile=True)
         if cuda:
@@ -111,11 +111,11 @@ def eval_net(net, cuda, valset, transform, top_k):
                     fp[cl].extend([0] * truths.size(0))
                     tp[cl].extend([0] * truths.size(0))
                     gts[cl].extend([1] * truths.size(0))
+                    # gts[cl][-1] += truths.size(0)
                     continue
                 preds = dets[:, 1:]
-                preds *= scale.unsqueeze(0).expand_as(preds)
                 # compute overlaps
-                overlaps = jaccard(truths.float(), preds)
+                overlaps = jaccard(truths.float()/scale.unsqueeze(0).expand_as(truths), preds)
                 # found = if each gt obj is found yet
                 found = [False] * overlaps.size(0)
                 maxes, max_ids = overlaps.max(0)
@@ -155,18 +155,11 @@ def eval_net(net, cuda, valset, transform, top_k):
         tp_cumsum = torch.cumsum(torch.Tensor(tp[cl]), 0)
         fp_cumsum = torch.cumsum(torch.Tensor(fp[cl]), 0)
         gt_cumsum = torch.cumsum(torch.Tensor(gts[cl]), 0)
-        # gt_cumsum = sum(gts[cl]) or 1e-12
-        # pos_det = max(tp_cumsum) + max(fp_cumsum)
-        # precision (tp / tp+fp)
-        # recall (tp+fp / #gt) => gt = tp + fn
-        # avoid div by 0 with .clamp(min=1e-12)
-        # rec_cumsum = tp_cumsum / gt_cumsum.clamp(min=1e-12)
-        # prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
-        rec_cumsum = (tp_cumsum + fp_cumsum) / gt_cumsum.clamp(min=1e-12)
-        prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
+        rec_cumsum = tp_cumsum.float() / gt_cumsum[-1]
+        prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-6)
         ap[cl] = voc_ap(rec_cumsum, prec_cumsum)
-        recall[cl] = max(rec_cumsum)
-        precision[cl] = max(prec_cumsum)
+        recall[cl] = rec_cumsum[-1]
+        precision[cl] = prec_cumsum[-1]
         print('class %.4f rec %.4f prec %.4f AP %.4f tp %.4f fp %.4f, \
         gt %.4f,' % (cl, recall[cl], precision[cl], ap[cl], sum(tp[cl]),
               sum(fp[cl]), sum(gts[cl])))
