@@ -64,6 +64,7 @@ def eval_net(net, cuda, valset, transform, top_k):
     # dump predictions and assoc. ground truth to text file for now
     num_images = len(valset)
     ovthresh = 0.5
+    confidence_threshold = 0.01
     num_classes = 0
 
     # per class
@@ -75,7 +76,6 @@ def eval_net(net, cuda, valset, transform, top_k):
     ap = Counter()
 
     for i in range(num_images//10):
-        confidence_threshold = 0.01
         if i % 10 == 0:
             print('Evaluating image {:d}/{:d}....'.format(i + 1, num_images))
         t1 = time.time()
@@ -148,7 +148,7 @@ def eval_net(net, cuda, valset, transform, top_k):
                     gts[cl].extend([0] * dets.size(0))
         if i % 10 == 0:
             print('Timer: %.4f' % (time.time()-t1))
-    for cl in range(num_classes):
+    for cl in range(1, num_classes):
         if len(gts[cl]) < 1:
             continue
         # for each class calc rec, prec, ap
