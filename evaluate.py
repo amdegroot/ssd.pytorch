@@ -162,7 +162,7 @@ def eval_net(net, cuda, valset, transform, top_k):
         # avoid div by 0 with .clamp(min=1e-12)
         # rec_cumsum = tp_cumsum / gt_cumsum.clamp(min=1e-12)
         # prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
-        rec_cumsum = tp_cumsum / gt_cumsum
+        rec_cumsum = (tp_cumsum + fp_cumsum) / gt_cumsum.clamp(min=1e-12)
         prec_cumsum = tp_cumsum / (tp_cumsum + fp_cumsum).clamp(min=1e-12)
         ap[cl] = voc_ap(rec_cumsum, prec_cumsum)
         recall[cl] = max(rec_cumsum)
