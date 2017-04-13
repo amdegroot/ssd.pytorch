@@ -27,6 +27,12 @@ class Detect(Function):
         if self.nms_top_k > 0:
             self.top_k = self.nms_top_k
 
+    def conf_tresh(self, locs, scores, priors, thresh=0.01):
+        score_filter = scores.gt(thresh)
+
+        scores = scores[score_filter]
+        return scores[score_filter], locs[score_filter], priors[score_filter]
+
     def forward(self, loc_data, conf_data, prior_data):
         """
         Args:
@@ -37,7 +43,6 @@ class Detect(Function):
             prior_data: (tensor) Prior boxes and variances from priorbox layers
                 Shape: [1,num_priors,4]
         """
-
         num = loc_data.size(0)  # batch size
         self.output = torch.zeros(num, self.num_classes, self.keep_top_k, 5)
         if num == 1:
@@ -48,15 +53,39 @@ class Detect(Function):
                                         self.num_classes).transpose(2, 1)
         variances = torch.Tensor([0.1, 0.1, 0.2, 0.2])
         # Decode predictions into bboxes.
+        score_filter = torch.ByteTensor(conf_preds.size(2))
+        score_ids = torch.range(0,conf_preds.size(2)-1).long()
         for i in range(num):
+            # loc_data, conf_preds, prior_data = conf_thresh(loc_data[i], conf_preds[i], prior_data[i])
             decoded_boxes = decode(loc_data[i], prior_data, variances)
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             num_det = 0
-
             for c in range(1, self.num_classes):
+                c_mask = conf_scores[c].ge(self.conf_thresh)
+                # print(mask.size())
+                # ids = score_ids[c_mask]
+                scores = conf_scores[c][c_mask]
+                if scores.dim() == 0:
+                    continue
+                # if scores.size
+                l_mask = c_mask.unsqueeze(1).expand_as(decoded_boxes)
+                boxes = decoded_boxes[l_mask].view(-1,4)
+                # boxes = torch.gather(decoded_boxes, 0, ids)
+                # scores = torch.gather(conf_scores[c], 0, ids)
+                # print(boxes.size())
+                # print(scores.size())
                 # idx of highest scoring and non-overlapping boxes per class
-                score_points, count = nms(decoded_boxes, conf_scores[c],
-                                          self.nms_threshold, self.keep_top_k)
-                self.output[i, c, :count] = score_points
-            return self.output
+                ids, count = nms(boxes, scores,
+                                           self.nms_threshold, self.keep_top_k)
+                # score_points, count = nms(boxes, scores,
+                #                           self.nms_threshold, self.keep_top_k)
+                # if score_points.dim()==0:
+                #     continue
+                # print(score_points.size())
+                # print(self.output[i, c, :10].size())
+                self.output[i, c, :count] = torch.cat((scores[ids[:count]].unsqueeze(1),
+                                  boxes[ids[:count]]), 1)
+                self.output[i, c, 10:].fill_(0)
+
+        return self.output

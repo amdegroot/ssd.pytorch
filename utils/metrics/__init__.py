@@ -5,4 +5,3 @@ from .meter import Meter
 from .precisionmeter import PrecisionMeter
 from .recallmeter import RecallMeter
 from .. import box_utils
-from . import evaluate
