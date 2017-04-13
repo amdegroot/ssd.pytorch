@@ -154,8 +154,8 @@ def eval_net(net, cuda, valset, transform, top_k):
         # for each class calc rec, prec, ap
         tp_cumsum = torch.cumsum(torch.Tensor(tp[cl]), 0)
         fp_cumsum = torch.cumsum(torch.Tensor(fp[cl]), 0)
-        # gt_cumsum = torch.cumsum(torch.Tensor(gts[cl]), 0)
-        gt_cumsum = gts[cl]
+        gt_cumsum = torch.cumsum(torch.Tensor(gts[cl]), 0)
+        # gt_cumsum = sum(gts[cl]) or 1e-12
         # pos_det = max(tp_cumsum) + max(fp_cumsum)
         # precision (tp / tp+fp)
         # recall (tp+fp / #gt) => gt = tp + fn
