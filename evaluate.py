@@ -5,6 +5,7 @@ import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from PIL import Image
+import cv2
 import sys
 import os
 import time
@@ -22,7 +23,7 @@ import torch.utils.data as data
 import numpy as np
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
-parser.add_argument('--trained_model', default='weights/',
+parser.add_argument('--trained_model', default='weights/ssd_300_VOC0712.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='eval/',
                     type=str, help='File path to save results')
@@ -34,7 +35,6 @@ parser.add_argument('--cuda', default=False, type=bool,
                     help='Use cuda to train model')
 args = parser.parse_args()
 
-args.trained_model = 'weights/ssd_300_VOC0712.pth'
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
@@ -60,9 +60,9 @@ def voc_ap(rec, prec):
     return ap
 
 
-def eval_net(net, cuda, valset, transform, top_k):
+def eval_net(net, cuda, dataset, transform, top_k):
     # dump predictions and assoc. ground truth to text file for now
-    num_images = len(valset)
+    num_images = len(dataset)
     ovthresh = 0.5
     confidence_threshold = 0.01
     num_classes = 0
@@ -76,14 +76,17 @@ def eval_net(net, cuda, valset, transform, top_k):
     recall = Counter()
     ap = Counter()
 
-    for i in range(num_images//10):
+    for i in range(num_images//100):
         if i % 10 == 0:
             print('Evaluating image {:d}/{:d}....'.format(i + 1, num_images))
         t1 = time.time()
-        img = valset.pull_image(i)
-        anno = valset.pull_anno(i)
+        img = dataset.pull_image(i)
+        img_id, anno = dataset.pull_anno(i)
         anno = torch.Tensor(anno).long()
-        x = Variable(transform(img).unsqueeze_(0), volatile=True)
+        x = cv2.resize(np.array(img), (300, 300)).astype(np.float32)
+        x -= (104, 117, 123)
+        x = x.transpose(2, 0, 1)
+        x = Variable(torch.from_numpy(x).unsqueeze(0), volatile=True)
         if cuda:
             x = x.cuda()
         y = net(x)  # forward pass
@@ -115,7 +118,8 @@ def eval_net(net, cuda, valset, transform, top_k):
                     continue
                 preds = dets[:, 1:]
                 # compute overlaps
-                overlaps = jaccard(truths.float()/scale.unsqueeze(0).expand_as(truths), preds)
+                overlaps = jaccard(truths.float() /
+                                   scale.unsqueeze(0).expand_as(truths), preds)
                 # found = if each gt obj is found yet
                 found = [False] * overlaps.size(0)
                 maxes, max_ids = overlaps.max(0)
@@ -160,13 +164,14 @@ def eval_net(net, cuda, valset, transform, top_k):
         ap[cl] = voc_ap(rec_cumsum, prec_cumsum)
         recall[cl] = rec_cumsum[-1]
         precision[cl] = prec_cumsum[-1]
-        print('class %.4f rec %.4f prec %.4f AP %.4f tp %.4f fp %.4f, \
-        gt %.4f,' % (cl, recall[cl], precision[cl], ap[cl], sum(tp[cl]),
+        print('class %d rec %.4f prec %.4f AP %.4f tp %.4f fp %.4f, \
+        gt %.4f' % (cl, recall[cl], precision[cl], ap[cl], sum(tp[cl]),
               sum(fp[cl]), sum(gts[cl])))
     # mAP = mean of APs for all classes
     mAP = sum(ap.values()) / len(ap)
     print('mAP', mAP)
     return mAP
+
 
 if __name__ == '__main__':
     # load net
@@ -175,10 +180,10 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    valset = VOCDetection(VOCroot, 'val', None, AnnotationTransform())
+    dataset = VOCDetection(VOCroot, 'test', None, AnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
-    eval_net(net, args.cuda, valset, base_transform(
+    eval_net(net, args.cuda, dataset, base_transform(
         net.size, (104, 117, 123)), args.top_k)

@@ -13,6 +13,7 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
+import cv2
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
@@ -199,7 +200,8 @@ class VOCDetection(data.Dataset):
             PIL img
         '''
         img_id = self.ids[index]
-        return Image.open(self._imgpath % img_id).convert('RGB')
+        return cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
+        # return Image.open(self._imgpath % img_id).convert('RGB')
 
     # TODO:
     # replaced w augmentation branch annotation transform for eval purposes
@@ -241,7 +243,7 @@ class VOCDetection(data.Dataset):
         #     res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
         #     # img_id = target.find('filename').text[:-4]
 
-        return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
+        return img_id,res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
