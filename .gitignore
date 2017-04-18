@@ -97,7 +97,10 @@ weights/
 #DS_Store
 .DS_Store
 
-# dev IPython Notebook
+# dev stuff
+eval/
+eval.ipynb
+dev.ipynb
 .vscode/
 
 # not ready
@@ -109,9 +112,6 @@ doc/visualize.py
 read_results.py
 ssd300_120000/
 utils/metrics/
-
-# dev books
-dev.ipynb
 
 # attributes
 .gitattributes
