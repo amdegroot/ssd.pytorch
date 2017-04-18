@@ -112,9 +112,10 @@ doc/visualize.py
 read_results.py
 ssd300_120000/
 utils/metrics/
+utils/augment.py
+utils/augmentations.py
 
 # attributes
-.gitattributes
 
 # pycharm
 .idea/
