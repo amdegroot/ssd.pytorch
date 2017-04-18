@@ -213,14 +213,10 @@ class VOCDetection(data.Dataset):
             list:  [img_id, [(label, bbox coords),...]]
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
-        gts = []
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
-        for obj in anno.iter('object'):
-            bbox = obj.find('bndbox')
-            label = obj.find('name').text.lower().strip()
-            gts.append([label, *(int(bb.text) - 1 for bb in bbox)])
-        return img_id[1], gts
+        gt = self.target_transform(anno, 1, 1)
+        return img_id[1], gt
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
