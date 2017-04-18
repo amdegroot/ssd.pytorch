@@ -1,47 +1,42 @@
 from __future__ import print_function
+import sys
+import os
+import argparse
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.autograd import Variable
-from data import VOCroot
-from data import VOC_CLASSES as labelmap
-import torch.utils.data as data
+from data import VOCroot, VOC_CLASSES as labelmap
 from PIL import Image
-import sys
-import os
-from data import AnnotationTransform, VOCDetection, base_transform
-from timeit import default_timer as timer
-import argparse
-import numpy as np
+from data import AnnotationTransform, VOCDetection, BaseTransform
+import torch.utils.data as data
 from ssd import build_ssd
-import pickle
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
-parser.add_argument('--trained_model', default='weights/', type=str, help='Trained state_dict file path to open')
-parser.add_argument('--save_folder', default='eval/', type=str, help='File path to save results')
-parser.add_argument('--confidence_threshold', default=0.6, type=float, help='Detection confidence threshold')
-parser.add_argument('--top_k', default=5, type=int, help='Further restrict the number of predictions to parse')
-parser.add_argument('--cuda', default=False, type=bool, help='Use cuda to train model')
+parser.add_argument('--trained_model', default='weights/ssd_300_VOC0712.pth',
+                    type=str, help='Trained state_dict file path to open')
+parser.add_argument('--save_folder', default='eval/', type=str,
+                    help='Dir to save results')
+parser.add_argument('--visual_threshold', default=0.6, type=float,
+                    help='Final confidence threshold')
+parser.add_argument('--cuda', default=False, type=bool,
+                    help='Use cuda to train model')
 args = parser.parse_args()
 
-args.trained_model = 'weights/ssd_300_VOC0712.pth'
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
 
-
-def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
-
+def test_net(save_folder, net, cuda, testset, transform, thresh):
     # dump predictions and assoc. ground truth to text file for now
     filename = save_folder+'test1.txt'
-    num_images = len(valset)
+    num_images = len(testset)
     for i in range(num_images):
-        print('Testing image {:d}/{:d}....'.format(i+1,num_images))
-        img = valset.pull_image(i)
-        img_id, annotation = valset.pull_anno(i)
-        x = Variable(transform(img).unsqueeze_(0))
-
+        print('Testing image {:d}/{:d}....'.format(i+1, num_images))
+        img = testset.pull_image(i)
+        img_id, annotation = testset.pull_anno(i)
+        x = Variable(transform(img).unsqueeze(0))
         with open(filename, mode='a') as f:
             f.write('\nGROUND TRUTH FOR: '+img_id+'\n')
             for box in annotation:
@@ -52,24 +47,24 @@ def test_net(save_folder, net, cuda, valset, transform, top_k, thresh):
         y = net(x)      # forward pass
         detections = y.data
         # scale each detection back up to the image
-        scale = torch.Tensor([img.size[0],img.size[1],img.size[0],img.size[1]])
+        scale = torch.Tensor([img.shape[1], img.shape[0],
+                             img.shape[1], img.shape[0]])
         pred_num = 0
         for i in range(detections.size(1)):
             j = 0
-            while detections[0,i,j,0] >= 0.6:
+            while detections[0, i, j, 0] >= 0.6:
                 if pred_num == 0:
                     with open(filename, mode='a') as f:
                         f.write('PREDICTIONS: '+'\n')
-                score = detections[0,i,j,0]
+                score = detections[0, i, j, 0]
                 label_name = labelmap[i-1]
-                pt = (detections[0,i,j,1:]*scale).cpu().numpy()
+                pt = (detections[0, i, j, 1:]*scale).cpu().numpy()
                 coords = (pt[0], pt[1], pt[2], pt[3])
-                pred_num+=1
+                pred_num += 1
                 with open(filename, mode='a') as f:
-                    f.write(str(pred_num)+' label: '+label_name+' score: ' \
-                            +str(score) +' '+' || '.join(str(c) for c in coords)+'\n')
-                j+=1
-
+                    f.write(str(pred_num)+' label: '+label_name+' score: ' +
+                            str(score) + ' '+' || '.join(str(c) for c in coords) + '\n')
+                j += 1
 
 
 if __name__ == '__main__':
@@ -79,9 +74,11 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    valset = VOCDetection(VOCroot, 'val', None, AnnotationTransform())
+    testset = VOCDetection(VOCroot, 'test', None, AnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
-    test_net(args.save_folder, net, args.cuda, valset, base_transform(net.size,(104,117,123)), args.top_k, thresh=args.confidence_threshold)
+    test_net(args.save_folder, net, args.cuda, testset,
+             BaseTransform(net.size, (104, 117, 123), (2, 0, 1)),
+             thresh=args.visual_threshold)

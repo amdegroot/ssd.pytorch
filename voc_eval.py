@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
-from data import VOCroot, AnnotationTransform, VOCDetection, base_transform
+from data import VOCroot, AnnotationTransform, VOCDetection, BaseTransform
 from data import VOC_CLASSES as labelmap
 import torch.utils.data as data
 from ssd import build_ssd
@@ -31,7 +31,7 @@ parser.add_argument('--confidence_threshold', default=0.01, type=float,
                     help='Detection confidence threshold')
 parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
-parser.add_argument('--cuda', default=True, type=bool,
+parser.add_argument('--cuda', default=False, type=bool,
                     help='Use cuda to train model')
 args = parser.parse_args()
 
@@ -45,7 +45,6 @@ YEAR = '2007'
 devkit_path = VOCroot + 'VOC' + YEAR
 channel_means = (104, 117, 123)
 set_type = 'test'
-aug = base_transform(300, channel_means)
 
 
 class Timer(object):
@@ -160,8 +159,6 @@ def do_python_eval(output_dir='output', use_07=True):
     print('--------------------------------------------------------------')
     print('Results computed with the **unofficial** Python eval code.')
     print('Results should be very close to the official MATLAB eval code.')
-    print('Recompute with `./tools/reval.py --matlab ...` for your paper.')
-    print('-- Thanks, The Management')
     print('--------------------------------------------------------------')
 
 
@@ -335,8 +332,7 @@ cachedir: Directory for caching the annotations
     return rec, prec, ap
 
 
-def test_net(save_folder, net, cuda, dataset, transform, top_k,
-             im_size=300, thresh=0.05):
+def test_net(save_folder, net, cuda, dataset, top_k, im_size=300):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(dataset)
     # all detections are collected into:
@@ -352,7 +348,8 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
 
     for i in range(num_images):
         im = dataset.pull_image(i)
-        scale = torch.Tensor([im.shape[1], im.shape[0], im.shape[1], im.shape[0]])
+        scale = torch.Tensor([im.shape[1], im.shape[0],
+                             im.shape[1], im.shape[0]])
         x = cv2.resize(np.array(im), (im_size, im_size)).astype(np.float32)
         x -= channel_means
         x = x.transpose(2, 0, 1)
@@ -360,12 +357,8 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
         if args.cuda:
             x = x.cuda()
         _t['im_detect'].tic()
-        t1 = time.time()
         detections = net(x).data
-        t2 = time.time()
-        print(t2-t1)
         detect_time = _t['im_detect'].toc(average=False)
-
         # skip j = 0, because it's the background class
         for j in range(1, detections.size(1)):
             dets = detections[0, j, :]
@@ -407,6 +400,4 @@ if __name__ == '__main__':
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
-    test_net(args.save_folder, net, args.cuda, dataset,
-             base_transform(net.size, (104, 117, 123)), args.top_k, 300,
-             thresh=args.confidence_threshold)
+    test_net(args.save_folder, net, args.cuda, dataset, args.top_k, 300)

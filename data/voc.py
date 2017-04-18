@@ -218,32 +218,10 @@ class VOCDetection(data.Dataset):
             list:  [img_id, [(label, bbox coords),...]]
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
-        class_to_ind = dict(zip(VOC_CLASSES, range(len(VOC_CLASSES))))
-        gts = []
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
-        res = self.target_transform(anno, 1, 1)
-        # for obj in anno.iter('object'):
-        #     difficult = int(obj.find('difficult').text) == 1
-        #     if not self.keep_difficult and difficult:
-        #         continue
-        #     name = obj.find('name').text.lower().strip()
-        #     bbox = obj.find('bndbox')
-        #
-        #     # [xmin, ymin, xmax, ymax]
-        #     bndbox = []
-        #     for i, cur_bb in enumerate(bbox):
-        #         bb_sz = int(cur_bb.text) - 1
-        #         # scale height or width
-        #         # bb_sz = bb_sz / width if i % 2 == 0 else bb_sz / height
-        #         bndbox.append(bb_sz)
-        #
-        #     label_ind = self.class_to_ind[name]
-        #     bndbox.append(label_ind)
-        #     res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
-        #     # img_id = target.find('filename').text[:-4]
-
-        return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
+        gt = self.target_transform(anno, 1, 1)
+        return img_id, gt  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form

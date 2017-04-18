@@ -6,10 +6,13 @@ http://arxiv.org/abs/1512.02325
 
 TODO: implement data_augment for training
 
-Ellis Brown
+Ellis Brown, Max deGroot
 """
 
+import torch
 from torchvision import transforms
+import cv2
+import numpy as np
 # import torch_transforms
 
 
@@ -87,29 +90,38 @@ class SwapChannel(object):
         return temp
 
 
-def base_transform(dim, mean_values):
+class BaseTransform(object):
     """Defines the transformations that should be applied to test PIL image
         for input into the network
 
     dimension -> tensorize -> color adj
 
     Arguments:
-        dim (int): input dimension to SSD
-        mean_values ( (int,int,int) ): average RGB of the dataset
+        resize (int): input dimension to SSD
+        rgb_means ((int,int,int)): average RGB of the dataset
             (104,117,123)
-
+        swap ((int,int,int)): final order of channels
     Returns:
         transform (transform) : callable transform to be applied to test/val
         data
     """
+    def __init__(self, resize, rgb_means, swap = (2, 0, 1)):
+        self.means = rgb_means
+        self.resize = resize
+        self.swap = swap
 
-    swap = (2, 1, 0)
-
-    return transforms.Compose([
-        transforms.Scale(dim),
-        transforms.CenterCrop(dim),
-        transforms.ToTensor(),
-        transforms.Lambda(lambda x: x.mul(255)),
-        transforms.Normalize(mean_values, (1, 1, 1)),
-        SwapChannel(swap)
-    ])
+    # assume input is cv2 img for now
+    def __call__(self, img):
+        img = cv2.resize(np.array(img), (self.resize,
+                                         self.resize)).astype(np.float32)
+        img -= self.means
+        img = img.transpose(self.swap)
+        return torch.Tensor(img)
+    # return transforms.Compose([
+    #     transforms.Scale(dim),
+    #     transforms.CenterCrop(dim),
+    #     transforms.ToTensor(),
+    #     transforms.Lambda(lambda x: x.mul(255)),
+    #     transforms.Normalize(mean_values, (1, 1, 1)),
+    #     SwapChannel(swap)
+    # ])

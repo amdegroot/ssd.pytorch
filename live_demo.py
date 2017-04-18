@@ -1,34 +1,31 @@
 from __future__ import print_function
+import sys
+import os
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.autograd import Variable
-from data import VOC_CLASSES as labelmap
-import torch.utils.data as data
-from PIL import Image
-import sys
-import os
-import argparse
-from data import base_transform
-import numpy as np
-from ssd import build_ssd
 import cv2
 from sys import platform as sys_pf
+from data import VOC_CLASSES as labelmap
+import torch.utils.data as data
+from data import BaseTransform
+from ssd import build_ssd
+
 
 trained_model = 'weights/ssd_300_VOC0712.pth'
 net = build_ssd('test', 300, 21)    # initialize SSD
 net.load_state_dict(torch.load(trained_model))
 net.eval()
-transform = base_transform(net.size, (104, 117, 123))
+transform = BaseTransform(net.size, (104, 117, 123))
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 
 def predict(frame):
     height, width = frame.shape[:2]
-    img = Image.fromarray(frame)
-    x = Variable(transform(img).unsqueeze_(0))
+    x = Variable(transform(frame).unsqueeze(0))
     y = net(x)  # forward pass
     detections = y.data
     # scale each detection back up to the image
