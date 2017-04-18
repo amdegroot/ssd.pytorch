@@ -62,7 +62,8 @@ def train_transform():
 
 
 class SwapChannel(object):
-    """Transforms a tensorized image by swapping the channels as specified in the swap
+    """Transforms a tensorized image by swapping the channels as specified
+    in the swap
 
     modifies the input tensor
 
@@ -109,6 +110,6 @@ def base_transform(dim, mean_values):
         transforms.CenterCrop(dim),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255)),
-        SwapChannel(swap),
-        transforms.Normalize(mean_values, (1, 1, 1))
+        transforms.Normalize(mean_values, (1, 1, 1)),
+        SwapChannel(swap)
     ])
