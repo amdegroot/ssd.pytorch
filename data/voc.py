@@ -13,6 +13,7 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
+import cv2
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
@@ -199,7 +200,8 @@ class VOCDetection(data.Dataset):
             PIL img
         '''
         img_id = self.ids[index]
-        return Image.open(self._imgpath % img_id).convert('RGB')
+        return cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
+        # return Image.open(self._imgpath % img_id).convert('RGB')
 
     def pull_anno(self, index):
         '''Returns the original annotation of image at index

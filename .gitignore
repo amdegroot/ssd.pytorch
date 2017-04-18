@@ -103,6 +103,12 @@ weights/
 # not ready
 videos/
 templates/
+data/ssd_dataloader.py
+data/datasets/
+doc/visualize.py
+read_results.py
+ssd300_120000/
+utils/metrics/
 
 # dev books
 dev.ipynb
