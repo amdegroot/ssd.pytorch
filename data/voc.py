@@ -203,6 +203,9 @@ class VOCDetection(data.Dataset):
         return cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
         # return Image.open(self._imgpath % img_id).convert('RGB')
 
+    # TODO:
+    # replaced w augmentation branch annotation transform for eval purposes
+    # this will break test.py so need to merge this.
     def pull_anno(self, index):
         '''Returns the original annotation of image at index
 
@@ -215,14 +218,32 @@ class VOCDetection(data.Dataset):
             list:  [img_id, [(label, bbox coords),...]]
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
+        class_to_ind = dict(zip(VOC_CLASSES, range(len(VOC_CLASSES))))
         gts = []
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
-        for obj in anno.iter('object'):
-            bbox = obj.find('bndbox')
-            label = obj.find('name').text.lower().strip()
-            gts.append([label, *(int(bb.text) - 1 for bb in bbox)])
-        return img_id, gts
+        res = self.target_transform(anno, 1, 1)
+        # for obj in anno.iter('object'):
+        #     difficult = int(obj.find('difficult').text) == 1
+        #     if not self.keep_difficult and difficult:
+        #         continue
+        #     name = obj.find('name').text.lower().strip()
+        #     bbox = obj.find('bndbox')
+        #
+        #     # [xmin, ymin, xmax, ymax]
+        #     bndbox = []
+        #     for i, cur_bb in enumerate(bbox):
+        #         bb_sz = int(cur_bb.text) - 1
+        #         # scale height or width
+        #         # bb_sz = bb_sz / width if i % 2 == 0 else bb_sz / height
+        #         bndbox.append(bb_sz)
+        #
+        #     label_ind = self.class_to_ind[name]
+        #     bndbox.append(label_ind)
+        #     res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
+        #     # img_id = target.find('filename').text[:-4]
+
+        return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form

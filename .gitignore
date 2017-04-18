@@ -118,3 +118,7 @@ dev.ipynb
 
 # pycharm
 .idea/
+
+# temp checkout soln
+data/datasets/
+data/ssd_dataloader.py
