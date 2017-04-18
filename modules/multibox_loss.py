@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from data import v2 as cfg
-from box_utils import *
+from utils.box_utils import *
 GPU = False
 if torch.cuda.is_available():
     GPU = True
