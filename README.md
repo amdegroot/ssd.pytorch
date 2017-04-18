@@ -21,7 +21,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 ## Installation
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
 - Clone this repository.
-  * Note: We only guarantee full functionality with Python 3.
+  * Note: We currently only support Python 3+.
 - Then download the dataset by following the [instructions](#download-voc2007-trainval--test) below.
 - We now support [Visdom](https://github.com/facebookresearch/visdom) for real-time loss visualization during training! 
   * To use Visdom in the browser: 
@@ -33,6 +33,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
   ```
   * Then (during training) navigate to http://localhost:8097/ (see the Train section below for training details).
 - Note: For training, we currently only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon.
+- UPDATE: We have switched from PIL Image support to cv2 as it is more accurate and significantly faster. 
 
 ## Datasets
 To make things easy, we provide a simple VOC dataset loader that enherits `torch.utils.data.Dataset` making it fully compatible with the `torchvision.datasets` [API](http://pytorch.org/docs/torchvision/datasets.html).
