@@ -74,7 +74,7 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    testset = VOCDetection(VOCroot, 'test', None, AnnotationTransform())
+    testset = VOCDetection(VOCroot, [('2007', 'test')], None, AnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True

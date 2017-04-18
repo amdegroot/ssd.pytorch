@@ -220,7 +220,7 @@ class VOCDetection(data.Dataset):
             bbox = obj.find('bndbox')
             label = obj.find('name').text.lower().strip()
             gts.append([label, *(int(bb.text) - 1 for bb in bbox)])
-        return img_id, gts
+        return img_id[1], gts
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
@@ -234,49 +234,7 @@ class VOCDetection(data.Dataset):
             tensorized version of img, squeezed
         '''
         to_tensor = transforms.ToTensor()
-        return to_tensor(self.pull_image(index)).unsqueeze_(0)
-
-    def show(self, index, subparts=False):
-        '''Shows an image with its ground truth boxes overlaid optionally
-
-        Note: not using self.__getitem__(), as any transformations passed in
-        could mess up this functionality.
-
-        Argument:
-            index (int): index of img to show
-            subparts (bool, optional): whether or not to display subpart
-            bboxes of ground truths
-                (default: False)
-        '''
-        img_id = self.ids[index]
-        target = ET.parse(self._annopath % img_id).getroot()
-        img = Image.open(self._imgpath % img_id).convert('RGB')
-        draw = ImageDraw.Draw(img)
-        i = 0
-        fnt = ImageFont.load_default()
-        bndboxs = []
-        classes = dict()  # maps class name to a class number
-        for obj in target.iter('object'):
-            bbox = obj.find('bndbox')
-            name = obj.find('name').text.lower().strip()
-            if name not in classes:
-                classes[name] = i
-                i += 1
-            bndboxs.append((name, [int(bb.text) - 1 for bb in bbox]))
-            if subparts and not obj.find('part') is None:
-                for part in obj.iter('part'):
-                    name = part.find('name').text.lower().strip()
-                    bbox = part.find('bndbox')
-                    bndboxs.append((name, [int(bb.text) - 1 for bb in bbox]))
-                    if name not in classes:
-                        classes[name] = i
-                        i += 1
-        for name, bndbox in bndboxs:
-            color = COLORS[classes[name] % len(COLORS)]
-            draw.rectangle(bndbox, outline=color)
-            draw.text(bndbox[:2], name, font=fnt, fill=color)
-        img.show()
-        return img
+        return torch.Tensor(self.pull_image(index)).unsqueeze_(0)
 
 
 def detection_collate(batch):
