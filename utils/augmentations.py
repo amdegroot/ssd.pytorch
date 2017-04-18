@@ -1,3 +1,6 @@
+import torch
+import cv2
+import numpy as np
 
 
 class Normalize(object):
@@ -23,7 +26,8 @@ class RandomSaturation(object):
 
     def __call__(self, image):
         if random.randrange(2):
-            tmp = image[:, :, 1].astype(float) * random.uniform(self.lower, self.upper)
+            tmp = image[:, :, 1].astype(float) * \
+                random.uniform(self.lower, self.upper)
             tmp[tmp < 0] = 0
             tmp[tmp > 255] = 255
             image[:, :, 1] = tmp
@@ -36,7 +40,8 @@ class RandomHue(object):
 
     def __call__(self, image):
         if random.randrange(2):
-            tmp = image[:, :, 0].astype(int) + random.randint(-self.delta, self.delta)
+            tmp = image[:, :, 0].astype(int) + \
+                random.randint(-self.delta, self.delta)
             tmp %= 180
             image[:, :, 0] = tmp
         return image
@@ -99,10 +104,12 @@ class RandomBrightness(object):
             image[image > 255] = 255
         return image
 
+
 class ToCV2Image(object):
     def __call__(self, tensor):
         # may have to call cv2.cvtColor() to get to BGR
         return tensor.cpu().numpy().astype(np.float32)
+
 
 class ToTensor(object):
     def __call__(self, cvimage):
@@ -148,9 +155,9 @@ class RandomSampleCrop(img, boxes, labels, mode):
                 overlap = jaccard(boxes, rect)
                 if overlap.min() < min_iou and max_iou < overlap.max():
                     continue
-                # t = transforms.ToTensor()
+                t = ToTensor()
                 # p = transforms.ToPILImage()
-                image = p((img)[:, rect[0, 1]:rect[0, 3], rect[0, 0]:rect[0, 2]])
+                image = t(img)[:, rect[0, 1]:rect[0, 3], rect[0, 0]:rect[0, 2]]
 
                 # keep overlap with gt box IF center in sampled patch
                 centers = (boxes[:, :2] + boxes[:, 2:]) / 2
@@ -170,6 +177,7 @@ class RandomSampleCrop(img, boxes, labels, mode):
 
                 return image, boxes, classes
 
+
 class RandomMirror(object):
     def __call__(self, image, boxes, classes):
         _, width, _ = image.shape
@@ -181,8 +189,8 @@ class RandomMirror(object):
 
 
 class SwapChannels(object):
-    """Transforms a tensorized image by swapping the channels as specified in the swap
-    modifies the input tensor
+    """Transforms a tensorized image by swapping the channels in the order
+     specified in the swap tuple.
     Args:
         swaps (int triple): final order of channels
             eg: (2, 1, 0)

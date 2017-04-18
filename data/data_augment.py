@@ -117,11 +117,3 @@ class BaseTransform(object):
         img -= self.means
         img = img.transpose(self.swap)
         return torch.Tensor(img)
-    # return transforms.Compose([
-    #     transforms.Scale(dim),
-    #     transforms.CenterCrop(dim),
-    #     transforms.ToTensor(),
-    #     transforms.Lambda(lambda x: x.mul(255)),
-    #     transforms.Normalize(mean_values, (1, 1, 1)),
-    #     SwapChannel(swap)
-    # ])
