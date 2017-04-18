@@ -97,18 +97,28 @@ weights/
 #DS_Store
 .DS_Store
 
-# dev IPython Notebook
+# dev stuff
+eval/
+eval.ipynb
+dev.ipynb
 .vscode/
 
 # not ready
 videos/
 templates/
-
-# dev books
-dev.ipynb
+data/ssd_dataloader.py
+data/datasets/
+doc/visualize.py
+read_results.py
+ssd300_120000/
+utils/metrics/
 
 # attributes
 .gitattributes
 
 # pycharm
 .idea/
+
+# temp checkout soln
+data/datasets/
+data/ssd_dataloader.py

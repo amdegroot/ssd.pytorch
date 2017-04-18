@@ -14,6 +14,7 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
 import cv2
+import numpy as np
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
@@ -118,16 +119,15 @@ class AnnotationTransform(object):
             name = obj.find('name').text.lower().strip()
             bbox = obj.find('bndbox')
 
-            # [xmin, ymin, xmax, ymax]
+            pts = ['xmin', 'ymin', 'xmax', 'ymax']
             bndbox = []
-            for i, cur_bb in enumerate(bbox):
-                bb_sz = int(cur_bb.text) - 1
+            for i, pt in enumerate(pts):
+                cur_pt = int(bbox.find(pt).text) - 1
                 # scale height or width
-                bb_sz = bb_sz / width if i % 2 == 0 else bb_sz / height
-                bndbox.append(bb_sz)
-
-            label_ind = self.class_to_ind[name]
-            bndbox.append(label_ind)
+                cur_pt = cur_pt / width if i % 2 == 0 else cur_pt / height
+                bndbox.append(cur_pt)
+            label_idx = self.class_to_ind[name]
+            bndbox.append(label_idx)
             res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
             # img_id = target.find('filename').text[:-4]
 
@@ -151,37 +151,36 @@ class VOCDetection(data.Dataset):
             (default: 'VOC2007')
     """
 
-    def __init__(self, root, image_set, transform=None, target_transform=None,
-                 dataset_name='VOC2007'):
+    def __init__(self, root, image_sets, transform=None, target_transform=None,
+                 dataset_name='VOC0712'):
         self.root = root
-        self.image_set = image_set
+        self.image_set = image_sets
         self.transform = transform
         self.target_transform = target_transform
         self.name = dataset_name
-        self._annopath = os.path.join(
-            self.root, dataset_name, 'Annotations', '%s.xml')
-        self._imgpath = os.path.join(
-            self.root, dataset_name, 'JPEGImages', '%s.jpg')
-        self._imgsetpath = os.path.join(
-            self.root, dataset_name, 'ImageSets', 'Main', '%s.txt')
-
-        with open(self._imgsetpath % self.image_set) as f:
-            self.ids = f.readlines()
-        self.ids = [x.strip('\n') for x in self.ids]
+        self._annopath = os.path.join('%s', 'Annotations', '%s.xml')
+        self._imgpath = os.path.join('%s', 'JPEGImages', '%s.jpg')
+        self.ids = list()
+        for (year, name) in image_sets:
+            rootpath = os.path.join(self.root, 'VOC' + year)
+            for line in open(os.path.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
+                self.ids.append((rootpath, line.strip()))
 
     def __getitem__(self, index):
         img_id = self.ids[index]
-
         target = ET.parse(self._annopath % img_id).getroot()
-        img = Image.open(self._imgpath % img_id).convert('RGB')
-        width, height = img.size
+        img = cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
+        height, width, _ = img.shape
 
         if self.transform is not None:
-            img = self.transform(img)
-            img.squeeze_(0)
+            img = cv2.resize(np.array(img), (300, 300)).astype(np.float32)
+            img -= (104, 117, 123)
+            img = img.transpose(2, 0, 1)
+            img = torch.from_numpy(img).squeeze()
 
         if self.target_transform is not None:
             target = self.target_transform(target, width, height)
+            # target = self.target_transform(target, width, height)
 
         return img, target
 
@@ -201,11 +200,7 @@ class VOCDetection(data.Dataset):
         '''
         img_id = self.ids[index]
         return cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
-        # return Image.open(self._imgpath % img_id).convert('RGB')
 
-    # TODO:
-    # replaced w augmentation branch annotation transform for eval purposes
-    # this will break test.py so need to merge this.
     def pull_anno(self, index):
         '''Returns the original annotation of image at index
 
@@ -218,10 +213,14 @@ class VOCDetection(data.Dataset):
             list:  [img_id, [(label, bbox coords),...]]
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
+        gts = []
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
-        gt = self.target_transform(anno, 1, 1)
-        return img_id, gt  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
+        for obj in anno.iter('object'):
+            bbox = obj.find('bndbox')
+            label = obj.find('name').text.lower().strip()
+            gts.append([label, *(int(bb.text) - 1 for bb in bbox)])
+        return img_id, gts
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form

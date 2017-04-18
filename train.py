@@ -1,4 +1,6 @@
 from __future__ import print_function
+import sys
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,12 +10,9 @@ import torch.nn.init as init
 import argparse
 from torch.autograd import Variable
 import torch.utils.data as data
-import sys
-import os
-from data import VOCroot, v2, v1, AnnotationTransform, VOCDetection, detection_collate, base_transform
+from data import VOCroot, v2, v1, AnnotationTransform, VOCDetection, detection_collate, BaseTransform
 from modules import MultiBoxLoss
 from ssd import build_ssd
-from timeit import default_timer as timer
 import time
 
 
@@ -21,7 +20,7 @@ parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Trai
 parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
 parser.add_argument('--basenet', default='vgg16_reducedfc.pth', help='pretrained base model')
 parser.add_argument('--jaccard_threshold', default=0.5, type=float, help='Min Jaccard index for matching')
-parser.add_argument('--batch_size', default=32, type=int, help='Batch size for training')
+parser.add_argument('--batch_size', default=16, type=int, help='Batch size for training')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training epochs')
 parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
@@ -39,6 +38,8 @@ cfg = (v1, v2)[args.version == 'v2']
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
+train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
+# train_sets = 'train'
 ssd_dim = 300  # only support 300 now
 rgb_means = (104, 117, 123)  # only support voc now
 num_classes = 21
@@ -92,7 +93,8 @@ def train():
     conf_loss = 0
     epoch = 0
     print('Loading Dataset...')
-    dataset = VOCDetection(VOCroot, 'train', base_transform(
+
+    dataset = VOCDetection(VOCroot, train_sets, BaseTransform(
         ssd_dim, rgb_means), AnnotationTransform())
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
@@ -124,9 +126,9 @@ def train():
             # create batch iterator
             batch_iterator = iter(data.DataLoader(dataset, batch_size,
                                                   shuffle=True, collate_fn=detection_collate))
-            if iteration in stepvalues:
-                step_index += 1
-                adjust_learning_rate(optimizer, args.gamma, step_index)
+        if iteration in stepvalues:
+            step_index += 1
+            adjust_learning_rate(optimizer, args.gamma, step_index)
             if args.visdom:
                 viz.line(
                     X=torch.ones((1, 3)).cpu() * epoch,
@@ -142,6 +144,8 @@ def train():
 
         # load train data
         images, targets = next(batch_iterator)
+        # print(images)
+        # print(targets)
         if args.cuda:
             images = Variable(images.cuda())
             targets = [Variable(anno.cuda()) for anno in targets]
@@ -181,9 +185,9 @@ def train():
                     update=True
                 )
         if iteration % 5000 == 0:
-            torch.save(net.state_dict(), 'weights/ssd_iter_new' +
+            torch.save(net.state_dict(), 'weights/ssd300_0712_iter_' +
                        repr(iteration) + '.pth')
-    torch.save(net, args.save_folder + '' + args.version + '.pth')
+    torch.save(net.state_dict(), args.save_folder + '' + args.version + '.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, step):
