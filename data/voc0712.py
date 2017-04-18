@@ -160,33 +160,19 @@ class VOCDetection(data.Dataset):
         self.name = dataset_name
         self._annopath = os.path.join('%s', 'Annotations', '%s.xml')
         self._imgpath = os.path.join('%s', 'JPEGImages', '%s.jpg')
-        # self._imgsetpath = os.path.join(
-        #     self.root, '%s', 'ImageSets', 'Main', '%s.txt')
-
-        # ids now contains tuples of (year, ids)
         self.ids = list()
         for (year, name) in image_sets:
             rootpath = os.path.join(self.root, 'VOC' + year)
             for line in open(os.path.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
                 self.ids.append((rootpath, line.strip()))
 
-
     def __getitem__(self, index):
-        # index refers to a number in range(0, len(self.ids)) just as before
-        # img_id = self.ids[index][1]
         img_id = self.ids[index]
-        # img_set = self.ids[index][0]
-        # target = ET.parse(self._annopath % (img_set, img_id)).getroot()
         target = ET.parse(self._annopath % img_id).getroot()
         img = cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
         height, width, _ = img.shape
-        # img = Image.open(self._imgpath % img_id).convert('RGB')
-        # width, height = img.size
-
 
         if self.transform is not None:
-            # img = self.transform(img)
-            # img.squeeze_(0)
             img = cv2.resize(np.array(img), (300, 300)).astype(np.float32)
             img -= (104, 117, 123)
             img = img.transpose(2, 0, 1)
@@ -213,14 +199,7 @@ class VOCDetection(data.Dataset):
             PIL img
         '''
         img_id = self.ids[index]
-        # print(img_id)
-        # print(self._imgpath % img_id)
-        # img_id2 = self.ids[index][1]
-        # print(img_id2)
-        # img_set = self.ids[index][0]
-        # print(img_set)
-        # print(self._imgpath % (img_set, img_id))
-        return Image.open(self._imgpath % img_id).convert('RGB')
+        return cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
 
     def pull_anno(self, index):
         '''Returns the original annotation of image at index

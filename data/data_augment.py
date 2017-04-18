@@ -105,7 +105,7 @@ class BaseTransform(object):
         transform (transform) : callable transform to be applied to test/val
         data
     """
-    def __init__(self, resize, rgb_means, swap = (2, 0, 1)):
+    def __init__(self, resize, rgb_means, swap=(2, 0, 1)):
         self.means = rgb_means
         self.resize = resize
         self.swap = swap
