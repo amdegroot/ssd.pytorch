@@ -119,13 +119,18 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
 
 ## Performance *(In progress)*
 
-#### VOC2007 Test mAP
+#### VOC2007 Test
+
+##### mAP
 
 | Original | Test (weiliu89 weights) | Train (w/o data aug) and Test\* |
 |:-:|:-:|:-:|
 | 77.2 % | 77.26 % | 50.8%**\*** |
 
 **\* note:** constant learning rate of 1e-3, default training params. with proper adjustment, this should increase dramatically even w/o data aug
+
+##### FPS
+**GTX 1060:** ~45.45 FPS for detection on a single image
 
 ## Demos
 
