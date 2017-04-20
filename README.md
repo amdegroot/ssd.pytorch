@@ -9,6 +9,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - <a href='#datasets'>Datasets</a>
 - <a href='#training-ssd'>Train</a>
 - <a href='#evaluation'>Evaluate</a>
+- <a href='#performance'>Performance</a>
 - <a href='#demos'>Demos</a>
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
@@ -115,6 +116,16 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
 
 
 <img align="left" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_examples.png">
+
+## Performance *(In progress)*
+
+#### VOC2007 Test mAP
+
+| Original | Test (weiliu89 weights) | Train (w/o data aug) and Test\* |
+|:-:|:-:|:-:|
+| 77.2 % | 77.26 % | 50.8%**\*** |
+
+**\* note:** constant learning rate of 1e-3, default training params. with proper adjustment, this should increase dramatically even w/o data aug
 
 ## Demos
 
