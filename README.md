@@ -125,9 +125,9 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
 
 | Original | Test (weiliu89 weights) | Train (w/o data aug) and Test\* |
 |:-:|:-:|:-:|
-| 77.2 % | 77.26 % | 57.1%**\*** |
+| 77.2 % | 77.26 % | 58.12%**\*** |
 
-**\* note:** Obtained with a constant learning rate of 1e-4 @30k iterations. With proper adjustment, we believe this should increase substantially even w/o data aug.
+**\* note:** Obtained with a constant learning rate of 1e-4 @15k iterations. With proper adjustment, we believe this should increase substantially even w/o data aug.
 
 ##### FPS
 **GTX 1060:** ~45.45 FPS for detection on a single image
