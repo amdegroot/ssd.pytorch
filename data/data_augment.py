@@ -116,4 +116,4 @@ class BaseTransform(object):
                                          self.resize)).astype(np.float32)
         img -= self.means
         img = img.transpose(self.swap)
-        return torch.Tensor(img)
+        return torch.from_numpy(img)
