@@ -1,1 +1,1 @@
-import .live_demo
+from . import live
