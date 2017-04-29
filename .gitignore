@@ -114,6 +114,8 @@ ssd300_120000/
 utils/metrics/
 utils/augment.py
 utils/augmentations.py
+demos/live
+webdemo.py
 
 # attributes
 
