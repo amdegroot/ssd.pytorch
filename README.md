@@ -164,19 +164,19 @@ pip install jupyter
 jupyter notebook
 ```
 
-- Now navigate to `demos/demo.ipynb` at http://localhost:8888 (by default) and have at it!
+- Now navigate to `demo/demo.ipynb` at http://localhost:8888 (by default) and have at it!
 
 ### Try the webcam demo
 - Works on CPU (may have to tweak `cv2.waitkey` for optimal fps) or on an NVIDIA GPU
-- This demo requires opencv2+ w/ python and an onboard webcam
-  * You can change the default webcam in `demos/live.py`
-- Running `python -m demos.live` opens the webcam and begins detecting!
+- This demo currently requires opencv2+ w/ python bindings and an onboard webcam
+  * You can change the default webcam in `demo/live.py`
+- Running `python -m demo.live` opens the webcam and begins detecting!
 
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
 - In progress:
   * Complete data augmentation (progress in augmentation branch)
-  * Produce a purely PyTorch mAP matching the original Caffe result
+  * Produce a "from scratch" PyTorch mAP matching the original Caffe result
 - Still to come:
   * Train SSD300 with batch norm
   * Add support for SSD512 training and testing
