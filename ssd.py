@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-# from functions import Detect, PriorBox
-# from modules import L2Norm
 from layers import *
 from data import v2, v1
 import torchvision.transforms as transforms
