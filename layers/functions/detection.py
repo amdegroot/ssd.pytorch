@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.autograd import Function
 from torch.autograd import Variable
-from utils.box_utils import decode, nms
+from ..box_utils import decode, nms
 from data import v2 as cfg
 
 
