@@ -11,7 +11,7 @@ import argparse
 from torch.autograd import Variable
 import torch.utils.data as data
 from data import VOCroot, v2, v1, AnnotationTransform, VOCDetection, detection_collate, BaseTransform
-from modules import MultiBoxLoss
+from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 import time
 
