@@ -170,6 +170,8 @@ jupyter notebook
 - Works on CPU (may have to tweak `cv2.waitkey` for optimal fps) or on an NVIDIA GPU
 - This demo currently requires opencv2+ w/ python bindings and an onboard webcam
   * You can change the default webcam in `demo/live.py`
+- Install the [imutils](https://github.com/jrosebr1/imutils) package to leverage multi-threading on CPU:
+  * `pip install imutils`
 - Running `python -m demo.live` opens the webcam and begins detecting!
 
 ## TODO
