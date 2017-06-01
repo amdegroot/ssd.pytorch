@@ -11,47 +11,42 @@ from PIL import Image
 import torch
 from torchvision import transforms
 from layers.box_utils import jaccard
-import augmentations as aug
-
+from . import augmentations as aug
 
 class PhotometricDistort(object):
     def __init__(self):
         self.pd = [
-            aug.RandomContrast()
-
-            aug.ConvertColor(transform='HSV')
-            aug.RandomSaturation()
-            aug.RandomHue()
-            aug.ConvertColor(current='HSV', transform='BGR')
+            aug.RandomContrast(),
+            aug.ConvertColor(transform='HSV'),
+            aug.RandomSaturation(),
+            aug.RandomHue(),
+            aug.ConvertColor(current='HSV', transform='BGR'),
             aug.RandomContrast()
         ]
         self.rand_brightness = aug.RandomBrightness()
         self.rand_light_noise = aug.RandomLightingNoise()
+
     def __call__(self, image, boxes, labels):
         im = image.copy()
-        im = self.rand_brightness(im)
+        im, boxes, labels = self.rand_brightness(im, boxes, labels)
         if random.randrange(2):
             distort = aug.Compose(self.pd[:-1])
         else:
             distort = aug.Compose(self.pd[1:])
-        im = distort(im)
-        return self.rand_light_noise(im), boxes, labels
+        im, boxes, labels = distort(im, boxes, labels)
+        return self.rand_light_noise(im, boxes, labels)
 
 
 class SSDAugmentation(object):
-    def __init__(self, means=(104, 117, 123)):
+    def __init__(self, means=(104/256.0, 117/256.0, 123/256.0)):
         self.means = means
         self.augment = aug.Compose([
-            aug.RandomSampleCrop()
-            PhotometricDistort()
-            aug.Expand()
+            aug.RandomSampleCrop(),
+            PhotometricDistort(),
+            aug.Expand(self.means),
             aug.RandomMirror()
         ])
-    def __call__(self, img, anno):
-        anno = torch.LongTensor(anno):
-        boxes, labels = torch.split(anno, 4, 1)
-        if boxes.dim() == 1:
-            boxes.unsqueeze_(0)
+    def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)
 
 
