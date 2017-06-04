@@ -29,6 +29,7 @@ print(boxes)
 
 labels = target[:, 4]
 timg, tboxes, tlabels = t(img, boxes, labels)
+
 print(timg.shape)
 
 # Create figure and axes

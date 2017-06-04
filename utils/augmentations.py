@@ -212,8 +212,7 @@ class RandomSampleCrop(object):
         height, width, _ = image.shape
         while True:
             # randomly choose a mode
-            #mode = random.choice(self.sample_options)
-            mode = self.sample_options[1]
+            mode = random.choice(self.sample_options)
             if mode is None:
                 print ('MODE NONE - RETURNS SAME')
                 return image, boxes, labels
@@ -255,10 +254,10 @@ class RandomSampleCrop(object):
                 centers = (boxes[:, :2] + boxes[:, 2:]) / 2.0
 
                 # mask in all gt boxes that above and to the left of centers
-                m1 = (rect[0] < centers[0]) * (rect[1] < centers[1])
+                m1 = (rect[0] < centers[:, 0]) * (rect[1] < centers[:, 1])
 
                 # mask in all gt boxes that under and to the right of centers
-                m2 = (rect[2] > centers[0]) * (rect[3] > centers[1])
+                m2 = (rect[2] > centers[:, 0]) * (rect[3] > centers[:, 1])
 
                 # mask in that both m1 and m2 are true
                 mask = m1 * m2
@@ -268,17 +267,21 @@ class RandomSampleCrop(object):
                     continue
 
                 # take only matching gt boxes
-                boxes = boxes[mask, :].copy()
+                current_boxes = boxes[mask, :].copy()
 
                 # take only matching gt labels
-                classes = labels[mask]
+                current_labels = labels[mask]
 
-                boxes[:, :2] = np.maximum(boxes[:, :2], rect[:2])
-                boxes[:, :2] -= rect[:2]
-                boxes[:, 2:] = np.minimum(boxes[:, 2:], rect[2:])
-                boxes[:, 2:] -= rect[2:]
+                # should we use the box left and top corner or the crop's
+                current_boxes[:, :2] = np.maximum(current_boxes[:, :2], rect[:2])
+                # adjust to crop (by substracting crop's left,top)
+                current_boxes[:, :2] -= rect[:2]
+                # should we use the whole box width and height or does the crop cuts the box
+                current_boxes[:, 2:] = np.minimum(current_boxes[:, 2:], rect[2:])
+                # adjust to crop (by substracting crop's left,top)
+                current_boxes[:, 2:] -= rect[:2]
 
-                return current_image, boxes, classes
+                return current_image, current_boxes, current_labels
 
 
 class Expand(object):
