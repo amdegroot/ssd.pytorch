@@ -38,13 +38,18 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
-    def __init__(self, means=(104/256.0, 117/256.0, 123/256.0)):
+    def __init__(self, means=(104/256.0, 117/256.0, 123/256.0), std=(0, 0, 0)):
         self.means = means
+        self.std = std
         self.augment = aug.Compose([
+            aug.Normalize(self.means, self.std),
+            aug.ToAbsoluteCoords(),
             aug.RandomSampleCrop(),
             PhotometricDistort(),
             aug.Expand(self.means),
-            aug.RandomMirror()
+            aug.RandomMirror(),
+            aug.ToPercentCoords(),
+            aug.Resize()
         ])
     def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)

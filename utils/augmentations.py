@@ -85,6 +85,36 @@ class Normalize(object):
     def __call__(self, image, boxes=None, labels=None):
         return (image - self.mean) / self.std, boxes, labels
 
+class ToAbsoluteCoords(object):
+    def __call__(self, image, boxes=None, labels=None):
+        height, width, channels = boxes.shape
+        boxes[:, 0] *= width
+        boxes[:, 2] *= width
+        boxes[:, 1] *= height
+        boxes[:, 3] *= height
+
+        return image, boxes, labels
+
+class ToPercentCoords(object):
+    def __call__(self, image, boxes=None, labels=None):
+        height, width, channels = boxes.shape
+        boxes[:, 0] /= width
+        boxes[:, 2] /= width
+        boxes[:, 1] /= height
+        boxes[:, 3] /= height
+
+        return image, boxes, labels
+
+class Resize(object):
+    def __init__(self, size=300):
+        self.size = size
+
+    def __call__(self, image, boxes=None, labels=None):
+        image = cv2.resize(image, (self.size,
+                                 self.size))
+        return image, boxes, labels
+
+
 
 class RandomSaturation(object):
     def __init__(self, lower=0.5, upper=1.5):
