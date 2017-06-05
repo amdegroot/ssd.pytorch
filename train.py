@@ -8,7 +8,8 @@ import torch.nn.init as init
 import argparse
 from torch.autograd import Variable
 import torch.utils.data as data
-from data import VOCroot, v2, v1, AnnotationTransform, VOCDetection, detection_collate, BaseTransform
+from data import VOCroot, v2, v1, AnnotationTransform, VOCDetection, detection_collate
+from utils.augmentations import SSDAugmentation
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 import time
@@ -92,7 +93,7 @@ def train():
     epoch = 0
     print('Loading Dataset...')
 
-    dataset = VOCDetection(VOCroot, train_sets, BaseTransform(
+    dataset = VOCDetection(VOCroot, train_sets, SSDAugmentation(
         ssd_dim, rgb_means), AnnotationTransform())
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
