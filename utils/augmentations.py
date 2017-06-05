@@ -235,7 +235,6 @@ class RandomSampleCrop(object):
             # randomly choose a mode
             mode = random.choice(self.sample_options)
             if mode is None:
-                print ('MODE NONE - RETURNS SAME')
                 return image, boxes, labels
 
             min_iou, max_iou = mode
@@ -260,7 +259,7 @@ class RandomSampleCrop(object):
 
                 # convert to integer rect x1,y1,x2,y2
                 rect = np.array([int(left), int(top), int(left + w), int(top + h)])
-                print(rect)
+
                 # calculate IoU (jaccard overlap) between the crop box and gt boxes
                 overlap = jaccard_numpy(boxes, rect)
 

@@ -174,7 +174,6 @@ class VOCDetection(data.Dataset):
         Return:
             tensorized version of img, squeezed
         '''
-        to_tensor = transforms.ToTensor()
         return torch.Tensor(self.pull_image(index)).unsqueeze_(0)
 
 
@@ -192,11 +191,7 @@ def detection_collate(batch):
     """
     targets = []
     imgs = []
-    for _, sample in enumerate(batch):
-        for _, tup in enumerate(sample):
-            if torch.is_tensor(tup):
-                imgs.append(tup)
-            elif isinstance(tup, type([])):
-                annos = [torch.Tensor(a) for a in tup]
-                targets.append(torch.stack(annos, 0))
-    return (torch.stack(imgs, 0), targets)
+    for sample in batch:
+        imgs.append(sample[0])
+        targets.append(torch.FloatTensor(sample[1]))
+    return torch.stack(imgs, 0), targets

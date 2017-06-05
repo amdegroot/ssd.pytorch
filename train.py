@@ -8,12 +8,11 @@ import torch.nn.init as init
 import argparse
 from torch.autograd import Variable
 import torch.utils.data as data
-from data import VOCroot, v2, v1, AnnotationTransform, VOCDetection, detection_collate
+from data import v2, v1, AnnotationTransform, VOCDetection, detection_collate
 from utils.augmentations import SSDAugmentation
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 import time
-
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
 parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
@@ -96,8 +95,7 @@ def train():
 
     dataset = VOCDetection(args.voc_root, train_sets, SSDAugmentation(
         ssd_dim, rgb_means), AnnotationTransform())
-    #print(dataset[0])
-    #exit(1)
+
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
     step_index = 0
