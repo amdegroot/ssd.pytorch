@@ -127,8 +127,7 @@ class VOCDetection(data.Dataset):
             target = np.array(target)
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
             target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
-
-        return torch.from_numpy(img).permute(2, 0, 1), torch.from_numpy(target)
+        return torch.from_numpy(img).permute(2, 0, 1), target
 
     def __len__(self):
         return len(self.ids)
@@ -200,6 +199,4 @@ def detection_collate(batch):
             elif isinstance(tup, type([])):
                 annos = [torch.Tensor(a) for a in tup]
                 targets.append(torch.stack(annos, 0))
-    #print(torch.stack(imgs, 0))
-    #return (torch.stack(imgs, 0), targets)
-    return (imgs[0], targets)
+    return (torch.stack(imgs, 0), targets)
