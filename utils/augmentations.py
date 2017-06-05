@@ -4,12 +4,6 @@ import cv2
 import numpy as np
 import types
 from numpy import random
-from layers.box_utils import jaccard
-
-def ensure_bounds_bgr(image):
-    image[image > 1.0] = 1.0
-    image[image < 0.0] = 0.0
-    return image
 
 def intersect(box_a, box_b):
     max_xy = np.minimum(box_a[:, 2:], box_b[2:])
@@ -20,15 +14,14 @@ def intersect(box_a, box_b):
 
 def jaccard_numpy(box_a, box_b):
     """Compute the jaccard overlap of two sets of boxes.  The jaccard overlap
-    is simply the intersection over union of two boxes.  Here we operate on
-    ground truth boxes and default boxes.
+    is simply the intersection over union of two boxes.
     E.g.:
         A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
     Args:
-        box_a: (tensor) Ground truth bounding boxes, Shape: [num_objects,4]
-        box_b: (tensor) Prior boxes from priorbox layers, Shape: [num_priors,4]
+        box_a: Multiple bounding boxes, Shape: [num_boxes,4]
+        box_b: Single bounding box, Shape: [4]
     Return:
-        jaccard overlap: (tensor) Shape: [box_a.size(0), box_b.size(0)]
+        jaccard overlap: Shape: [box_a.shape[0], box_a.shape[1]]
     """
     inter = intersect(box_a, box_b)
     area_a = ((box_a[:, 2]-box_a[:, 0]) *
@@ -68,11 +61,7 @@ class Lambda(object):
     def __call__(self, img, boxes=None, labels=None):
         return self.lambd(img, boxes, labels)
 
-class EnsureBoundsBGR(object):
-    def __call__(self, image, boxes=None, labels=None):
-        return ensure_bounds_bgr(image), boxes, labels
-
-class Normalize(object):
+class NormalizeFromInts(object):
     """Given mean: (R, G, B) and std: (R, G, B),
     will normalize each channel of the np.ndarray, i.e.
     channel = (channel - mean) / std
@@ -83,11 +72,15 @@ class Normalize(object):
         self.std = std
 
     def __call__(self, image, boxes=None, labels=None):
-        return (image - self.mean) / self.std, boxes, labels
+        image = image.astype(np.float32)
+        image -= image.min()
+        image /= image.max()
+        image = (image - self.mean) / self.std
+        return image.astype(np.float32), boxes, labels
 
 class ToAbsoluteCoords(object):
     def __call__(self, image, boxes=None, labels=None):
-        height, width, channels = boxes.shape
+        height, width, channels = image.shape
         boxes[:, 0] *= width
         boxes[:, 2] *= width
         boxes[:, 1] *= height
@@ -97,7 +90,7 @@ class ToAbsoluteCoords(object):
 
 class ToPercentCoords(object):
     def __call__(self, image, boxes=None, labels=None):
-        height, width, channels = boxes.shape
+        height, width, channels = image.shape
         boxes[:, 0] /= width
         boxes[:, 2] /= width
         boxes[:, 1] /= height
@@ -184,7 +177,6 @@ class RandomContrast(object):
         if random.randint(2):
             alpha = random.uniform(self.lower, self.upper)
             image *= alpha
-            image = ensure_bounds_bgr(image)
         return image, boxes, labels
 
 
@@ -198,7 +190,6 @@ class RandomBrightness(object):
         if random.randint(2):
             delta = random.uniform(-self.delta, self.delta)
             image += delta
-            image = ensure_bounds_bgr(image)
         return image, boxes, labels
 
 
@@ -374,3 +365,46 @@ class SwapChannels(object):
         #     image = np.array(image)
         image = image[:, :, self.swaps]
         return image
+
+
+class PhotometricDistort(object):
+    def __init__(self):
+        self.pd = [
+            RandomContrast(),
+            ConvertColor(transform='HSV'),
+            RandomSaturation(),
+            RandomHue(),
+            ConvertColor(current='HSV', transform='BGR'),
+            RandomContrast()
+        ]
+        self.rand_brightness = RandomBrightness()
+        self.rand_light_noise = RandomLightingNoise()
+
+    def __call__(self, image, boxes, labels):
+        im = image.copy()
+        im, boxes, labels = self.rand_brightness(im, boxes, labels)
+        if random.randint(2):
+            distort = Compose(self.pd[:-1])
+        else:
+            distort = Compose(self.pd[1:])
+        im, boxes, labels = distort(im, boxes, labels)
+        return self.rand_light_noise(im, boxes, labels)
+
+
+class SSDAugmentation(object):
+    def __init__(self, means=(104/256.0, 117/256.0, 123/256.0), std=(1, 1, 1)):
+        self.means = means
+        self.std = std
+        self.augment = Compose([
+            NormalizeFromInts(self.means, self.std),
+            ToAbsoluteCoords(),
+            RandomSampleCrop(),
+            PhotometricDistort(),
+            Expand(self.means),
+            RandomMirror(),
+            ToPercentCoords(),
+            Resize()
+        ])
+    def __call__(self, img, boxes, labels):
+        return self.augment(img, boxes, labels)
+

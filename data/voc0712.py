@@ -178,11 +178,10 @@ class VOCDetection(data.Dataset):
 
         if self.transform is not None:
             target = np.array(target)
-            img = img.astype(np.float32)/256.0
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
-            target = np.hstack((boxes, labels)).astype(np.int)
+            target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
 
-        return torch.from_numpy(img), torch.from_numpy(target)
+        return torch.from_numpy(img).permute(2, 0, 1), torch.from_numpy(target)
 
     def __len__(self):
         return len(self.ids)

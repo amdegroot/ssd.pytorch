@@ -1,11 +1,9 @@
 from __future__ import print_function
-import sys
 import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
 import torch.nn.init as init
 import argparse
 from torch.autograd import Variable
@@ -144,8 +142,7 @@ def train():
 
         # load train data
         images, targets = next(batch_iterator)
-        # print(images)
-        # print(targets)
+
         if args.cuda:
             images = Variable(images.cuda())
             targets = [Variable(anno.cuda()) for anno in targets]
