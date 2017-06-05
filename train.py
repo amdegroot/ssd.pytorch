@@ -30,6 +30,7 @@ parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for S
 parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
 parser.add_argument('--visdom', default=False, type=bool, help='Use visdom to for loss visualization')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
+parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
 args = parser.parse_args()
 
 cfg = (v1, v2)[args.version == 'v2']
@@ -93,8 +94,10 @@ def train():
     epoch = 0
     print('Loading Dataset...')
 
-    dataset = VOCDetection(VOCroot, train_sets, SSDAugmentation(
+    dataset = VOCDetection(args.voc_root, train_sets, SSDAugmentation(
         ssd_dim, rgb_means), AnnotationTransform())
+    #print(dataset[0])
+    #exit(1)
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
     step_index = 0
