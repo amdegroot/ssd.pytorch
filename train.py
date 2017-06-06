@@ -12,6 +12,7 @@ from data import v2, v1, AnnotationTransform, VOCDetection, detection_collate
 from utils.augmentations import SSDAugmentation
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
+import numpy as np
 import time
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
@@ -166,6 +167,7 @@ def train():
         if iteration % 10 == 0:
             print('Timer: %.4f sec.' % (t1 - t0))
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+            viz.image(images[np.random.randit(images.size(0))])
         if args.visdom:
             viz.line(
                 X=torch.ones((1, 3)).cpu() * iteration,
