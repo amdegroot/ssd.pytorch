@@ -396,7 +396,8 @@ class SSDAugmentation(object):
         self.std = std
         self.size = size
         self.augment = Compose([
-            NormalizeFromInts(self.means, self.std),
+            # means are RGB, but the image is BGR, reorder means
+            NormalizeFromInts((self.means[2], self.means[1], self.means[0]), self.std),
             ToAbsoluteCoords(),
             RandomSampleCrop(),
             PhotometricDistort(),
