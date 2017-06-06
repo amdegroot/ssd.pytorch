@@ -40,7 +40,7 @@ if not os.path.exists(args.save_folder):
 train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
 # train_sets = 'train'
 ssd_dim = 300  # only support 300 now
-rgb_means = (104, 117, 123)  # only support voc now
+rgb_means = (104/256.0, 117/256.0, 123/256.0)  # only support voc now
 num_classes = 21
 batch_size = args.batch_size
 accum_batch_size = 32
