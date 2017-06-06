@@ -212,8 +212,7 @@ def train():
                     win=epoch_lot,
                     update=True
                 )
-        #if iteration % 5000 == 0:
-        if True:
+        if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
             torch.save(ssd_net.cpu().state_dict(), 'weights/ssd300_0712_iter_' +
                        repr(iteration) + '.pth')
