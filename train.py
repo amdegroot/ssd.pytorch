@@ -212,9 +212,9 @@ def train():
                 )
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.cpu().state_dict(), 'weights/ssd300_0712_iter_' +
+            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_iter_' +
                        repr(iteration) + '.pth')
-    torch.save(ssd_net.cpu().state_dict(), args.save_folder + '' + args.version + '.pth')
+    torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, step):
