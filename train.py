@@ -14,7 +14,6 @@ from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 import numpy as np
 import time
-from utils import GPU
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -41,7 +40,6 @@ args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    GPU = True
 else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
@@ -72,7 +70,7 @@ if args.visdom:
 ssd_net = build_ssd('train', 300, 21)
 net = ssd_net
 
-if GPU:
+if args.cuda:
     net = torch.nn.DataParallel(ssd_net)
 
 if args.resume:
@@ -83,7 +81,7 @@ else:
     print('Loading base network...')
     ssd_net.vgg.load_state_dict(vgg_weights)
 
-if GPU:
+if args.cuda:
     net.cuda()
     cudnn.benchmark = True
 
@@ -106,7 +104,7 @@ if not args.resume:
 
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=args.momentum, weight_decay=args.weight_decay)
-criterion = MultiBoxLoss(num_classes, 0.5, True, 0, True, 3, 0.5, False, GPU)
+criterion = MultiBoxLoss(num_classes, 0.5, True, 0, True, 3, 0.5, False, args.cuda)
 
 
 def train():
@@ -170,7 +168,7 @@ def train():
         # load train data
         images, targets = next(batch_iterator)
 
-        if GPU:
+        if args.cuda:
             images = Variable(images.cuda())
             targets = [Variable(anno.cuda()) for anno in targets]
         else:
