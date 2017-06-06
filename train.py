@@ -14,6 +14,10 @@ from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 import numpy as np
 import time
+from utils import GPU
+
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
 parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
@@ -22,7 +26,7 @@ parser.add_argument('--jaccard_threshold', default=0.5, type=float, help='Min Ja
 parser.add_argument('--batch_size', default=16, type=int, help='Batch size for training')
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training epochs')
-parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
+parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda to train model')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
@@ -33,7 +37,14 @@ parser.add_argument('--save_folder', default='weights/', help='Location to save 
 parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
 args = parser.parse_args()
 
+if args.cuda and torch.cuda.is_available():
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    GPU = True
+else:
+    torch.set_default_tensor_type('torch.FloatTensor')
+
 cfg = (v1, v2)[args.version == 'v2']
+
 
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
@@ -61,7 +72,7 @@ vgg_weights = torch.load(args.save_folder + args.basenet)
 print('Loading base network...')
 net.vgg.load_state_dict(vgg_weights)
 
-if args.cuda:
+if GPU:
     net.cuda()
     cudnn.benchmark = True
 
@@ -146,7 +157,7 @@ def train():
         # load train data
         images, targets = next(batch_iterator)
 
-        if args.cuda:
+        if GPU:
             images = Variable(images.cuda())
             targets = [Variable(anno.cuda()) for anno in targets]
         else:
@@ -169,7 +180,8 @@ def train():
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
             random_batch_index = np.random.randint(images.size(0))
             print('Image size:', random_batch_index, images[random_batch_index].size())
-            viz.image(images.data[random_batch_index].cpu().numpy())
+            if args.visdom:
+                viz.image(images.data[random_batch_index].cpu().numpy())
         if args.visdom:
             viz.line(
                 X=torch.ones((1, 3)).cpu() * iteration,

@@ -1,12 +1,6 @@
 import torch
-import torch.nn as nn
-import torch.backends.cudnn as cudnn
-from data import v2, v1
 from math import sqrt as sqrt
 from itertools import product as product
-if torch.cuda.is_available():
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
 
 class PriorBox(object):
     """Compute priorbox coordinates in center-offset form for each source

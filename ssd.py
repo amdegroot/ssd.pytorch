@@ -3,10 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from layers import *
-from data import v2, v1
-import torchvision.transforms as transforms
-import torchvision.models as models
-import torch.backends.cudnn as cudnn
+from data import v2
 import os
 
 

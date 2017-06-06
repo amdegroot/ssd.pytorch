@@ -4,11 +4,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from data import v2 as cfg
 from ..box_utils import match, log_sum_exp
-GPU = False
-if torch.cuda.is_available():
-    GPU = True
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
+from utils import GPU
 
 class MultiBoxLoss(nn.Module):
     """SSD Weighted Loss Function
@@ -58,7 +54,6 @@ class MultiBoxLoss(nn.Module):
             ground_truth (tensor): Ground truth boxes and labels for a batch,
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
-
         loc_data, conf_data, priors = predictions
         num = loc_data.size(0)
         num_priors = (priors.size(0))
