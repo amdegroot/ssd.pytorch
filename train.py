@@ -81,7 +81,7 @@ if args.resume:
 else:
     vgg_weights = torch.load(args.save_folder + args.basenet)
     print('Loading base network...')
-    net.vgg.load_state_dict(vgg_weights)
+    ssd_net.vgg.load_state_dict(vgg_weights)
 
 if GPU:
     net.cuda()
@@ -100,9 +100,9 @@ def weights_init(m):
 if not args.resume:
     print('Initializing weights...')
     # initialize newly added layers' weights with xavier method
-    net.extras.apply(weights_init)
-    net.loc.apply(weights_init)
-    net.conf.apply(weights_init)
+    ssd_net.extras.apply(weights_init)
+    ssd_net.loc.apply(weights_init)
+    ssd_net.conf.apply(weights_init)
 
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=args.momentum, weight_decay=args.weight_decay)
