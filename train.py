@@ -167,7 +167,9 @@ def train():
         if iteration % 10 == 0:
             print('Timer: %.4f sec.' % (t1 - t0))
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
-            viz.image(images[np.random.randint(images.size(0))])
+            random_batch_index = np.random.randint(images.size(0))
+            print('Image size:', random_batch_index, images[random_batch_index].size())
+            viz.image(images.data[random_batch_index].cpu().numpy())
         if args.visdom:
             viz.line(
                 X=torch.ones((1, 3)).cpu() * iteration,
