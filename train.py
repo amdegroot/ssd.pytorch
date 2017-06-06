@@ -106,7 +106,7 @@ if not args.resume:
 
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=args.momentum, weight_decay=args.weight_decay)
-criterion = MultiBoxLoss(num_classes, 0.5, True, 0, True, 3, 0.5, False)
+criterion = MultiBoxLoss(num_classes, 0.5, True, 0, True, 3, 0.5, False, GPU)
 
 
 def train():
