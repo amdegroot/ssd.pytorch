@@ -14,7 +14,7 @@ from data import VOCroot
 from data import VOC_CLASSES as labelmap
 import torch.utils.data as data
 
-from data import AnnotationTransform, VOCDetection, base_transform
+from data import AnnotationTransform, VOCDetection, BaseTransform
 from ssd import build_ssd
 
 import sys
@@ -30,6 +30,9 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
+
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
 parser.add_argument('--trained_model', default='weights/ssd_trainval60000.pth',
                     type=str, help='Trained state_dict file path to open')
@@ -39,7 +42,7 @@ parser.add_argument('--confidence_threshold', default=0.01, type=float,
                     help='Detection confidence threshold')
 parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
-parser.add_argument('--cuda', default=True, type=bool,
+parser.add_argument('--cuda', default=True, type=str2bool,
                     help='Use cuda to train model')
 parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
 
@@ -47,6 +50,11 @@ args = parser.parse_args()
 
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
+
+if args.cuda and torch.cuda.is_available():
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+else:
+    torch.set_default_tensor_type('torch.FloatTensor')
 
 annopath = os.path.join(args.voc_root, 'VOC2007', 'Annotations', '%s.xml')
 imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
@@ -418,5 +426,5 @@ if __name__ == '__main__':
         cudnn.benchmark = True
     # evaluation
     test_net(args.save_folder, net, args.cuda, dataset,
-             base_transform(net.size, dataset_mean), args.top_k, 300,
+             BaseTransform(net.size, dataset_mean), args.top_k, 300,
              thresh=args.confidence_threshold)
