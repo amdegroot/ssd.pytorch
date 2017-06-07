@@ -14,7 +14,7 @@ from data import VOCroot
 from data import VOC_CLASSES as labelmap
 import torch.utils.data as data
 
-from data import AnnotationTransform, VOCDetection, BaseTransform
+from data import AnnotationTransform, VOCDetection, base_transform
 from ssd import build_ssd
 
 import sys
@@ -416,5 +416,5 @@ if __name__ == '__main__':
         cudnn.benchmark = True
     # evaluation
     test_net(args.save_folder, net, args.cuda, dataset,
-             BaseTransform(net.size, (104, 117, 123)), args.top_k, 300,
+             base_transform(net.size, (104/256.0, 117/256.0, 123/256.0)), args.top_k, 300,
              thresh=args.confidence_threshold)
