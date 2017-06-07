@@ -370,14 +370,9 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
     det_file = os.path.join(output_dir, 'detections.pkl')
 
     for i in range(num_images):
-        im = dataset.pull_image(i)
-        scale = torch.Tensor([im.shape[1], im.shape[0], im.shape[1], im.shape[0]])
-        # im_id, anno = dataset.pull_anno(i)
-        # anno = torch.Tensor(anno).long()
-        x = cv2.resize(np.array(im), (im_size, im_size)).astype(np.float32)
-        x -= dataset_mean
-        x = x.transpose(2, 0, 1)
-        x = Variable(torch.from_numpy(x).unsqueeze(0))
+        im, gt, h, w = dataset.pull_item(i)
+
+        x = Variable(im.unsqueeze(0))
         if args.cuda:
             x = x.cuda()
         _t['im_detect'].tic()
@@ -392,8 +387,11 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
             if dets.dim() == 0:
                 continue
             boxes = dets[:, 1:]
+            boxes[:, 0] *= w
+            boxes[:, 2] *= w
+            boxes[:, 1] *= h
+            boxes[:, 3] *= h
             scores = dets[:, 0].cpu().numpy()
-            boxes *= scale.unsqueeze(0).expand_as(boxes)
             cls_dets = np.hstack((boxes.cpu().numpy(), scores[:, np.newaxis])) \
                 .astype(np.float32, copy=False)
             all_boxes[j][i] = cls_dets
@@ -420,7 +418,7 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    dataset = VOCDetection(args.voc_root, [('2007', set_type)], None, AnnotationTransform())
+    dataset = VOCDetection(args.voc_root, [('2007', set_type)], BaseTransform(300, dataset_mean), AnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True

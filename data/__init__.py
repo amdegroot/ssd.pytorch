@@ -10,8 +10,6 @@ def base_transform(image, size, means):
     x /= x.max()
     x -= (means[2], means[1], means[0])
     x = x.astype(np.float32)
-    x = x[:, :, ::-1].copy()
-    x = torch.from_numpy(x).permute(2, 0, 1)
     return x
 
 
@@ -20,5 +18,5 @@ class BaseTransform:
         self.size = size
         self.means = means
 
-    def __call__(self, image):
-        return base_transform(image, self.size, self.means)
+    def __call__(self, image, boxes=None, labels=None):
+        return base_transform(image, self.size, self.means), boxes, labels

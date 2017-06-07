@@ -114,6 +114,14 @@ class VOCDetection(data.Dataset):
                 self.ids.append((rootpath, line.strip()))
 
     def __getitem__(self, index):
+        im, gt, h, w = self.pull_item(index)
+
+        return im, gt
+
+    def __len__(self):
+        return len(self.ids)
+
+    def pull_item(self, index):
         img_id = self.ids[index]
 
         target = ET.parse(self._annopath % img_id).getroot()
@@ -129,10 +137,7 @@ class VOCDetection(data.Dataset):
             # to rgb
             img = img[:, :, (2, 1, 0)]
             target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
-        return torch.from_numpy(img).permute(2, 0, 1), target
-
-    def __len__(self):
-        return len(self.ids)
+        return torch.from_numpy(img).permute(2, 0, 1), target, height, width
 
     def pull_image(self, index):
         '''Returns the original image object at index in PIL form
