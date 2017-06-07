@@ -41,17 +41,19 @@ parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
 parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to train model')
+parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
+
 args = parser.parse_args()
 
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
-annopath = os.path.join(VOCroot, 'VOC2007', 'Annotations', '%s.xml')
-imgpath = os.path.join(VOCroot, 'VOC2007', 'JPEGImages', '%s.jpg')
-imgsetpath = os.path.join(VOCroot, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
+annopath = os.path.join(args.voc_root, 'VOC2007', 'Annotations', '%s.xml')
+imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
+imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
 YEAR = '2007'
 devkit_path = VOCroot + 'VOC' + YEAR
-dataset_mean = (104, 117, 123)
+dataset_mean = (104/256.0, 117/256.0, 123/256.0)
 set_type = 'test'
 
 class Timer(object):
@@ -410,11 +412,11 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    dataset = VOCDetection(VOCroot, set_type, None, AnnotationTransform())
+    dataset = VOCDetection(args.voc_root, [('2007', set_type)], None, AnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
     test_net(args.save_folder, net, args.cuda, dataset,
-             base_transform(net.size, (104/256.0, 117/256.0, 123/256.0)), args.top_k, 300,
+             base_transform(net.size, dataset_mean), args.top_k, 300,
              thresh=args.confidence_threshold)
