@@ -148,7 +148,7 @@ def train():
     for iteration in range(args.start_iter, max_iter):
         if (not batch_iterator) or (iteration % epoch_size == 0):
             # create batch iterator
-            batch_iterator = iter(data.DataLoader(dataset, batch_size,
+            batch_iterator = iter(data.DataLoader(dataset, batch_size, num_workers=args.num_workers,
                                                   shuffle=True, collate_fn=detection_collate))
         if iteration in stepvalues:
             step_index += 1
