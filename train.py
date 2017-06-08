@@ -34,6 +34,7 @@ parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight dec
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
 parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
 parser.add_argument('--visdom', default=False, type=bool, help='Use visdom to for loss visualization')
+parser.add_argument('--send_images_to_visdom', type=bool, default=False, help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
 args = parser.parse_args()
@@ -189,9 +190,8 @@ def train():
         if iteration % 10 == 0:
             print('Timer: %.4f sec.' % (t1 - t0))
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
-            random_batch_index = np.random.randint(images.size(0))
-            print('Image size:', random_batch_index, images[random_batch_index].size())
-            if args.visdom:
+            if args.visdom and args.send_images_to_visdom:
+                random_batch_index = np.random.randint(images.size(0))
                 viz.image(images.data[random_batch_index].cpu().numpy())
         if args.visdom:
             viz.line(
