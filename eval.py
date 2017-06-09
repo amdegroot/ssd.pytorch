@@ -30,6 +30,9 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
+
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
 parser.add_argument('--trained_model', default='weights/ssd_trainval60000.pth',
                     type=str, help='Trained state_dict file path to open')
@@ -39,19 +42,26 @@ parser.add_argument('--confidence_threshold', default=0.01, type=float,
                     help='Detection confidence threshold')
 parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
-parser.add_argument('--cuda', default=True, type=bool,
+parser.add_argument('--cuda', default=True, type=str2bool,
                     help='Use cuda to train model')
+parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
+
 args = parser.parse_args()
 
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
-annopath = os.path.join(VOCroot, 'VOC2007', 'Annotations', '%s.xml')
-imgpath = os.path.join(VOCroot, 'VOC2007', 'JPEGImages', '%s.jpg')
-imgsetpath = os.path.join(VOCroot, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
+if args.cuda and torch.cuda.is_available():
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+else:
+    torch.set_default_tensor_type('torch.FloatTensor')
+
+annopath = os.path.join(args.voc_root, 'VOC2007', 'Annotations', '%s.xml')
+imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
+imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
 YEAR = '2007'
 devkit_path = VOCroot + 'VOC' + YEAR
-dataset_mean = (104, 117, 123)
+dataset_mean = (104/256.0, 117/256.0, 123/256.0)
 set_type = 'test'
 
 class Timer(object):
@@ -133,7 +143,7 @@ def write_voc_results_file(all_boxes, dataset):
                 # the VOCdevkit expects 1-based indices
                 for k in range(dets.shape[0]):
                     f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                            format(index, dets[k, -1],
+                            format(index[1], dets[k, -1],
                                    dets[k, 0] + 1, dets[k, 1] + 1,
                                    dets[k, 2] + 1, dets[k, 3] + 1))
 
@@ -360,14 +370,9 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
     det_file = os.path.join(output_dir, 'detections.pkl')
 
     for i in range(num_images):
-        im = dataset.pull_image(i)
-        scale = torch.Tensor([im.shape[1], im.shape[0], im.shape[1], im.shape[0]])
-        # im_id, anno = dataset.pull_anno(i)
-        # anno = torch.Tensor(anno).long()
-        x = cv2.resize(np.array(im), (im_size, im_size)).astype(np.float32)
-        x -= dataset_mean
-        x = x.transpose(2, 0, 1)
-        x = Variable(torch.from_numpy(x).unsqueeze(0))
+        im, gt, h, w = dataset.pull_item(i)
+
+        x = Variable(im.unsqueeze(0))
         if args.cuda:
             x = x.cuda()
         _t['im_detect'].tic()
@@ -382,8 +387,11 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
             if dets.dim() == 0:
                 continue
             boxes = dets[:, 1:]
+            boxes[:, 0] *= w
+            boxes[:, 2] *= w
+            boxes[:, 1] *= h
+            boxes[:, 3] *= h
             scores = dets[:, 0].cpu().numpy()
-            boxes *= scale.unsqueeze(0).expand_as(boxes)
             cls_dets = np.hstack((boxes.cpu().numpy(), scores[:, np.newaxis])) \
                 .astype(np.float32, copy=False)
             all_boxes[j][i] = cls_dets
@@ -410,11 +418,11 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    dataset = VOCDetection(VOCroot, set_type, None, AnnotationTransform())
+    dataset = VOCDetection(args.voc_root, [('2007', set_type)], BaseTransform(300, dataset_mean), AnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
     test_net(args.save_folder, net, args.cuda, dataset,
-             BaseTransform(net.size, (104, 117, 123)), args.top_k, 300,
+             BaseTransform(net.size, dataset_mean), args.top_k, 300,
              thresh=args.confidence_threshold)
