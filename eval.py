@@ -61,7 +61,7 @@ imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
 imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
 YEAR = '2007'
 devkit_path = VOCroot + 'VOC' + YEAR
-dataset_mean = (104/256.0, 117/256.0, 123/256.0)
+dataset_mean = (104, 117, 123)
 set_type = 'test'
 
 class Timer(object):
@@ -179,7 +179,7 @@ def do_python_eval(output_dir='output', use_07=True):
     print('--------------------------------------------------------------')
 
 
-def voc_ap(rec, prec, use_07_metric=True):
+def voc_ap(rec, prec, use_07_metric=False):
     """ ap = voc_ap(rec, prec, [use_07_metric])
     Compute VOC AP given precision and recall.
     If use_07_metric is true, uses the

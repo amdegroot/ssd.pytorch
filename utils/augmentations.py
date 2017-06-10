@@ -62,20 +62,21 @@ class Lambda(object):
         return self.lambd(img, boxes, labels)
 
 class NormalizeFromInts(object):
-    """Given mean: (R, G, B) and std: (R, G, B),
-    will normalize each channel of the np.ndarray, i.e.
-    channel = (channel - mean) / std
-    """
 
     def __init__(self, mean, std):
-        self.mean = mean
+        self.mean = np.array(mean, dtype=np.float32)
         self.std = std
 
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
-        image -= image.min()
-        image /= image.max()
-        image = (image - self.mean) / self.std
+        min_val = image.min()
+        image -= min_val
+        max_val = image.max()
+        image /= max_val
+        mean = self.mean.copy()
+        mean -= min_val
+        mean /= max_val
+        image -= mean
         return image.astype(np.float32), boxes, labels
 
 class ToAbsoluteCoords(object):
@@ -391,7 +392,7 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
-    def __init__(self, size=300, means=(104/256.0, 117/256.0, 123/256.0), std=(1, 1, 1)):
+    def __init__(self, size=300, means=(104, 117, 123), std=(1, 1, 1)):
         self.means = means
         self.std = std
         self.size = size
