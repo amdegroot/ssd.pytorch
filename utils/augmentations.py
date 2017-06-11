@@ -69,14 +69,7 @@ class NormalizeFromInts(object):
 
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
-        min_val = image.min()
-        image -= min_val
-        max_val = image.max()
-        image /= max_val
-        mean = self.mean.copy()
-        mean -= min_val
-        mean /= max_val
-        image -= mean
+        image -= self.mean
         return image.astype(np.float32), boxes, labels
 
 class ToAbsoluteCoords(object):
@@ -182,9 +175,9 @@ class RandomContrast(object):
 
 
 class RandomBrightness(object):
-    def __init__(self, delta=0.125):
+    def __init__(self, delta=32):
         assert delta >= 0.0
-        assert delta <= 1.0
+        assert delta <= 255.0
         self.delta = delta
 
     def __call__(self, image, boxes=None, labels=None):
@@ -401,7 +394,7 @@ class SSDAugmentation(object):
             NormalizeFromInts((self.means[2], self.means[1], self.means[0]), self.std),
             ToAbsoluteCoords(),
             PhotometricDistort(),
-            Expand(self.means),
+            Expand((self.means[2], self.means[1], self.means[0])),
             RandomSampleCrop(),
             RandomMirror(),
             ToPercentCoords(),
