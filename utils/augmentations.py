@@ -400,9 +400,9 @@ class SSDAugmentation(object):
             # means are RGB, but the image is BGR, reorder means
             NormalizeFromInts((self.means[2], self.means[1], self.means[0]), self.std),
             ToAbsoluteCoords(),
-            RandomSampleCrop(),
             PhotometricDistort(),
             Expand(self.means),
+            RandomSampleCrop(),
             RandomMirror(),
             ToPercentCoords(),
             Resize(self.size)
