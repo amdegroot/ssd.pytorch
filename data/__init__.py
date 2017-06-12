@@ -13,7 +13,7 @@ def base_transform(image, size, mean):
 class BaseTransform:
     def __init__(self, size, mean):
         self.size = size
-        self.mean = np.array((mean[2], mean[1], mean[0]), dtype=np.float32)
+        self.mean = np.array(mean, dtype=np.float32)
 
     def __call__(self, image, boxes=None, labels=None):
         return base_transform(image, self.size, self.mean), boxes, labels
