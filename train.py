@@ -194,7 +194,6 @@ def train():
             if args.visdom and args.send_images_to_visdom:
                 random_batch_index = np.random.randint(images.size(0))
                 viz.image(images.data[random_batch_index].cpu().numpy())
-                (viz.image(images.data[random_batch_index].cpu().numpy().transpose(1, 2, 0) + means).transpose(2, 0, 1))
         if args.visdom:
             viz.line(
                 X=torch.ones((1, 3)).cpu() * iteration,
