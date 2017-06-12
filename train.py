@@ -195,7 +195,7 @@ def train():
                 random_batch_index = np.random.randint(images.size(0))
                 viz.image(images.data[random_batch_index].cpu().numpy())
                 viz.image(images.data[random_batch_index].cpu().numpy() + means)
-    if args.visdom:
+        if args.visdom:
             viz.line(
                 X=torch.ones((1, 3)).cpu() * iteration,
                 Y=torch.Tensor([loss_l.data[0], loss_c.data[0],
