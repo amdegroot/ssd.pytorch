@@ -53,7 +53,7 @@ if not os.path.exists(args.save_folder):
 train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
 # train_sets = 'train'
 ssd_dim = 300  # only support 300 now
-rgb_means = (104, 117, 123)  # only support voc now
+means = (104, 117, 123)  # only support voc now
 num_classes = 21
 batch_size = args.batch_size
 accum_batch_size = 32
@@ -117,7 +117,7 @@ def train():
     print('Loading Dataset...')
 
     dataset = VOCDetection(args.voc_root, train_sets, SSDAugmentation(
-        ssd_dim, rgb_means), AnnotationTransform())
+        ssd_dim, means), AnnotationTransform())
 
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
@@ -194,7 +194,8 @@ def train():
             if args.visdom and args.send_images_to_visdom:
                 random_batch_index = np.random.randint(images.size(0))
                 viz.image(images.data[random_batch_index].cpu().numpy())
-        if args.visdom:
+                viz.image(images.data[random_batch_index].cpu().numpy() + means)
+    if args.visdom:
             viz.line(
                 X=torch.ones((1, 3)).cpu() * iteration,
                 Y=torch.Tensor([loss_l.data[0], loss_c.data[0],
