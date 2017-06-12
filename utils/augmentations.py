@@ -63,9 +63,8 @@ class Lambda(object):
 
 class NormalizeFromInts(object):
 
-    def __init__(self, mean, std):
+    def __init__(self, mean):
         self.mean = np.array(mean, dtype=np.float32)
-        self.std = std
 
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
@@ -385,13 +384,12 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
-    def __init__(self, size=300, means=(104, 117, 123), std=(1, 1, 1)):
+    def __init__(self, size=300, means=(104, 117, 123)):
         self.means = means
-        self.std = std
         self.size = size
         self.augment = Compose([
             # means are RGB, but the image is BGR, reorder means
-            NormalizeFromInts((self.means[2], self.means[1], self.means[0]), self.std),
+            NormalizeFromInts((self.means[2], self.means[1], self.means[0])),
             ToAbsoluteCoords(),
             PhotometricDistort(),
             Expand((self.means[2], self.means[1], self.means[0])),
