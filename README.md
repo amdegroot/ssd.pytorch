@@ -123,7 +123,7 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
 
 ##### mAP
 
-| Original | Test (weiliu89 weights) | Train (w/o data aug) and Test\* | Train with current version |
+| Original | Test (weiliu89 weights) | Train (w/o data aug) and Test\* | Train with current version (eval on VOC2007 test, 11pt mAP) |
 |:-:|:-:|:-:|:-:|
 | 77.2 % | 77.26 % | 58.12%**\*** | 77.43 % |
 
