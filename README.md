@@ -132,27 +132,28 @@ You can specify the parameters listed in the `test.py` file by flagging them or 
 ##### Evaluation report for the current version
 
 VOC07 metric? Yes
-AP for aeroplane = 0.8172
-AP for bicycle = 0.8544
-AP for bird = 0.7571
-AP for boat = 0.6958
-AP for bottle = 0.4990
-AP for bus = 0.8488
-AP for car = 0.8577
-AP for cat = 0.8737
-AP for chair = 0.6147
-AP for cow = 0.8233
-AP for diningtable = 0.7917
-AP for dog = 0.8559
-AP for horse = 0.8709
-AP for motorbike = 0.8474
-AP for person = 0.7889
-AP for pottedplant = 0.4996
-AP for sheep = 0.7742
-AP for sofa = 0.7913
-AP for train = 0.8616
-AP for tvmonitor = 0.7631
-Mean AP = 0.7743
+
+AP for aeroplane = 0.8172<br />
+AP for bicycle = 0.8544<br />
+AP for bird = 0.7571<br />
+AP for boat = 0.6958<br />
+AP for bottle = 0.4990<br />
+AP for bus = 0.8488<br />
+AP for car = 0.8577<br />
+AP for cat = 0.8737<br />
+AP for chair = 0.6147<br />
+AP for cow = 0.8233<br />
+AP for diningtable = 0.7917<br />
+AP for dog = 0.8559<br />
+AP for horse = 0.8709<br />
+AP for motorbike = 0.8474<br />
+AP for person = 0.7889<br />
+AP for pottedplant = 0.4996<br />
+AP for sheep = 0.7742<br />
+AP for sofa = 0.7913<br />
+AP for train = 0.8616<br />
+AP for tvmonitor = 0.7631<br />
+Mean AP = 0.7743<br />
 
 
 ##### FPS
