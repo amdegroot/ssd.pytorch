@@ -32,59 +32,6 @@ COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
           (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
 
 
-class VOCSegmentation(data.Dataset):
-    """VOC Segmentation Dataset Object
-    input and target are both images
-
-    NOTE: need to address https://github.com/pytorch/vision/issues/9
-
-    Arguments:
-        root (string): filepath to VOCdevkit folder.
-        image_set (string): imageset to use (eg: 'train', 'val', 'test').
-        transform (callable, optional): transformation to perform on the
-            input image
-        target_transform (callable, optional): transformation to perform on the
-            target image
-        dataset_name (string, optional): which dataset to load
-            (default: 'VOC2007')
-    """
-
-    def __init__(self, root, image_set, transform=None, target_transform=None,
-                 dataset_name='VOC2007'):
-        self.root = root
-        self.image_set = image_set
-        self.transform = transform
-        self.target_transform = target_transform
-
-        self._annopath = os.path.join(
-            self.root, dataset_name, 'SegmentationClass', '%s.png')
-        self._imgpath = os.path.join(
-            self.root, dataset_name, 'JPEGImages', '%s.jpg')
-        self._imgsetpath = os.path.join(
-            self.root, dataset_name, 'ImageSets', 'Segmentation', '%s.txt')
-
-        with open(self._imgsetpath % self.image_set) as f:
-            self.ids = f.readlines()
-        self.ids = [x.strip('\n') for x in self.ids]
-
-    def __getitem__(self, index):
-        img_id = self.ids[index]
-
-        target = Image.open(self._annopath % img_id).convert('RGB')
-        img = Image.open(self._imgpath % img_id).convert('RGB')
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return img, target
-
-    def __len__(self):
-        return len(self.ids)
-
-
 class AnnotationTransform(object):
     """Transforms a VOC annotation into a Tensor of bbox coords and label index
     Initilized with a dictionary lookup of classnames to indexes
@@ -167,25 +114,32 @@ class VOCDetection(data.Dataset):
                 self.ids.append((rootpath, line.strip()))
 
     def __getitem__(self, index):
-        img_id = self.ids[index]
-        target = ET.parse(self._annopath % img_id).getroot()
-        img = cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
-        height, width, _ = img.shape
+        im, gt, h, w = self.pull_item(index)
 
-        if self.transform is not None:
-            img = cv2.resize(np.array(img), (300, 300)).astype(np.float32)
-            img -= (104, 117, 123)
-            img = img.transpose(2, 0, 1)
-            img = torch.from_numpy(img).squeeze()
-
-        if self.target_transform is not None:
-            target = self.target_transform(target, width, height)
-            # target = self.target_transform(target, width, height)
-
-        return img, target
+        return im, gt
 
     def __len__(self):
         return len(self.ids)
+
+    def pull_item(self, index):
+        img_id = self.ids[index]
+
+        target = ET.parse(self._annopath % img_id).getroot()
+        img = cv2.imread(self._imgpath % img_id)
+        height, width, channels = img.shape
+
+        if self.target_transform is not None:
+            target = self.target_transform(target, width, height)
+
+        if self.transform is not None:
+            target = np.array(target)
+            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
+            # to rgb
+            img = img[:, :, (2, 1, 0)]
+            # img = img.transpose(2, 0, 1)
+            target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
+        return torch.from_numpy(img).permute(2, 0, 1), target, height, width
+        # return torch.from_numpy(img), target, height, width
 
     def pull_image(self, index):
         '''Returns the original image object at index in PIL form
@@ -229,7 +183,6 @@ class VOCDetection(data.Dataset):
         Return:
             tensorized version of img, squeezed
         '''
-        to_tensor = transforms.ToTensor()
         return torch.Tensor(self.pull_image(index)).unsqueeze_(0)
 
 
@@ -247,12 +200,7 @@ def detection_collate(batch):
     """
     targets = []
     imgs = []
-    for _, sample in enumerate(batch):
-        for _, tup in enumerate(sample):
-            if torch.is_tensor(tup):
-                imgs.append(tup)
-            elif isinstance(tup, type([])):
-                annos = [torch.Tensor(a) for a in tup]
-                targets.append(torch.stack(annos, 0))
-
-    return (torch.stack(imgs, 0), targets)
+    for sample in batch:
+        imgs.append(sample[0])
+        targets.append(torch.FloatTensor(sample[1]))
+    return torch.stack(imgs, 0), targets

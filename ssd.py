@@ -3,10 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from layers import *
-from data import v2, v1
-import torchvision.transforms as transforms
-import torchvision.models as models
-import torch.backends.cudnn as cudnn
+from data import v2
 import os
 
 
@@ -116,7 +113,7 @@ class SSD(nn.Module):
         other, ext = os.path.splitext(base_file)
         if ext == '.pkl' or '.pth':
             print('Loading weights into state dict...')
-            self.load_state_dict(torch.load(base_file))
+            self.load_state_dict(torch.load(base_file, map_location=lambda storage, loc: storage))
             print('Finished!')
         else:
             print('Sorry only .pth and .pkl files supported.')

@@ -4,11 +4,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from data import v2 as cfg
 from ..box_utils import match, log_sum_exp
-GPU = False
-if torch.cuda.is_available():
-    GPU = True
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
 
 class MultiBoxLoss(nn.Module):
     """SSD Weighted Loss Function
@@ -34,8 +29,9 @@ class MultiBoxLoss(nn.Module):
     """
 
 
-    def __init__(self,num_classes,overlap_thresh,prior_for_matching,bkg_label,neg_mining,neg_pos,neg_overlap,encode_target):
+    def __init__(self,num_classes,overlap_thresh,prior_for_matching,bkg_label,neg_mining,neg_pos,neg_overlap,encode_target,use_gpu=True):
         super(MultiBoxLoss, self).__init__()
+        self.use_gpu = use_gpu
         self.num_classes = num_classes
         self.threshold = overlap_thresh
         self.background_label = bkg_label
@@ -58,9 +54,9 @@ class MultiBoxLoss(nn.Module):
             ground_truth (tensor): Ground truth boxes and labels for a batch,
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
-
         loc_data, conf_data, priors = predictions
         num = loc_data.size(0)
+        priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
         num_classes = self.num_classes
 
@@ -72,7 +68,7 @@ class MultiBoxLoss(nn.Module):
             labels = targets[idx][:,-1].data
             defaults = priors.data
             match(self.threshold,truths,defaults,self.variance,labels,loc_t,conf_t,idx)
-        if GPU:
+        if self.use_gpu:
             loc_t = loc_t.cuda()
             conf_t = conf_t.cuda()
         # wrap targets

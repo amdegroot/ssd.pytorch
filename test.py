@@ -22,6 +22,8 @@ parser.add_argument('--visual_threshold', default=0.6, type=float,
                     help='Final confidence threshold')
 parser.add_argument('--cuda', default=False, type=bool,
                     help='Use cuda to train model')
+parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
+
 args = parser.parse_args()
 
 if not os.path.exists(args.save_folder):
@@ -36,7 +38,9 @@ def test_net(save_folder, net, cuda, testset, transform, thresh):
         print('Testing image {:d}/{:d}....'.format(i+1, num_images))
         img = testset.pull_image(i)
         img_id, annotation = testset.pull_anno(i)
-        x = Variable(transform(img).unsqueeze(0))
+        x = torch.from_numpy(transform(img)[0]).permute(2, 0, 1)
+        x = Variable(x.unsqueeze(0))
+
         with open(filename, mode='a') as f:
             f.write('\nGROUND TRUTH FOR: '+img_id+'\n')
             for box in annotation:
@@ -74,11 +78,11 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    testset = VOCDetection(VOCroot, [('2007', 'test')], None, AnnotationTransform())
+    testset = VOCDetection(args.voc_root, [('2007', 'test')], None, AnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
     test_net(args.save_folder, net, args.cuda, testset,
-             BaseTransform(net.size, (104, 117, 123), (2, 0, 1)),
+             BaseTransform(net.size, (104, 117, 123)),
              thresh=args.visual_threshold)

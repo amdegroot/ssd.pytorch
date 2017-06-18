@@ -111,12 +111,9 @@ data/datasets/
 doc/visualize.py
 read_results.py
 ssd300_120000/
-utils/metrics/
-utils/augment.py
-utils/augmentations.py
 demos/live
 webdemo.py
-utils
+test_data_aug.py
 
 # attributes
 
