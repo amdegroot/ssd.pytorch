@@ -33,8 +33,8 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
 parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
-parser.add_argument('--visdom', default=False, type=bool, help='Use visdom to for loss visualization')
-parser.add_argument('--send_images_to_visdom', type=bool, default=False, help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
+parser.add_argument('--visdom', default=False, type=str2bool, help='Use visdom to for loss visualization')
+parser.add_argument('--send_images_to_visdom', type=str2bool, default=False, help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
 args = parser.parse_args()
@@ -53,7 +53,7 @@ if not os.path.exists(args.save_folder):
 train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
 # train_sets = 'train'
 ssd_dim = 300  # only support 300 now
-rgb_means = (104/256.0, 117/256.0, 123/256.0)  # only support voc now
+means = (104, 117, 123)  # only support voc now
 num_classes = 21
 batch_size = args.batch_size
 accum_batch_size = 32
@@ -117,7 +117,7 @@ def train():
     print('Loading Dataset...')
 
     dataset = VOCDetection(args.voc_root, train_sets, SSDAugmentation(
-        ssd_dim, rgb_means), AnnotationTransform())
+        ssd_dim, means), AnnotationTransform())
 
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
@@ -145,11 +145,12 @@ def train():
             )
         )
     batch_iterator = None
+    data_loader = data.DataLoader(dataset, batch_size, num_workers=args.num_workers,
+                                  shuffle=True, collate_fn=detection_collate)
     for iteration in range(args.start_iter, max_iter):
         if (not batch_iterator) or (iteration % epoch_size == 0):
             # create batch iterator
-            batch_iterator = iter(data.DataLoader(dataset, batch_size, num_workers=args.num_workers,
-                                                  shuffle=True, collate_fn=detection_collate))
+            batch_iterator = iter(data_loader)
         if iteration in stepvalues:
             step_index += 1
             adjust_learning_rate(optimizer, args.gamma, step_index)

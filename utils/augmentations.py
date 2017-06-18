@@ -61,16 +61,57 @@ class Lambda(object):
     def __call__(self, img, boxes=None, labels=None):
         return self.lambd(img, boxes, labels)
 
+<<<<<<< HEAD
 class NormalizeFromInts(object):
     """Given mean: (R, G, B) and std: (R, G, B),
     will normalize each channel of the np.ndarray, i.e.
     channel = (channel - mean) / std
     """
+=======
+class ConvertFromInts(object):
+    def __call__(self, image, boxes=None, labels=None):
+        return image.astype(np.float32), boxes, labels
 
-    def __init__(self, mean, std):
-        self.mean = mean
-        self.std = std
+class SubtractMeans(object):
+    def __init__(self, mean):
+        self.mean = np.array(mean, dtype=np.float32)
+>>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
 
+    def __call__(self, image, boxes=None, labels=None):
+        image = image.astype(np.float32)
+        image -= self.mean
+        return image.astype(np.float32), boxes, labels
+
+class ToAbsoluteCoords(object):
+    def __call__(self, image, boxes=None, labels=None):
+        height, width, channels = image.shape
+        boxes[:, 0] *= width
+        boxes[:, 2] *= width
+        boxes[:, 1] *= height
+        boxes[:, 3] *= height
+
+        return image, boxes, labels
+
+class ToPercentCoords(object):
+    def __call__(self, image, boxes=None, labels=None):
+        height, width, channels = image.shape
+        boxes[:, 0] /= width
+        boxes[:, 2] /= width
+        boxes[:, 1] /= height
+        boxes[:, 3] /= height
+
+        return image, boxes, labels
+
+class Resize(object):
+    def __init__(self, size=300):
+        self.size = size
+
+    def __call__(self, image, boxes=None, labels=None):
+        image = cv2.resize(image, (self.size,
+                                 self.size))
+        return image, boxes, labels
+
+<<<<<<< HEAD
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
         image -= image.min()
@@ -107,6 +148,8 @@ class Resize(object):
                                  self.size))
         return image, boxes, labels
 
+=======
+>>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
 
 
 class RandomSaturation(object):
@@ -181,9 +224,15 @@ class RandomContrast(object):
 
 
 class RandomBrightness(object):
+<<<<<<< HEAD
     def __init__(self, delta=0.125):
         assert delta >= 0.0
         assert delta <= 1.0
+=======
+    def __init__(self, delta=32):
+        assert delta >= 0.0
+        assert delta <= 255.0
+>>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
         self.delta = delta
 
     def __call__(self, image, boxes=None, labels=None):
@@ -391,6 +440,7 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
+<<<<<<< HEAD
     def __init__(self, size=300, means=(104/256.0, 117/256.0, 123/256.0), std=(1, 1, 1)):
         self.means = means
         self.std = std
@@ -405,6 +455,21 @@ class SSDAugmentation(object):
             RandomMirror(),
             ToPercentCoords(),
             Resize(self.size)
+=======
+    def __init__(self, size=300, mean=(104, 117, 123)):
+        self.mean = mean
+        self.size = size
+        self.augment = Compose([
+            ConvertFromInts(),
+            ToAbsoluteCoords(),
+            PhotometricDistort(),
+            Expand(self.mean),
+            RandomSampleCrop(),
+            RandomMirror(),
+            ToPercentCoords(),
+            Resize(self.size),
+            SubtractMeans(self.mean)
+>>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
         ])
     def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)

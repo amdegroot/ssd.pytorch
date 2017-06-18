@@ -2,21 +2,19 @@ from .voc0712 import VOCDetection, AnnotationTransform, detection_collate, VOC_C
 from .config import *
 import cv2
 import numpy as np
-import torch
 
-def base_transform(image, size, means):
+
+def base_transform(image, size, mean):
     x = cv2.resize(image, (size, size)).astype(np.float32)
-    x -= x.min()
-    x /= x.max()
-    x -= (means[2], means[1], means[0])
+    x -= mean
     x = x.astype(np.float32)
     return x
 
 
 class BaseTransform:
-    def __init__(self, size, means):
+    def __init__(self, size, mean):
         self.size = size
-        self.means = means
+        self.mean = np.array(mean, dtype=np.float32)
 
     def __call__(self, image, boxes=None, labels=None):
-        return base_transform(image, self.size, self.means), boxes, labels
+        return base_transform(image, self.size, self.mean), boxes, labels

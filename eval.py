@@ -179,7 +179,7 @@ def do_python_eval(output_dir='output', use_07=True):
     print('--------------------------------------------------------------')
 
 
-def voc_ap(rec, prec, use_07_metric=True):
+def voc_ap(rec, prec, use_07_metric=False):
     """ ap = voc_ap(rec, prec, [use_07_metric])
     Compute VOC AP given precision and recall.
     If use_07_metric is true, uses the
