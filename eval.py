@@ -44,7 +44,7 @@ parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
 parser.add_argument('--cuda', default=True, type=str2bool,
                     help='Use cuda to train model')
-parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
+parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
 
 args = parser.parse_args()
 
@@ -61,7 +61,7 @@ imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
 imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
 YEAR = '2007'
 devkit_path = VOCroot + 'VOC' + YEAR
-dataset_mean = (104/256.0, 117/256.0, 123/256.0)
+dataset_mean = (104, 117, 123)
 set_type = 'test'
 
 class Timer(object):
@@ -179,7 +179,7 @@ def do_python_eval(output_dir='output', use_07=True):
     print('--------------------------------------------------------------')
 
 
-def voc_ap(rec, prec, use_07_metric=False):
+def voc_ap(rec, prec, use_07_metric=True):
     """ ap = voc_ap(rec, prec, [use_07_metric])
     Compute VOC AP given precision and recall.
     If use_07_metric is true, uses the
@@ -316,11 +316,6 @@ cachedir: Directory for caching the annotations
                 iw = np.maximum(ixmax - ixmin, 0.)
                 ih = np.maximum(iymax - iymin, 0.)
                 inters = iw * ih
-
-                # # union
-                # uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
-                #        (BBGT[:, 2] - BBGT[:, 0] + 1.) *
-                #        (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
                 uni = ((bb[2] - bb[0]) * (bb[3] - bb[1]) +
                        (BBGT[:, 2] - BBGT[:, 0]) *
                        (BBGT[:, 3] - BBGT[:, 1]) - inters)
