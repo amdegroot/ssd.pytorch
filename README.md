@@ -167,7 +167,7 @@ Mean AP = 0.7743<br />
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
     * SSD300 v2 trained on VOC0712 (newest version)
-      - https://s3.amazonaws.com/amdegroot-models/ssd_300_VOC0712.pth
+      - https://s3.amazonaws.com/amdegroot-models/ssd300_mAP_77.43_v2.pth
     * SSD300 v1 (original/old pool6 version) trained on VOC07
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
