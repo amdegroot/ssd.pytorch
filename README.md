@@ -94,7 +94,7 @@ You can specify the parameters listed in the `eval.py` file by flagging them or 
 
 ##### mAP
 
-| Original | Test (original weiliu89 weights) | Train (from scratch w/o data aug) | Train (from scratch with data aug) |
+| Original | Converted weiliu89 weights | From scratch w/o data aug | From scratch w/ data aug |
 |:-:|:-:|:-:|:-:|
 | 77.2 % | 77.26 % | 58.12% | 77.43 % |
 
