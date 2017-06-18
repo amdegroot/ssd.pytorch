@@ -5,6 +5,7 @@ import numpy as np
 import types
 from numpy import random
 
+
 def intersect(box_a, box_b):
     max_xy = np.minimum(box_a[:, 2:], box_b[2:])
     min_xy = np.maximum(box_a[:, :2], box_b[:2])
@@ -51,6 +52,7 @@ class Compose(object):
             img, boxes, labels = t(img, boxes, labels)
         return img, boxes, labels
 
+
 class Lambda(object):
     """Applies a lambda as a transform."""
 
@@ -61,63 +63,21 @@ class Lambda(object):
     def __call__(self, img, boxes=None, labels=None):
         return self.lambd(img, boxes, labels)
 
-<<<<<<< HEAD
-class NormalizeFromInts(object):
-    """Given mean: (R, G, B) and std: (R, G, B),
-    will normalize each channel of the np.ndarray, i.e.
-    channel = (channel - mean) / std
-    """
-=======
+
 class ConvertFromInts(object):
     def __call__(self, image, boxes=None, labels=None):
         return image.astype(np.float32), boxes, labels
 
+
 class SubtractMeans(object):
     def __init__(self, mean):
         self.mean = np.array(mean, dtype=np.float32)
->>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
 
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
         image -= self.mean
         return image.astype(np.float32), boxes, labels
 
-class ToAbsoluteCoords(object):
-    def __call__(self, image, boxes=None, labels=None):
-        height, width, channels = image.shape
-        boxes[:, 0] *= width
-        boxes[:, 2] *= width
-        boxes[:, 1] *= height
-        boxes[:, 3] *= height
-
-        return image, boxes, labels
-
-class ToPercentCoords(object):
-    def __call__(self, image, boxes=None, labels=None):
-        height, width, channels = image.shape
-        boxes[:, 0] /= width
-        boxes[:, 2] /= width
-        boxes[:, 1] /= height
-        boxes[:, 3] /= height
-
-        return image, boxes, labels
-
-class Resize(object):
-    def __init__(self, size=300):
-        self.size = size
-
-    def __call__(self, image, boxes=None, labels=None):
-        image = cv2.resize(image, (self.size,
-                                 self.size))
-        return image, boxes, labels
-
-<<<<<<< HEAD
-    def __call__(self, image, boxes=None, labels=None):
-        image = image.astype(np.float32)
-        image -= image.min()
-        image /= image.max()
-        image = (image - self.mean) / self.std
-        return image.astype(np.float32), boxes, labels
 
 class ToAbsoluteCoords(object):
     def __call__(self, image, boxes=None, labels=None):
@@ -129,6 +89,7 @@ class ToAbsoluteCoords(object):
 
         return image, boxes, labels
 
+
 class ToPercentCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
@@ -139,6 +100,7 @@ class ToPercentCoords(object):
 
         return image, boxes, labels
 
+
 class Resize(object):
     def __init__(self, size=300):
         self.size = size
@@ -147,9 +109,6 @@ class Resize(object):
         image = cv2.resize(image, (self.size,
                                  self.size))
         return image, boxes, labels
-
-=======
->>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
 
 
 class RandomSaturation(object):
@@ -224,15 +183,9 @@ class RandomContrast(object):
 
 
 class RandomBrightness(object):
-<<<<<<< HEAD
-    def __init__(self, delta=0.125):
-        assert delta >= 0.0
-        assert delta <= 1.0
-=======
     def __init__(self, delta=32):
         assert delta >= 0.0
         assert delta <= 255.0
->>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
         self.delta = delta
 
     def __call__(self, image, boxes=None, labels=None):
@@ -307,17 +260,18 @@ class RandomSampleCrop(object):
                 top = random.uniform(height - h)
 
                 # convert to integer rect x1,y1,x2,y2
-                rect = np.array([int(left), int(top), int(left + w), int(top + h)])
+                rect = np.array([int(left), int(top), int(left+w), int(top+h)])
 
-                # calculate IoU (jaccard overlap) between the crop box and gt boxes
+                # calculate IoU (jaccard overlap) b/t the cropped and gt boxes
                 overlap = jaccard_numpy(boxes, rect)
 
-                # does min and max overlap constraint satisfied? if not try again
+                # is min and max overlap constraint satisfied? if not try again
                 if overlap.min() < min_iou and max_iou < overlap.max():
                     continue
 
                 # cut the crop from the image
-                current_image = current_image[rect[1]:rect[3], rect[0]:rect[2], :]
+                current_image = current_image[rect[1]:rect[3], rect[0]:rect[2],
+                                              :]
 
                 # keep overlap with gt box IF center in sampled patch
                 centers = (boxes[:, :2] + boxes[:, 2:]) / 2.0
@@ -342,11 +296,13 @@ class RandomSampleCrop(object):
                 current_labels = labels[mask]
 
                 # should we use the box left and top corner or the crop's
-                current_boxes[:, :2] = np.maximum(current_boxes[:, :2], rect[:2])
+                current_boxes[:, :2] = np.maximum(current_boxes[:, :2],
+                                                  rect[:2])
                 # adjust to crop (by substracting crop's left,top)
                 current_boxes[:, :2] -= rect[:2]
-                # should we use the whole box width and height or does the crop cuts the box
-                current_boxes[:, 2:] = np.minimum(current_boxes[:, 2:], rect[2:])
+
+                current_boxes[:, 2:] = np.minimum(current_boxes[:, 2:],
+                                                  rect[2:])
                 # adjust to crop (by substracting crop's left,top)
                 current_boxes[:, 2:] -= rect[:2]
 
@@ -356,6 +312,7 @@ class RandomSampleCrop(object):
 class Expand(object):
     def __init__(self, mean):
         self.mean = mean
+
     def __call__(self, image, boxes, labels):
         if random.randint(2):
             return image, boxes, labels
@@ -369,7 +326,8 @@ class Expand(object):
             (int(height*ratio), int(width*ratio), depth),
             dtype=image.dtype)
         expand_image[:, :, :] = self.mean
-        expand_image[int(top):int(top + height), int(left):int(left + width)] = image
+        expand_image[int(top):int(top + height),
+                     int(left):int(left + width)] = image
         image = expand_image
 
         boxes = boxes.copy()
@@ -440,22 +398,6 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
-<<<<<<< HEAD
-    def __init__(self, size=300, means=(104/256.0, 117/256.0, 123/256.0), std=(1, 1, 1)):
-        self.means = means
-        self.std = std
-        self.size = size
-        self.augment = Compose([
-            # means are RGB, but the image is BGR, reorder means
-            NormalizeFromInts((self.means[2], self.means[1], self.means[0]), self.std),
-            ToAbsoluteCoords(),
-            RandomSampleCrop(),
-            PhotometricDistort(),
-            Expand(self.means),
-            RandomMirror(),
-            ToPercentCoords(),
-            Resize(self.size)
-=======
     def __init__(self, size=300, mean=(104, 117, 123)):
         self.mean = mean
         self.size = size
@@ -469,8 +411,7 @@ class SSDAugmentation(object):
             ToPercentCoords(),
             Resize(self.size),
             SubtractMeans(self.mean)
->>>>>>> 85f306a01e9a3106a23a42409f7a8f28a6958d12
         ])
+
     def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)
-
