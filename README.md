@@ -65,7 +65,6 @@ wget https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
 ```
 
 - To train SSD using the train script simply specify the parameters listed in `train.py` as a flag or manually change them.
- * You can pick-up training from a checkpoint by specifying the path as one of the training parameters (again, see `train.py` for options)
 
 ```Shell
 python train.py
@@ -75,6 +74,7 @@ python train.py
   * For training, an NVIDIA GPU is strongly recommended for speed.
   * Currently we only support training on v2 (the newest version).
   * For instructions on Visdom usage/installation, see the <a href='#installation'>Installation</a> section.
+  * You can pick-up training from a checkpoint by specifying the path as one of the training parameters (again, see `train.py` for options)
   
 ## Evaluation
 To evaluate a trained network:
