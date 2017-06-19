@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
     net = build_ssd('test', 300, 21)    # initialize SSD
     net.load_state_dict(torch.load(args.weights))
-    transform = BaseTransform(net.size, (104, 117, 123))
+    transform = BaseTransform(net.size, (104/256.0, 117/256.0, 123/256.0))
 
     fps = FPS().start()
     # stop the timer and display FPS information

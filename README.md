@@ -9,7 +9,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - <a href='#datasets'>Datasets</a>
 - <a href='#training-ssd'>Train</a>
 - <a href='#evaluation'>Evaluate</a>
-- <a href='#performance-in-progress'>Performance</a>
+- <a href='#performance'>Performance</a>
 - <a href='#demos'>Demos</a>
 - <a href='#todo'>Future Work</a>
 - <a href='#references'>Reference</a>
@@ -54,17 +54,6 @@ sh data/scripts/VOC2007.sh # <directory>
 sh data/scripts/VOC2012.sh # <directory>
 ```
 
- Ensure the following directory structure (as specified in [VOCdevkit](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/devkit_doc_07-Jun-2007.pdf)):
-
-```
-VOCdevkit/                                  % development kit
-VOCdevkit/VOC2007/ImageSets                 % image sets
-VOCdevkit/VOC2007/Annotations               % annotation files
-VOCdevkit/VOC2007/JPEGImages                % images
-VOCdevkit/VOC2007/SegmentationObject        % segmentations by object
-VOCdevkit/VOC2007/SegmentationClass         % segmentations by class
-```
-
 ## Training SSD
 - First download the fc-reduced [VGG-16](https://arxiv.org/abs/1409.1556) PyTorch base network weights at:              https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
 - By default, we assume you have downloaded the file in the `ssd.pytorch/weights` dir:
@@ -80,54 +69,34 @@ wget https://s3.amazonaws.com/amdegroot-models/vgg16_reducedfc.pth
 ```Shell
 python train.py
 ```
-- Training Parameter Options: 
 
-```Python
-parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
-parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
-parser.add_argument('--basenet', default='vgg16_reducedfc.pth', help='pretrained base model')
-parser.add_argument('--jaccard_threshold', default=0.5, type=float, help='Min Jaccard index for matching')
-parser.add_argument('--batch_size', default=32, type=int, help='Batch size for training')
-parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
-parser.add_argument('--iterations', default=120000, type=int, help='Number of training epochs')
-parser.add_argument('--cuda', default=True, type=bool, help='Use cuda to train model')
-parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
-parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
-parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
-parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
-parser.add_argument('--visdom', default=False, type=bool, help='Use visdom to for loss visualization')
-parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
-args = parser.parse_args()
-```
 - Note:
   * For training, an NVIDIA GPU is strongly recommended for speed.
   * Currently we only support training on v2 (the newest version).
   * For instructions on Visdom usage/installation, see the <a href='#installation'>Installation</a> section.
+  * You can pick-up training from a checkpoint by specifying the path as one of the training parameters (again, see `train.py` for options)
   
 ## Evaluation
 To evaluate a trained network:
 
 ```Shell
-python test.py
+python eval.py
 ```
 
-You can specify the parameters listed in the `test.py` file by flagging them or manually changing them.  
+You can specify the parameters listed in the `eval.py` file by flagging them or manually changing them.  
 
 
 <img align="left" src= "https://github.com/amdegroot/ssd.pytorch/blob/master/doc/detection_examples.png">
 
-## Performance *(In progress)*
+## Performance
 
 #### VOC2007 Test
 
 ##### mAP
 
-| Original | Test (weiliu89 weights) | Train (w/o data aug) and Test\* | Train with current version (eval on VOC2007 test, 11pt mAP) |
+| Original | Test (original weiliu89 weights) | Train (from scratch w/o data aug) | Train (from scratch with data aug) |
 |:-:|:-:|:-:|:-:|
-| 77.2 % | 77.26 % | 58.12%**\*** | 77.43 % |
-
-**\* note:** Obtained with a constant learning rate of 1e-4 @15k iterations. With proper adjustment, we believe this should increase substantially even w/o data aug.
+| 77.2 % | 77.26 % | 58.12% | 77.43 % |
 
 ##### Evaluation report for the current version
 
@@ -157,7 +126,7 @@ Mean AP = 0.7743<br />
 
 
 ##### FPS
-**GTX 1060:** ~45.45 FPS for detection on a single image
+**GTX 1060:** ~45.45 FPS 
 
 ## Demos
 
@@ -166,8 +135,8 @@ Mean AP = 0.7743<br />
 #### Download a pre-trained network
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
-    * SSD300 v2 trained on VOC0712 (newest version)
-      - https://s3.amazonaws.com/amdegroot-models/ssd_300_VOC0712.pth
+    * SSD300 v2 trained on VOC0712 (newest PyTorch version)
+      - https://s3.amazonaws.com/amdegroot-models/ssd300_mAP_77.43_v2.pth
     * SSD300 v1 (original/old pool6 version) trained on VOC07
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
@@ -203,9 +172,6 @@ jupyter notebook
 
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
-- In progress:
-  * Complete data augmentation (progress in augmentation branch)
-  * Produce a "from scratch" PyTorch mAP matching the original Caffe result
 - Still to come:
   * Train SSD300 with batch norm
   * Add support for SSD512 training and testing
@@ -216,5 +182,6 @@ We have accumulated the following to-do list, which you can expect to be done in
 ## References
 - Wei Liu, et al. "SSD: Single Shot MultiBox Detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
 - [Original Implementation (CAFFE)](https://github.com/weiliu89/caffe/tree/ssd)
+- A huge thank you to [Alex Koltun](https://github.com/alexkoltun) and his team at [Webyclip](webyclip.com) for their help in finishing the data augmentation portion.
 - A list of other great SSD ports that were sources of inspiration (especially the Chainer repo): 
   * [Chainer](https://github.com/Hakuyume/chainer-ssd), [Keras](https://github.com/rykov8/ssd_keras), [MXNet](https://github.com/zhreshold/mxnet-ssd), [Tensorflow](https://github.com/balancap/SSD-Tensorflow) 

@@ -118,7 +118,6 @@ class VOCDetection(data.Dataset):
 
         return im, gt
 
-
     def __len__(self):
         return len(self.ids)
 

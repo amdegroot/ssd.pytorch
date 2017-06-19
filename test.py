@@ -22,7 +22,7 @@ parser.add_argument('--visual_threshold', default=0.6, type=float,
                     help='Final confidence threshold')
 parser.add_argument('--cuda', default=False, type=bool,
                     help='Use cuda to train model')
-parser.add_argument('--voc_root', default='~/data/VOCdevkit/', help='Location of VOC root directory')
+parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
 
 args = parser.parse_args()
 
