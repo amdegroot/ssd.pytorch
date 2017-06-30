@@ -6,6 +6,19 @@ from layers import *
 from data import v2
 import os
 
+#https://discuss.pytorch.org/t/why-softmax-function-cant-specify-the-dimension-to-operate/2637
+def softmax(input, axis=1):
+    input_size = input.size()
+    
+    trans_input = input.transpose(axis, len(input_size)-1)
+    trans_size = trans_input.size()
+
+    input_2d = trans_input.contiguous().view(-1, trans_size[-1])
+    
+    soft_max_2d = F.softmax(input_2d)
+    
+    soft_max_nd = soft_max_2d.view(*trans_size)
+    return soft_max_nd.transpose(axis, len(input_size)-1)
 
 class SSD(nn.Module):
     """Single Shot Multibox Architecture
@@ -31,6 +44,7 @@ class SSD(nn.Module):
         # TODO: implement __call__ in PriorBox
         self.priorbox = PriorBox(v2)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
+
         self.size = 300
 
         # SSD network
@@ -43,7 +57,6 @@ class SSD(nn.Module):
         self.conf = nn.ModuleList(head[1])
 
         if phase == 'test':
-            self.softmax = nn.Softmax()
             self.detect = Detect(num_classes, 0, 200, 0.01, 0.45)
 
     def forward(self, x):
@@ -97,9 +110,9 @@ class SSD(nn.Module):
 
         if self.phase == "test":
             output = self.detect(
-                loc.view(loc.size(0), -1, 4),                   # loc preds
-                self.softmax(conf.view(-1, self.num_classes)),  # conf preds
-                self.priors                                     # default boxes
+                loc.view(loc.size(0), -1, 4),                                    # loc preds
+                softmax(conf.view(conf.size(0), -1, self.num_classes), axis=2),  # conf preds
+                self.priors                                                      # default boxes
             )
         else:
             output = (
