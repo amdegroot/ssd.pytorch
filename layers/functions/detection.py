@@ -23,7 +23,6 @@ class Detect(Function):
             raise ValueError('nms_threshold must be non negative.')
         self.conf_thresh = conf_thresh
         self.variance = cfg['variance']
-        self.output = torch.zeros(1, self.num_classes, self.top_k, 5)
 
     def forward(self, loc_data, conf_data, prior_data):
         """
@@ -37,14 +36,10 @@ class Detect(Function):
         """
         num = loc_data.size(0)  # batch size
         num_priors = prior_data.size(0)
-        self.output.zero_()
-        if num == 1:
-            # size batch x num_classes x num_priors
-            conf_preds = conf_data.t().contiguous().unsqueeze(0)
-        else:
-            conf_preds = conf_data.view(num, num_priors,
-                                        self.num_classes).transpose(2, 1)
-            self.output.expand_(num, self.num_classes, self.top_k, 5)
+        output = torch.zeros(num, self.num_classes, self.top_k, 5)
+
+        # size batch x num_classes x num_priors
+        conf_preds = conf_data.transpose(2, 1)
 
         # Decode predictions into bboxes.
         for i in range(num):
@@ -61,11 +56,21 @@ class Detect(Function):
                 boxes = decoded_boxes[l_mask].view(-1, 4)
                 # idx of highest scoring and non-overlapping boxes per class
                 ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
-                self.output[i, cl, :count] = \
+                output[i, cl, :count] = \
                     torch.cat((scores[ids[:count]].unsqueeze(1),
                                boxes[ids[:count]]), 1)
-        flt = self.output.view(-1, 5)
+        flt = output.view(-1, 5)
         _, idx = flt[:, 0].sort(0)
         _, rank = idx.sort(0)
         flt[(rank >= self.top_k).unsqueeze(1).expand_as(flt)].fill_(0)
-        return self.output
+        return output
+
+
+
+
+
+
+
+
+
+
