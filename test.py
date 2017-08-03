@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 from torch.autograd import Variable
 from data import VOCroot, VOC_CLASSES as labelmap
 from PIL import Image
-from data import AnnotationTransform, VOCDetection, BaseTransform
+from data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
 import torch.utils.data as data
 from ssd import build_ssd
 
@@ -73,7 +73,8 @@ def test_net(save_folder, net, cuda, testset, transform, thresh):
 
 if __name__ == '__main__':
     # load net
-    net = build_ssd('test', 300, 21)    # initialize SSD
+    num_classes = len(VOC_CLASSES) + 1 # +1 background
+    net = build_ssd('test', 300, num_classes) # initialize SSD
     net.load_state_dict(torch.load(args.trained_model))
     net.eval()
     print('Finished loading model!')
