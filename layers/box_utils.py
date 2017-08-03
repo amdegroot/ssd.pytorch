@@ -182,7 +182,7 @@ def nms(boxes, scores, overlap=0.5, top_k=200):
         The indices of the kept boxes with respect to num_priors.
     """
 
-    keep = torch.Tensor(scores.size(0)).fill_(0).long()
+    keep = scores.new(scores.size(0)).zero_().long()
     if boxes.numel() == 0:
         return keep
     x1 = boxes[:, 0]
