@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import torch
 import torch.nn as nn
@@ -24,7 +23,7 @@ parser.add_argument('--basenet', default='vgg16_reducedfc.pth', help='pretrained
 parser.add_argument('--jaccard_threshold', default=0.5, type=float, help='Min Jaccard index for matching')
 parser.add_argument('--batch_size', default=16, type=int, help='Batch size for training')
 parser.add_argument('--resume', default=None, type=str, help='Resume from checkpoint')
-parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
+parser.add_argument('--num_workers', default=2, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training iterations')
 parser.add_argument('--start_iter', default=0, type=int, help='Begin counting iterations starting from this value (should be used with resume)')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda to train model')
@@ -45,7 +44,6 @@ else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
 cfg = (v1, v2)[args.version == 'v2']
-
 
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
@@ -73,6 +71,7 @@ net = ssd_net
 
 if args.cuda:
     net = torch.nn.DataParallel(ssd_net)
+    cudnn.benchmark = True
 
 if args.resume:
     print('Resuming training, loading {}...'.format(args.resume))
@@ -83,8 +82,7 @@ else:
     ssd_net.vgg.load_state_dict(vgg_weights)
 
 if args.cuda:
-    net.cuda()
-    cudnn.benchmark = True
+    net = net.cuda()
 
 
 def xavier(param):
@@ -95,6 +93,7 @@ def weights_init(m):
     if isinstance(m, nn.Conv2d):
         xavier(m.weight.data)
         m.bias.data.zero_()
+
 
 if not args.resume:
     print('Initializing weights...')
@@ -146,7 +145,7 @@ def train():
         )
     batch_iterator = None
     data_loader = data.DataLoader(dataset, batch_size, num_workers=args.num_workers,
-                                  shuffle=True, collate_fn=detection_collate)
+                                  shuffle=True, collate_fn=detection_collate, pin_memory=True)
     for iteration in range(args.start_iter, max_iter):
         if (not batch_iterator) or (iteration % epoch_size == 0):
             # create batch iterator
@@ -172,10 +171,10 @@ def train():
 
         if args.cuda:
             images = Variable(images.cuda())
-            targets = [Variable(anno.cuda()) for anno in targets]
+            targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
         else:
             images = Variable(images)
-            targets = [Variable(anno) for anno in targets]
+            targets = [Variable(anno, volatile=True) for anno in targets]
         # forward
         t0 = time.time()
         out = net(images)
@@ -213,7 +212,7 @@ def train():
                 )
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_iter_' +
+            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_' +
                        repr(iteration) + '.pth')
     torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
 

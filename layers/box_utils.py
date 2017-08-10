@@ -90,9 +90,9 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     )
     # (Bipartite Matching)
     # [1,num_objects] best prior for each ground truth
-    best_prior_overlap, best_prior_idx = overlaps.max(1)
+    best_prior_overlap, best_prior_idx = overlaps.max(1, keepdim=True)
     # [1,num_priors] best ground truth for each prior
-    best_truth_overlap, best_truth_idx = overlaps.max(0)
+    best_truth_overlap, best_truth_idx = overlaps.max(0, keepdim=True)
     best_truth_idx.squeeze_(0)
     best_truth_overlap.squeeze_(0)
     best_prior_idx.squeeze_(1)
@@ -164,7 +164,7 @@ def log_sum_exp(x):
         x (Variable(tensor)): conf_preds from conf layers
     """
     x_max = x.data.max()
-    return torch.log(torch.sum(torch.exp(x-x_max), 1)) + x_max
+    return torch.log(torch.sum(torch.exp(x-x_max), 1, keepdim=True)) + x_max
 
 
 # Original author: Francisco Massa:
