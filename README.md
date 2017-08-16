@@ -37,7 +37,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - UPDATE: We have switched from PIL Image support to cv2. The plan is to create a branch that uses PIL as well.  
 
 ## Datasets
-To make things easy, we provide a simple VOC dataset loader that enherits `torch.utils.data.Dataset` making it fully compatible with the `torchvision.datasets` [API](http://pytorch.org/docs/torchvision/datasets.html).
+To make things easy, we provide a simple VOC dataset loader that inherits `torch.utils.data.Dataset` making it fully compatible with the `torchvision.datasets` [API](http://pytorch.org/docs/torchvision/datasets.html).
 
 ### VOC Dataset
 ##### Download VOC2007 trainval & test
