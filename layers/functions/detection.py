@@ -29,11 +29,11 @@ class Detect(Function):
         """
         Args:
             loc_data: (tensor) Loc preds from loc layers
-                Shape: [batch,num_priors*4]
+                Shape: [batch,num_priors,4]
             conf_data: (tensor) Shape: Conf preds from conf layers
                 Shape: [batch*num_priors,num_classes]
             prior_data: (tensor) Prior boxes and variances from priorbox layers
-                Shape: [1,num_priors,4]
+                Shape: [num_priors,4]
         """
         num = loc_data.size(0)  # batch size
         num_priors = prior_data.size(0)
@@ -64,8 +64,8 @@ class Detect(Function):
                 self.output[i, cl, :count] = \
                     torch.cat((scores[ids[:count]].unsqueeze(1),
                                boxes[ids[:count]]), 1)
-        flt = self.output.view(-1, 5)
-        _, idx = flt[:, 0].sort(0)
-        _, rank = idx.sort(0)
-        flt[(rank >= self.top_k).unsqueeze(1).expand_as(flt)].fill_(0)
+
+            flt = self.output[i].view(-1, 5)
+            _, idx = flt[:, 0].sort(0)
+            flt[idx[:-self.top_k]] = 0
         return self.output
