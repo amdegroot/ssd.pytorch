@@ -167,7 +167,9 @@ def train():
             epoch += 1
 
         # load train data
+        t0 = time.time()
         images, targets = next(batch_iterator)
+        data_time = time.time() - t0
 
         if args.cuda:
             images = Variable(images.cuda())
@@ -184,12 +186,13 @@ def train():
         loss = loss_l + loss_c
         loss.backward()
         optimizer.step()
-        t1 = time.time()
+        batch_time = time.time() - t0
         loc_loss += loss_l.data[0]
         conf_loss += loss_c.data[0]
-        if iteration % 10 == 0:
-            print('Timer: %.4f sec.' % (t1 - t0))
-            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+        if (iteration+1) % 10 == 0:
+            print('iter ' + repr(iteration+1) + ' || lr: %g || Loss: %.4f ||' %
+                  (optimizer.param_groups[0]['lr'], loss.data[0]), end=' ')
+            print('data: %.3fms, batch: %.3fs' % (data_time*1000, batch_time), end='\r')
             if args.visdom and args.send_images_to_visdom:
                 random_batch_index = np.random.randint(images.size(0))
                 viz.image(images.data[random_batch_index].cpu().numpy())
@@ -210,11 +213,14 @@ def train():
                     win=epoch_lot,
                     update=True
                 )
-        if iteration % 5000 == 0:
-            print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_' +
-                       repr(iteration) + '.pth')
-    torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
+        if (iteration+1) % 5000 == 0:
+            print()
+            print('Saving state, iter:', iteration+1)
+            torch.save(ssd_net.state_dict(),
+                       os.path.join(args.save_folder,
+                                    'ssd300_0712_' + repr(iteration+1) + '.pth'))
+    torch.save(ssd_net.state_dict(), os.path.join(args.save_folder,
+                                                  args.version + '.pth'))
 
 
 def adjust_learning_rate(optimizer, gamma, step):
