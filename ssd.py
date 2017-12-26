@@ -199,7 +199,7 @@ def build_ssd(phase, size=300, num_classes=21):
     if size != 300:
         print("Error: Sorry only SSD300 is supported currently!")
         return
-
-    return SSD(phase, *multibox(vgg(base[str(size)], 3),
-                                add_extras(extras[str(size)], 1024),
-                                mbox[str(size)], num_classes), num_classes)
+    base_,extras_,head_=multibox(vgg(base[str(size)], 3),
+                                 add_extras(extras[str(size)], 1024),
+                                 mbox[str(size)], num_classes)   
+    return SSD(phase,base_,extras_,head_, num_classes)

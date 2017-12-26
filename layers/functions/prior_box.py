@@ -1,3 +1,4 @@
+from __future__ import division
 import torch
 from math import sqrt as sqrt
 from itertools import product as product
