@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import torch
 
 def point_form(boxes):
