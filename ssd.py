@@ -50,7 +50,7 @@ class SSD(nn.Module):
         """Applies network layers and ops on input image(s) x.
 
         Args:
-            x: input image or batch of images. Shape: [batch,3*batch,300,300].
+            x: input image or batch of images. Shape: [batch,3,300,300].
 
         Return:
             Depending on phase:
