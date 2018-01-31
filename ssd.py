@@ -112,7 +112,8 @@ class SSD(nn.Module):
         other, ext = os.path.splitext(base_file)
         if ext == '.pkl' or '.pth':
             print('Loading weights into state dict...')
-            self.load_state_dict(torch.load(base_file, map_location=lambda storage, loc: storage))
+            self.load_state_dict(torch.load(base_file,
+                                 map_location=lambda storage, loc: storage))
             print('Finished!')
         else:
             print('Sorry only .pth and .pkl files supported.')
@@ -199,7 +200,7 @@ def build_ssd(phase, size=300, num_classes=21):
     if size != 300:
         print("Error: Sorry only SSD300 is supported currently!")
         return
-    base_,extras_,head_=multibox(vgg(base[str(size)], 3),
-                                 add_extras(extras[str(size)], 1024),
-                                 mbox[str(size)], num_classes)   
-    return SSD(phase,base_,extras_,head_, num_classes)
+    base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
+                                     add_extras(extras[str(size)], 1024),
+                                     mbox[str(size)], num_classes)
+    return SSD(phase, base_, extras_, head_, num_classes)
