@@ -105,33 +105,6 @@ You can specify the parameters listed in the `eval.py` file by flagging them or 
 |:-:|:-:|:-:|:-:|
 | 77.2 % | 77.26 % | 58.12% | 77.43 % |
 
-##### Evaluation report for the current version
-
-VOC07 metric? Yes
-
-AP for aeroplane = 0.8172<br />
-AP for bicycle = 0.8544<br />
-AP for bird = 0.7571<br />
-AP for boat = 0.6958<br />
-AP for bottle = 0.4990<br />
-AP for bus = 0.8488<br />
-AP for car = 0.8577<br />
-AP for cat = 0.8737<br />
-AP for chair = 0.6147<br />
-AP for cow = 0.8233<br />
-AP for diningtable = 0.7917<br />
-AP for dog = 0.8559<br />
-AP for horse = 0.8709<br />
-AP for motorbike = 0.8474<br />
-AP for person = 0.7889<br />
-AP for pottedplant = 0.4996<br />
-AP for sheep = 0.7742<br />
-AP for sofa = 0.7913<br />
-AP for train = 0.8616<br />
-AP for tvmonitor = 0.7631<br />
-Mean AP = 0.7743<br />
-
-
 ##### FPS
 **GTX 1060:** ~45.45 FPS 
 
