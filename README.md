@@ -119,8 +119,6 @@ You can specify the parameters listed in the `eval.py` file by flagging them or 
       - https://s3.amazonaws.com/amdegroot-models/ssd300_mAP_77.43_v2.pth
     * SSD300 v2 trained on VOC0712 (original Caffe version)
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_VOC0712.pth
-    * SSD300 v1 (original/old pool6 version) trained on VOC07
-      - https://s3.amazonaws.com/amdegroot-models/ssd_300_voc07.tar.gz
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
 <p align="left">
 <img src="http://www.cs.unc.edu/~wliu/papers/ssd_results.png" alt="SSD results on multiple datasets" width="800px"></p>
