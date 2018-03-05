@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from layers import *
-from data import v2
+from data import voc, coco
 import os
 
 
@@ -29,7 +29,7 @@ class SSD(nn.Module):
         self.phase = phase
         self.num_classes = num_classes
         # TODO: implement __call__ in PriorBox
-        self.priorbox = PriorBox(v2)
+        self.priorbox = PriorBox(coco)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
         self.size = 300
 
@@ -199,7 +199,7 @@ def build_ssd(phase, size=300, num_classes=21):
         print("Error: Phase not recognized")
         return
     if size != 300:
-        print("Error: Sorry only SSD300 is supported currently!")
+        print("Error: Sorry, only SSD300 is currently supported!")
         return
     base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
                                      add_extras(extras[str(size)], 1024),
