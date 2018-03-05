@@ -1,4 +1,5 @@
 from .voc0712 import VOCDetection, AnnotationTransform, detection_collate, VOC_CLASSES
+from .coco import COCODetection, COCOAnnotationTransform
 from .config import *
 import cv2
 import numpy as np
