@@ -23,6 +23,7 @@ parser.add_argument('--visual_threshold', default=0.6, type=float,
 parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to train model')
 parser.add_argument('--voc_root', default=VOC_ROOT, help='Location of VOC root directory')
+parser.add_argument('-f', default=None, type=str, help="Dummy arg so we can load in Jupyter Notebooks")
 args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():

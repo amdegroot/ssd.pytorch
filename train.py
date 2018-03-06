@@ -38,6 +38,7 @@ parser.add_argument('--visdom', default=True, type=str2bool, help='Use visdom fo
 parser.add_argument('--send_images_to_visdom', type=str2bool, default=True, help='Sample a random image from every 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Directory for saving checkpoint models')
 parser.add_argument('--dataset_root', default=COCO_ROOT, help='Dataset root directory path')
+parser.add_argument('-f', default=None, type=str, help="Dummy arg so we can load in Jupyter Notebooks")
 args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():
