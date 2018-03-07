@@ -3,7 +3,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 
 ## Authors
 
-* [**Max de Groot**](https://github.com/amdegroot)
+* [**Max deGroot**](https://github.com/amdegroot)
 * [**Ellis Brown**](http://github.com/ellisbrown)
 
 ***Note:*** Unfortunately, this is just a hobby of ours and not a full-time job, so we'll do our best to keep things up to date, but no guarantees.  That being said, thanks to everyone for your continued help and feedback as it is really appreciated. We will try to address everything as soon as possible. 
@@ -78,7 +78,6 @@ python train.py
 
 - Note:
   * For training, an NVIDIA GPU is strongly recommended for speed.
-  * Currently we only support training on v2 (the newest version).
   * For instructions on Visdom usage/installation, see the <a href='#installation'>Installation</a> section.
   * You can pick-up training from a checkpoint by specifying the path as one of the training parameters (again, see `train.py` for options)
   
@@ -114,9 +113,9 @@ You can specify the parameters listed in the `eval.py` file by flagging them or 
 #### Download a pre-trained network
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
 - Currently, we provide the following PyTorch models: 
-    * SSD300 v2 trained on VOC0712 (newest PyTorch version)
+    * SSD300 trained on VOC0712 (newest PyTorch weights)
       - https://s3.amazonaws.com/amdegroot-models/ssd300_mAP_77.43_v2.pth
-    * SSD300 v2 trained on VOC0712 (original Caffe version)
+    * SSD300 trained on VOC0712 (original Caffe weights)
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_VOC0712.pth
 - Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
 <p align="left">
@@ -152,10 +151,9 @@ jupyter notebook
 ## TODO
 We have accumulated the following to-do list, which you can expect to be done in the very near future
 - Still to come:
-  * Train SSD300 with batch norm
-  * Add support for SSD512 training and testing
-  * Add support for COCO dataset
-  * Create a functional model definition for Sergey Zagoruyko's [functional-zoo](https://github.com/szagoruyko/functional-zoo)
+  * Support for the MS COCO dataset
+  * Support for SSD512 training and testing
+  * Support for training on custom datasets
 
 
 ## References
