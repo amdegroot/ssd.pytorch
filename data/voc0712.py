@@ -5,7 +5,7 @@ https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 
 Updated by: Ellis Brown, Max deGroot
 """
-
+from .config import HOME
 import os
 import os.path
 import sys
@@ -27,12 +27,11 @@ VOC_CLASSES = (  # always index 0
     'motorbike', 'person', 'pottedplant',
     'sheep', 'sofa', 'train', 'tvmonitor')
 
-# for making bounding boxes pretty
-COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
-          (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
+# note: if you used our download scripts, this should be right
+VOC_ROOT = os.path.join(HOME, "data/VOCdevkit/")
 
 
-class AnnotationTransform(object):
+class VOCAnnotationTransform(object):
     """Transforms a VOC annotation into a Tensor of bbox coords and label index
     Initilized with a dictionary lookup of classnames to indexes
 
@@ -184,23 +183,3 @@ class VOCDetection(data.Dataset):
             tensorized version of img, squeezed
         '''
         return torch.Tensor(self.pull_image(index)).unsqueeze_(0)
-
-
-def detection_collate(batch):
-    """Custom collate fn for dealing with batches of images that have a different
-    number of associated object annotations (bounding boxes).
-
-    Arguments:
-        batch: (tuple) A tuple of tensor images and lists of annotations
-
-    Return:
-        A tuple containing:
-            1) (tensor) batch of images stacked on their 0 dim
-            2) (list of tensors) annotations for a given image are stacked on 0 dim
-    """
-    targets = []
-    imgs = []
-    for sample in batch:
-        imgs.append(sample[0])
-        targets.append(torch.FloatTensor(sample[1]))
-    return torch.stack(imgs, 0), targets

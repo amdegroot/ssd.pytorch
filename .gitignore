@@ -123,3 +123,6 @@ test_data_aug.py
 # temp checkout soln
 data/datasets/
 data/ssd_dataloader.py
+
+# pylint
+.pylintrc
