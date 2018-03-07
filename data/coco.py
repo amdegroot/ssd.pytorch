@@ -1,6 +1,6 @@
 from .config import HOME
 import os
-import os.path
+import os.path as osp
 import sys
 import torch
 import torch.utils.data as data
@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 import cv2
 import numpy as np
 
-COCO_ROOT = os.path.join(HOME, 'data/coco/')
+COCO_ROOT = osp.join(HOME, 'data/coco/')
 IMAGES = 'images'
 ANNOTATIONS = 'annotations'
 COCO_API = 'PythonAPI'
@@ -34,6 +34,8 @@ class COCOAnnotationTransform(object):
     """Transforms a COCO annotation into a Tensor of bbox coords and label index
     Initilized with a dictionary lookup of classnames to indexes
     """
+    def __init__(self):
+        self.label_map = get_label_map(osp.join(COCO_ROOT, 'coco_labels.txt'))
 
     def __call__(self, target, width, height):
         """
@@ -51,10 +53,13 @@ class COCOAnnotationTransform(object):
                 bbox = obj['bbox']
                 bbox[2] += bbox[0]
                 bbox[3] += bbox[1]
-                label_idx = obj['category_id']
+                label_idx = self.label_map[obj['category_id']] - 1
                 final_box = list(np.array(bbox)/scale)
                 final_box.append(label_idx)
                 res += [final_box]  # [xmin, ymin, xmax, ymax, label_idx]
+            else:
+                print("no bbox problem!")
+
         return res  # [[xmin, ymin, xmax, ymax, label_idx], ... ]
 
 
@@ -70,16 +75,16 @@ class COCODetection(data.Dataset):
     """
 
     def __init__(self, root, image_set, transform=None,
-                 target_transform=None, dataset_name='COCO2014'):
-        sys.path.append(os.path.join(root, COCO_API))
+                 target_transform=None):
+        sys.path.append(osp.join(root, COCO_API))
         from pycocotools.coco import COCO
-        self.root = os.path.join(root, IMAGES, image_set)
-        self.coco = COCO(os.path.join(root, ANNOTATIONS,
-                                      INSTANCES_SET.format(image_set)))
-        self.ids = list(self.coco.imgs.keys())
+        self.root = osp.join(root, IMAGES, image_set)
+        self.coco = COCO(osp.join(root, ANNOTATIONS,
+                                  INSTANCES_SET.format(image_set)))
+        self.ids = list(self.coco.imgToAnns.keys())
         self.transform = transform
         self.target_transform = target_transform
-        self.name = dataset_name
+        self.name = 'MS COCO ' + image_set
 
     def __getitem__(self, index):
         """
@@ -104,11 +109,14 @@ class COCODetection(data.Dataset):
                    target is the object returned by ``coco.loadAnns``.
         """
         img_id = self.ids[index]
+        target = self.coco.imgToAnns[img_id]
         ann_ids = self.coco.getAnnIds(imgIds=img_id)
+
         target = self.coco.loadAnns(ann_ids)
-        path = self.coco.loadImgs(img_id)[0]['file_name']
-        img = cv2.imread(os.path.join(self.root, path))
-        height, width, channels = img.shape
+        path = osp.join(self.root, self.coco.loadImgs(img_id)[0]['file_name'])
+        assert osp.exists(path), 'Image path does not exist: {}'.format(path)
+        img = cv2.imread(osp.join(self.root, path))
+        height, width, _ = img.shape
         if self.target_transform is not None:
             target = self.target_transform(target, width, height)
         if self.transform is not None:
@@ -117,7 +125,7 @@ class COCODetection(data.Dataset):
                                                 target[:, 4])
             # to rgb
             img = img[:, :, (2, 1, 0)]
-            # img = img.transpose(2, 0, 1)
+
             target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
         return torch.from_numpy(img).permute(2, 0, 1), target, height, width
 
@@ -134,7 +142,7 @@ class COCODetection(data.Dataset):
         '''
         img_id = self.ids[index]
         path = self.coco.loadImgs(img_id)[0]['file_name']
-        return cv2.imread(os.path.join(self.root, path), cv2.IMREAD_COLOR)
+        return cv2.imread(osp.join(self.root, path), cv2.IMREAD_COLOR)
 
     def pull_anno(self, index):
         '''Returns the original annotation of image at index
@@ -161,3 +169,12 @@ class COCODetection(data.Dataset):
         tmp = '    Target Transforms (if any): '
         fmt_str += '{0}{1}'.format(tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         return fmt_str
+
+
+def get_label_map(label_file):
+    label_map = {}
+    labels = open(label_file, 'r')
+    for line in labels:
+        ids = line.split(',')
+        label_map[int(ids[0])] = int(ids[1])
+    return label_map

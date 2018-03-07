@@ -34,8 +34,8 @@ parser.add_argument('--momentum', default=0.9, type=float, help='Momentum value 
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
 parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss at each iteration')
-parser.add_argument('--visdom', default=True, type=str2bool, help='Use visdom for loss visualization')
-parser.add_argument('--send_images_to_visdom', type=str2bool, default=True, help='Sample a random image from every 10th batch, send it to visdom after augmentations step')
+parser.add_argument('--visdom', default=False, type=str2bool, help='Use visdom for loss visualization')
+parser.add_argument('--send_images_to_visdom', type=str2bool, default=False, help='Sample a random image from every 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Directory for saving checkpoint models')
 parser.add_argument('--dataset_root', default=COCO_ROOT, help='Dataset root directory path')
 parser.add_argument('-f', default=None, type=str, help="Dummy arg so we can load in Jupyter Notebooks")
@@ -104,7 +104,7 @@ criterion = MultiBoxLoss(NUM_CLASSES, 0.5, True, 0, True, 3, 0.5, False,
 def train():
     net.train()
     # loss counters
-    loc_loss = 0  # epoch
+    loc_loss = 0
     conf_loss = 0
     epoch = 0
     print('Loading Dataset...')
@@ -112,54 +112,32 @@ def train():
         SSD_DIM, MEANS), COCOAnnotationTransform())
 
     epoch_size = len(dataset) // args.batch_size
-    print('Training SSD on ', dataset.name)
+    print('Training SSD on', dataset.name)
     step_index = 0
+
     if args.visdom:
-        # initialize visdom loss plot
-        lot = viz.line(
-            X=torch.zeros((1,)).cpu(),
-            Y=torch.zeros((1, 3)).cpu(),
-            opts=dict(
-                xlabel='Iteration',
-                ylabel='Loss',
-                title='Current SSD Training Loss',
-                legend=['Loc Loss', 'Conf Loss', 'Loss']
-            )
-        )
-        epoch_lot = viz.line(
-            X=torch.zeros((1,)).cpu(),
-            Y=torch.zeros((1, 3)).cpu(),
-            opts=dict(
-                xlabel='Epoch',
-                ylabel='Loss',
-                title='Epoch SSD Training Loss',
-                legend=['Loc Loss', 'Conf Loss', 'Loss']
-            )
-        )
-    batch_iterator = None
+        vis_title = 'SSD.PyTorch on ' + args.image_set
+        vis_legend = ['Loc Loss', 'Conf Loss', 'Total Loss']
+        iter_plot = create_vis_plot('Iteration', 'Loss', vis_title, vis_legend)
+        epoch_plot = create_vis_plot('Epoch', 'Loss', vis_title, vis_legend)
     data_loader = data.DataLoader(dataset, args.batch_size,
                                   num_workers=args.num_workers,
                                   shuffle=True, collate_fn=detection_collate,
                                   pin_memory=True)
+    # create batch iterator
+    batch_iterator = iter(data_loader)
     for iteration in range(args.start_iter, args.max_iter):
-        if (not batch_iterator) or (iteration % epoch_size == 0):
-            # create batch iterator
-            batch_iterator = iter(data_loader)
-        if iteration in STEP_VALUES:
-            step_index += 1
-            adjust_learning_rate(optimizer, args.gamma, step_index)
-            if args.visdom:
-                viz.line(
-                    X=torch.ones((1, 3)).cpu() * epoch,
-                    Y=torch.Tensor([loc_loss, conf_loss,
-                        loc_loss + conf_loss]).unsqueeze(0).cpu() / epoch_size,
-                    win=epoch_lot,
-                    update='append'
-                )
+        if iteration != 0 and (iteration % epoch_size == 0) and args.visdom:
+            update_vis_plot(epoch, loc_loss, conf_loss, epoch_plot, None,
+                            'append', epoch_size)
             # reset epoch loss counters
             loc_loss = 0
             conf_loss = 0
             epoch += 1
+
+        if iteration in STEP_VALUES:
+            step_index += 1
+            adjust_learning_rate(optimizer, args.gamma, step_index)
 
         # load train data
         images, targets = next(batch_iterator)
@@ -182,29 +160,15 @@ def train():
         t1 = time.time()
         loc_loss += loss_l.data[0]
         conf_loss += loss_c.data[0]
+
         if iteration % 10 == 0:
-            print('Timer: %.4f sec.' % (t1 - t0))
+            print('timer: %.4f sec.' % (t1 - t0))
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
-            if args.visdom and args.send_images_to_visdom:
-                random_batch_index = np.random.randint(images.size(0))
-                viz.image(images.data[random_batch_index].cpu().numpy())
+
         if args.visdom:
-            viz.line(
-                X=torch.ones((1, 3)).cpu() * iteration,
-                Y=torch.Tensor([loss_l.data[0], loss_c.data[0],
-                    loss_l.data[0] + loss_c.data[0]]).unsqueeze(0).cpu(),
-                win=lot,
-                update='append'
-            )
-            # hacky fencepost solution for 0th epoch plot
-            if iteration == 0:
-                viz.line(
-                    X=torch.zeros((1, 3)).cpu(),
-                    Y=torch.Tensor([loc_loss, conf_loss,
-                        loc_loss + conf_loss]).unsqueeze(0).cpu(),
-                    win=epoch_lot,
-                    update=True
-                )
+            update_vis_plot(iteration, loss_l.data[0], loss_c.data[0],
+                            iter_plot, epoch_plot, 'append')
+
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
             torch.save(ssd_net.state_dict(), 'weights/ssd300_COCO_' +
@@ -222,6 +186,37 @@ def adjust_learning_rate(optimizer, gamma, step):
     lr = args.lr * (gamma ** (step))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+
+
+def create_vis_plot(_xlabel, _ylabel, _title, _legend):
+    return viz.line(
+        X=torch.zeros((1,)).cpu(),
+        Y=torch.zeros((1, 3)).cpu(),
+        opts=dict(
+            xlabel=_xlabel,
+            ylabel=_ylabel,
+            title=_title,
+            legend=_legend
+        )
+    )
+
+
+def update_vis_plot(iteration, loc, conf, window1, window2, update_type,
+                    epoch_size=1):
+    viz.line(
+        X=torch.ones((1, 3)).cpu() * iteration,
+        Y=torch.Tensor([loc, conf, loc + conf]).unsqueeze(0).cpu() / epoch_size,
+        win=window1,
+        update=update_type
+    )
+    # initialize epoch plot on first iteration
+    if iteration == 0:
+        viz.line(
+            X=torch.zeros((1, 3)).cpu(),
+            Y=torch.Tensor([loc, conf, loc + conf]).unsqueeze(0).cpu(),
+            win=window2,
+            update=True
+        )
 
 
 if __name__ == '__main__':
