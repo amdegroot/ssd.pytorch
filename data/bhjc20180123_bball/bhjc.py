@@ -161,7 +161,10 @@ class BhjcBballDataset(data.Dataset):
 
         if self.transform is not None:
             target = np.array(target)
-            print(target[:, :4])
+            print('\n\n target: \n\n')
+            print('1:', target.shape)
+            print('2:', target)
+            print('3:', target[:, :4])
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
             # to rgb
             img = img[:, :, (2, 1, 0)]
