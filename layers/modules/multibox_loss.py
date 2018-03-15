@@ -59,8 +59,10 @@ class MultiBoxLoss(nn.Module):
         """
         loc_data, conf_data, priors = predictions
         num = loc_data.size(0)
+        print('--------num', num)
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
+        print('--------num_priors', num_priors)
         num_classes = self.num_classes
 
         # match priors (default boxes) and ground truth boxes

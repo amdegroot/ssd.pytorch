@@ -170,17 +170,17 @@ def add_extras(cfg, i, batch_norm=False):
 def multibox(vgg, extra_layers, cfg, num_classes):
     loc_layers = []
     conf_layers = []
-    vgg_source = [21, -2]
+    vgg_source = [21, -2]  # coming from middle of conv4_3 and middle of conv6
     for k, v in enumerate(vgg_source):
         loc_layers += [nn.Conv2d(vgg[v].out_channels,
-                                 cfg[k] * 4, kernel_size=3, padding=1)]
+                                 cfg[k] * 4, kernel_size=3, padding=1, stride=1)]  #changed from stiede1
         conf_layers += [nn.Conv2d(vgg[v].out_channels,
-                        cfg[k] * num_classes, kernel_size=3, padding=1)]
+                        cfg[k] * num_classes, kernel_size=3, padding=1, stride=1)] #changed from stride1
     for k, v in enumerate(extra_layers[1::2], 2):
         loc_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                 * 4, kernel_size=3, padding=1, stride=2)] #changed from stide1
+                                 * 4, kernel_size=3, padding=1, stride=1)] #changed from stide1
         conf_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                  * num_classes, kernel_size=3, padding=1, stride=2)] #changed from stride1
+                                  * num_classes, kernel_size=3, padding=1, stride=1)] #changed from stride1
     return vgg, extra_layers, (loc_layers, conf_layers)
 
 
