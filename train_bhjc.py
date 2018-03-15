@@ -7,13 +7,15 @@ import torch.nn.init as init
 import argparse
 from torch.autograd import Variable
 import torch.utils.data as data
-from data import v2, v1, AnnotationTransform, VOCDetection, detection_collate, VOCroot, VOC_CLASSES
+from data import v2, v1, detection_collate
+from data.bhjc20180123_bball.bhjc import BhjcBballDataset, AnnotationTransformBhjc, CLASSES
 from utils.augmentations import SSDAugmentation
 from layers.modules import MultiBoxLoss
 from ssd import build_ssd
 import numpy as np
 import time
-
+import datetime
+from helperFunctions.printing import print_color
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -37,7 +39,9 @@ parser.add_argument('--log_iters', default=True, type=bool, help='Print the loss
 parser.add_argument('--visdom', default=False, type=str2bool, help='Use visdom to for loss visualization')
 parser.add_argument('--send_images_to_visdom', type=str2bool, default=False, help='Sample a random image from each 10th batch, send it to visdom after augmentations step')
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
-parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
+parser.add_argument('--anno_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/')
+parser.add_argument('--img_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/labels/left_cam/')
+
 args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():
@@ -50,18 +54,16 @@ cfg = (v1, v2)[args.version == 'v2']
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
-train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
-train_sets = [('2007', 'trainval')]
-
-
 # train_sets = 'train'
-ssd_dim = 300  # only support 300 now
-means = (104, 117, 123)  # only support voc now
-num_classes = len(VOC_CLASSES) + 1
+ssd_dim = 1166  # dimension of small side of image
+# means = (104, 117, 123)  # only support voc now
+means = (103, 100, 94)  # RGB mean values for bhjc 700 image set
+num_classes = len(CLASSES) + 1
 batch_size = args.batch_size
 accum_batch_size = 32
 iter_size = accum_batch_size / batch_size
 max_iter = 120000
+max_iter = args.iterations
 weight_decay = 0.0005
 stepvalues = (80000, 100000, 120000)
 gamma = 0.1
@@ -71,7 +73,7 @@ if args.visdom:
     import visdom
     viz = visdom.Visdom()
 
-ssd_net = build_ssd('train', 300, num_classes)
+ssd_net = build_ssd('train', 300, num_classes)  # use the configuration for the SSD300 network
 net = ssd_net
 
 if args.cuda:
@@ -120,8 +122,19 @@ def train():
     epoch = 0
     print('Loading Dataset...')
 
-    dataset = VOCDetection(args.voc_root, train_sets, SSDAugmentation(
-        ssd_dim, means), AnnotationTransform())
+    id_file = '/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt'
+
+    with open(id_file) as f:
+        train_image_ids = f.readlines()
+    train_image_ids = [im_id.rstrip() for im_id in train_image_ids]
+
+    train_image_ids = ['00132']
+
+    # train_image_ids = ['00198', '00091']
+    dataset = BhjcBballDataset(args.anno_dir, args.img_dir, train_image_ids,
+                               SSDAugmentation(ssd_dim, means), AnnotationTransformBhjc())
+
+    print_color('blue', 'dataset loaded')
 
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
@@ -182,6 +195,7 @@ def train():
             targets = [Variable(anno, volatile=True) for anno in targets]
         # forward
         t0 = time.time()
+        print(images)
         out = net(images)
         # backprop
         optimizer.zero_grad()
@@ -217,9 +231,13 @@ def train():
                 )
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_' +
+            torch.save(ssd_net.state_dict(), 'weights/ssd1166_bhjctrained_iter' +
                        repr(iteration) + '.pth')
-    torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
+
+    time_stamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    unique_id = '_{}'.format(time_stamp)
+
+    torch.save(ssd_net.state_dict(), args.save_folder + 'ssd1166_bhjctrained_final' + args.version + unique_id + '.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, step):

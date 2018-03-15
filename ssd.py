@@ -31,7 +31,7 @@ class SSD(nn.Module):
         # TODO: implement __call__ in PriorBox
         self.priorbox = PriorBox(v2)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
-        self.size = 300
+        self.size = 1166
 
         # SSD network
         self.vgg = nn.ModuleList(base)
@@ -91,10 +91,15 @@ class SSD(nn.Module):
         for (x, l, c) in zip(sources, self.loc, self.conf):
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
+            print('before confidence layer:', x.shape)
+            print('after confidence layer:', c(x).shape)
 
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
         if self.phase == "test":
+            print('after softmax:', self.softmax(conf.view(conf.size(0), -1,
+                    self.num_classes)))
+            print('priors:', self.priors.shape)
             output = self.detect(
                 loc.view(loc.size(0), -1, 4),                   # loc preds
                 self.softmax(conf.view(conf.size(0), -1,
@@ -104,7 +109,7 @@ class SSD(nn.Module):
         else:
             output = (
                 loc.view(loc.size(0), -1, 4),
-                conf.view(conf.size(0), -1, self.num_classes),
+                conf.view(conf.size(0), -1, self.num_classes),  # why no softmax here?
                 self.priors
             )
         return output
