@@ -15,7 +15,6 @@ from ssd import build_ssd
 import numpy as np
 import time
 import datetime
-from helperFunctions.printing import print_color
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -136,8 +135,6 @@ def train():
 
     dataset = BhjcBballDataset(args.anno_dir, args.img_dir, train_image_ids,
                                SSDAugmentation(ssd_dim, means), AnnotationTransformBhjc())
-
-    print_color('blue', 'dataset loaded')
 
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
