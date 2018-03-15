@@ -95,6 +95,7 @@ class SSD(nn.Module):
             # print('after confidence layer:', c(x).shape)
 
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
+        print('-----loc', loc.shape)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
         if self.phase == "test":
             # print('after softmax:', self.softmax(conf.view(conf.size(0), -1,
