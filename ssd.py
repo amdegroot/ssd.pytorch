@@ -178,9 +178,9 @@ def multibox(vgg, extra_layers, cfg, num_classes):
                         cfg[k] * num_classes, kernel_size=3, padding=1)]
     for k, v in enumerate(extra_layers[1::2], 2):
         loc_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                 * 4, kernel_size=3, padding=1)]
+                                 * 4, kernel_size=3, padding=1, stride=2)] #changed from stide1
         conf_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                  * num_classes, kernel_size=3, padding=1)]
+                                  * num_classes, kernel_size=3, padding=1, stride=2)] #changed from stride1
     return vgg, extra_layers, (loc_layers, conf_layers)
 
 

@@ -79,14 +79,10 @@ class MultiBoxLoss(nn.Module):
         loc_t = Variable(loc_t, requires_grad=False)
         conf_t = Variable(conf_t, requires_grad=False)
 
-        print('ppppppppp: ', len(conf_t))
-        print('lllllllll: ', len(loc_t))
-        print(conf_t)
-        print(loc_t)
         pos = conf_t > 0
         num_pos = pos.sum(dim=1, keepdim=True)
-        print(num_pos)
-        print(pos)
+        # print(num_pos)
+        # print(pos)
         # Localization Loss (Smooth L1)
         # Shape: [batch,num_priors,4]
         pos_idx = pos.unsqueeze(pos.dim()).expand_as(loc_data)
