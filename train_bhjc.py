@@ -42,7 +42,7 @@ parser.add_argument('--save_folder', default='weights/', help='Location to save 
 parser.add_argument('--anno_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/')
 parser.add_argument('--img_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/labels/left_cam/')
 # parser.add_argument('--id_file', default='/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
-parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/bball_detection/data/bhjc20180123_bball/bhjc_trainval.txt')
+parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/ssd.pytorch/bball_detection/data/bhjc20180123_bball/bhjc_trainval.txt')
 
 
 args = parser.parse_args()
