@@ -27,7 +27,7 @@ class PriorBox(object):
         self.clip = cfg['clip']
         self.version = cfg['name']
         self.center_step_size = cfg['center_step_size']
-        self.square_only = cfg['sqaure_only']
+        self.square_only = cfg['square_only']
         for v in self.variance:
             if v <= 0:
                 raise ValueError('Variances must be greater than 0')
