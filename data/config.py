@@ -48,7 +48,7 @@ v2 = {
 
     'name' : 'v2',
 
-    'center_step_size': 2
+    'center_step_size': 1
 }
 
 bhjc_cfg = {
