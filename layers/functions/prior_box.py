@@ -26,6 +26,8 @@ class PriorBox(object):
         self.aspect_ratios = cfg['aspect_ratios']
         self.clip = cfg['clip']
         self.version = cfg['name']
+        self.center_step_size = cfg['center_step_size']
+        self.square_only = cfg['sqaure_only']
         for v in self.variance:
             if v <= 0:
                 raise ValueError('Variances must be greater than 0')
@@ -35,7 +37,7 @@ class PriorBox(object):
         # TODO merge these
         if self.version == 'v2':
             for k, f in enumerate(self.feature_maps):
-                for i, j in product(range(f), repeat=2):
+                for i, j in product(range(f, self.center_step_size), repeat=2):
                     f_k = self.image_size / self.steps[k]
                     # unit center x,y
                     cx = (j + 0.5) / f_k
@@ -52,9 +54,10 @@ class PriorBox(object):
                     mean += [cx, cy, s_k_prime, s_k_prime]
 
                     # rest of aspect ratios
-                    for ar in self.aspect_ratios[k]:
-                        mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
-                        mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
+                    if not self.square_only:
+                        for ar in self.aspect_ratios[k]:
+                            mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
+                            mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
 
         else:
             # original version generation of prior (default) boxes

@@ -196,7 +196,7 @@ def train():
             targets = [Variable(anno, volatile=True) for anno in targets]
         # forward
         t0 = time.time()
-        print(images)
+        # print(images)
         out = net(images)
         # backprop
         optimizer.zero_grad()
