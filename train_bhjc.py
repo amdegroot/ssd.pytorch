@@ -42,7 +42,7 @@ parser.add_argument('--anno_dir', default='/Users/keith.landry/data/internal-exp
 parser.add_argument('--img_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/labels/left_cam/')
 # parser.add_argument('--id_file', default='/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
 parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
-
+parser.add_argument('--ball_only', default=True)
 
 args = parser.parse_args()
 
@@ -135,7 +135,7 @@ def train():
 
     dataset = BhjcBballDataset(args.anno_dir, args.img_dir, train_image_ids,
                                SSDAugmentation(ssd_dim, means),
-                               AnnotationTransformBhjc(ball_only=True))
+                               AnnotationTransformBhjc(ball_only=args.ball_only))
 
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
