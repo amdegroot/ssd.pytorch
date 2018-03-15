@@ -37,10 +37,11 @@ class AnnotationTransformBhjc(object):
         width (int): width
     """
 
-    def __init__(self, class_to_ind=None, keep_difficult=False):
+    def __init__(self, class_to_ind=None, keep_difficult=False, ball_only=False):
         self.class_to_ind = class_to_ind or dict(
             zip(CLASSES, range(len(CLASSES))))
         self.keep_difficult = keep_difficult
+        self.ball_only = ball_only
 
     def __call__(self, target, width, height):
         """
@@ -56,6 +57,10 @@ class AnnotationTransformBhjc(object):
             if not self.keep_difficult and difficult:
                 continue
             name = obj.find('name').text.lower().strip()
+            # move to next object if not a ball and we've decided on ball detection only
+            if self.ball_only and 'ball' not in name:
+                continue
+
             bbox = obj.find('bndbox')
 
             pts = ['xmin', 'ymin', 'xmax', 'ymax']

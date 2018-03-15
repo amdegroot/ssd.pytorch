@@ -134,7 +134,8 @@ def train():
     # train_image_ids = ['00198', '00091']
 
     dataset = BhjcBballDataset(args.anno_dir, args.img_dir, train_image_ids,
-                               SSDAugmentation(ssd_dim, means), AnnotationTransformBhjc())
+                               SSDAugmentation(ssd_dim, means),
+                               AnnotationTransformBhjc(ball_only=True))
 
     epoch_size = len(dataset) // args.batch_size
     print('Training SSD on', dataset.name)
