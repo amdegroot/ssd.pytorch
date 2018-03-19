@@ -42,7 +42,7 @@ parser.add_argument('--anno_dir', default='/Users/keith.landry/data/internal-exp
 parser.add_argument('--img_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/labels/left_cam/')
 # parser.add_argument('--id_file', default='/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
 parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
-parser.add_argument('--ball_only', default=True)
+parser.add_argument('--ball_only', default=True, type=str2bool)
 
 args = parser.parse_args()
 
@@ -131,6 +131,7 @@ def train():
     train_image_ids = [im_id.rstrip() for im_id in train_image_ids]
 
     # train_image_ids = ['00132']
+    # train_image_ids = ['00196']
     # train_image_ids = ['00198', '00091']
 
     dataset = BhjcBballDataset(args.anno_dir, args.img_dir, train_image_ids,

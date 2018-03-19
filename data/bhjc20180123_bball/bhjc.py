@@ -58,9 +58,14 @@ class AnnotationTransformBhjc(object):
             if not self.keep_difficult and difficult:
                 continue
             name = obj.find('name').text.lower().strip()
+
+            detect_only_balls = self.ball_only
+
             # move to next object if not a ball and we've decided on ball detection only
-            if self.ball_only and 'ball' not in name:
-                continue
+            if detect_only_balls:
+                if 'ball' not in name:
+                    print('object not a ball, skipping', name)
+                    continue
 
             bbox = obj.find('bndbox')
 
@@ -74,6 +79,7 @@ class AnnotationTransformBhjc(object):
             label_idx = self.class_to_ind[name]
             bndbox.append(label_idx)
             res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
+            # print(bndbox)
             # img_id = target.find('filename').text[:-4]
 
         return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]

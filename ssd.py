@@ -108,9 +108,11 @@ class SSD(nn.Module):
                 self.priors.type(type(x.data))                  # default boxes
             )
         else:
+            print(loc.view(loc.size(0), -1, 4))
+            print(conf.view(conf.size(0), -1, self.num_classes))
             output = (
                 loc.view(loc.size(0), -1, 4),
-                conf.view(conf.size(0), -1, self.num_classes),  # why no softmax here?
+                conf.view(conf.size(0), -1, self.num_classes),  # why no softmax here? -> goes into multibox loss
                 self.priors
             )
         return output
