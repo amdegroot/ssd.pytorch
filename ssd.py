@@ -108,7 +108,9 @@ class SSD(nn.Module):
                 self.priors.type(type(x.data))                  # default boxes
             )
         else:
+            print('locations:')
             print(loc.view(loc.size(0), -1, 4))
+            print('confs:')
             print(conf.view(conf.size(0), -1, self.num_classes))
             output = (
                 loc.view(loc.size(0), -1, 4),
