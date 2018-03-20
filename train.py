@@ -72,7 +72,7 @@ if args.visdom:
     viz = visdom.Visdom()
 
 ssd_net = build_ssd('train', 300, num_classes)
-net = ssd_net
+net = torch.nn.DataParallel(ssd_net)
 
 if args.cuda:
     net = torch.nn.DataParallel(ssd_net)
