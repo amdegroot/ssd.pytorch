@@ -58,8 +58,8 @@ if not os.path.exists(args.save_folder):
 
 # train_sets = 'train'
 ssd_dim = 1166  # dimension of small side of image
-# means = (104, 117, 123)  # only support voc now
-means = (103, 100, 94)  # RGB mean values for bhjc 700 image set
+means = (104, 117, 123)  # only support voc now
+# means = (103, 100, 94)  # RGB mean values for bhjc 700 image set
 num_classes = len(CLASSES) + 1
 batch_size = args.batch_size
 accum_batch_size = 32
@@ -130,7 +130,7 @@ def train():
         train_image_ids = f.readlines()
     train_image_ids = [im_id.rstrip() for im_id in train_image_ids]
 
-    # train_image_ids = ['00132']
+    # train_image_ids = ['00885', '00885']
     # train_image_ids = ['00196']
     # train_image_ids = ['00198', '00091']
 
@@ -188,6 +188,7 @@ def train():
 
         # load train data
         images, targets = next(batch_iterator)
+        print(targets)
 
         if args.cuda:
             images = Variable(images.cuda())
@@ -239,7 +240,7 @@ def train():
     time_stamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
     unique_id = '_{}'.format(time_stamp)
 
-    torch.save(ssd_net.state_dict(), args.save_folder + 'ssd1166_bhjctrained_final' + args.version + unique_id + '.pth')
+    torch.save(ssd_net.state_dict(), args.save_folder + 'ssd1166_bhjctrained_final_ballonly' + args.version + unique_id + '.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, step):

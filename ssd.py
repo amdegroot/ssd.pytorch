@@ -31,7 +31,7 @@ class SSD(nn.Module):
         # TODO: implement __call__ in PriorBox
         self.priorbox = PriorBox(v2)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
-        self.size = 1166
+        self.size = 300
 
         # SSD network
         self.vgg = nn.ModuleList(base)
@@ -191,21 +191,22 @@ def multibox(vgg, extra_layers, cfg, num_classes):
 
 
 base = {
-    '300': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
-            512, 512, 512],
+    '300': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M', 512, 512, 512],
     '512': [],
+    '1166': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M', 512, 512, 512]
 }
 extras = {
     '300': [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256],
     '512': [],
+    '1166': [256, 'S', 512, 128, 'S', 256, 256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256]
 }
 mbox = {
     # number of boxes per feature map location default for 300
     # needs to be the same at 2 + 2*len(aspect ratios) in config.py
     '300': [4, 6, 6, 6, 4, 4],
     # '300': [2, 2, 2, 2, 2, 2],  # only square boxes
-
     '512': [],
+    '1166': [4, 6, 6, 6, 4, 4]
 }
 
 
@@ -216,7 +217,8 @@ def build_ssd(phase, size=300, num_classes=21):
     if size != 300:
         print("Error: Sorry only SSD300 is supported currently!")
         return
+    print('number of classes =', num_classes)
     base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
-                                     add_extras(extras[str(size)], 1024),
+                                     add_extras(extras[str(size)], 1024),  # 3 and 1024 are input channels
                                      mbox[str(size)], num_classes)
     return SSD(phase, base_, extras_, head_, num_classes)

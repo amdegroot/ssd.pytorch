@@ -18,8 +18,8 @@ else:
 
 
 # GLOBALS
-CLASSES = ('person', 'basketball')
-# CLASSES = ['basketball']
+# CLASSES = ('person', 'basketball')
+CLASSES = ['basketball']
 # for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
           (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
