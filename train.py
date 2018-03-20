@@ -66,13 +66,15 @@ weight_decay = 0.0005
 stepvalues = (80000, 100000, 120000)
 gamma = 0.1
 momentum = 0.9
+os.environ['CUDA_LAUNCH_BLOCKING'] = 1
 
 if args.visdom:
     import visdom
     viz = visdom.Visdom()
 
 ssd_net = build_ssd('train', 300, num_classes)
-net = torch.nn.DataParallel(ssd_net)
+# net = torch.nn.DataParallel(ssd_net)
+net = ssd_net
 
 if args.cuda:
     net = torch.nn.DataParallel(ssd_net)
