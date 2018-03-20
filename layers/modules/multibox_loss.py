@@ -83,7 +83,7 @@ class MultiBoxLoss(nn.Module):
 
         pos = conf_t > 0
         num_pos = pos.sum(dim=1, keepdim=True)
-        # print(num_pos)
+        print('num positive classes', num_pos)
         # print(pos)
         # Localization Loss (Smooth L1)
         # Shape: [batch,num_priors,4]

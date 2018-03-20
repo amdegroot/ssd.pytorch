@@ -93,6 +93,7 @@ class SSD(nn.Module):
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
             # print('before confidence layer:', x.shape)
             # print('after confidence layer:', c(x).shape)
+            # print('loc0 ----- ', type(loc[0]))
 
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         print('-----loc', loc.shape)
