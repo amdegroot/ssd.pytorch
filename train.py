@@ -66,7 +66,7 @@ weight_decay = 0.0005
 stepvalues = (80000, 100000, 120000)
 gamma = 0.1
 momentum = 0.9
-os.environ['CUDA_LAUNCH_BLOCKING'] = 1
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 if args.visdom:
     import visdom
