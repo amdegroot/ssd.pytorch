@@ -40,8 +40,8 @@ parser.add_argument('--send_images_to_visdom', type=str2bool, default=False, hel
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 parser.add_argument('--anno_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/')
 parser.add_argument('--img_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/labels/left_cam/')
-# parser.add_argument('--id_file', default='/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
-parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
+parser.add_argument('--id_file', default='/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
+# parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
 parser.add_argument('--ball_only', default=True, type=str2bool)
 
 args = parser.parse_args()
@@ -130,9 +130,11 @@ def train():
         train_image_ids = f.readlines()
     train_image_ids = [im_id.rstrip() for im_id in train_image_ids]
 
-    # train_image_ids = ['00885', '00885']
+    # train_image_ids = ['00700']
     # train_image_ids = ['00196']
     # train_image_ids = ['00198', '00091']
+    # print(train_image_ids)
+    # return 0
 
     dataset = BhjcBballDataset(args.anno_dir, args.img_dir, train_image_ids,
                                SSDAugmentation(ssd_dim, means),
@@ -240,7 +242,7 @@ def train():
     time_stamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
     unique_id = '_{}'.format(time_stamp)
 
-    torch.save(ssd_net.state_dict(), args.save_folder + 'ssd1166_bhjctrained_final_ballonly' + args.version + unique_id + '.pth')
+    torch.save(ssd_net.state_dict(), args.save_folder + 'ssd1166_bhjctrained_final_gpu_ballandman' + args.version + unique_id + '.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, step):
