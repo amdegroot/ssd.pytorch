@@ -59,10 +59,10 @@ class MultiBoxLoss(nn.Module):
         """
         loc_data, conf_data, priors = predictions
         num = loc_data.size(0)
-        print('--------num', num)
+        # print('--------num', num)
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
-        print('--------num_priors', num_priors)
+        # print('--------num_priors', num_priors)
         num_classes = self.num_classes
 
         # match priors (default boxes) and ground truth boxes
@@ -83,7 +83,7 @@ class MultiBoxLoss(nn.Module):
 
         pos = conf_t > 0
         num_pos = pos.sum(dim=1, keepdim=True)
-        print('num positive classes', num_pos)
+        # print('num positive classes', num_pos)
         # print(pos)
         # Localization Loss (Smooth L1)
         # Shape: [batch,num_priors,4]

@@ -40,7 +40,7 @@ v2 = {
     # 'aspect_ratios' : [[2], [2, 3], [2, 3], [2, 3], [2], [2]],
     'aspect_ratios': [[2], [2, 3], [2, 3], [2, 3], [2], [2]],  # default for 300
 
-    'square_only': False,
+    'square_only': True,
 
     'variance': [0.1, 0.2],
 

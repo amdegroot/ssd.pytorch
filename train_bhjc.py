@@ -196,7 +196,7 @@ def train():
 
         # load train data
         images, targets = next(batch_iterator)
-        print(targets)
+        # print(targets)
 
         if args.cuda:
             images = Variable(images.cuda())
@@ -240,7 +240,7 @@ def train():
                     win=epoch_lot,
                     update=True
                 )
-        if iteration % 5000 == 0:
+        if iteration % 1000 == 0:
             print('Saving state, iter:', iteration)
             torch.save(ssd_net.state_dict(), 'weights/ssd1166_bhjctrained_iter' +
                        repr(iteration) + '.pth')
