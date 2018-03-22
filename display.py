@@ -12,6 +12,9 @@ if torch.cuda.is_available():
 from ssd import build_ssd
 import boto3
 import tempfile
+# from data import VOC_CLASSES as labels
+from data.bhjc20180123_bball.bhjc import CLASSES as labels
+from matplotlib import pyplot as plt
 
 
 def get_img_targ_from_s3(img_id, s3_bucket='geniussports-computer-vision-data',
@@ -38,7 +41,6 @@ net = build_ssd('test', 300, 3, square_boxes=False)    # initialize SSD 21 class
 weight_file = 'weights/ssd1166_bhjctrained_iter5000_smallLR.pth'
 net.load_weights(weight_file)
 
-from matplotlib import pyplot as plt
 
 im00 = '00{}'
 
@@ -71,10 +73,8 @@ for id in range(650, 755):
         xx = xx.cuda()
     y = net(xx)  # passes image through pretrained network
 
-    # from data import VOC_CLASSES as labels
-    from data.bhjc20180123_bball.bhjc import CLASSES as labels
-
     top_k = 10
+    plt.ioff()
 
     plt.figure(figsize=(10, 10))
     colors = ['green', 'purple'] #plt.cm.hsv(np.linspace(0, 1, 21)).tolist()
