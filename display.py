@@ -10,6 +10,35 @@ import cv2
 if torch.cuda.is_available():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 from ssd import build_ssd
+import boto3
+import tempfile
+
+
+def get_img_targ_from_s3(self, img_id, s3_bucket='geniussports-computer-vision-data',
+                         s3_path='internal-experiments/basketball/bhjc/20180123/'):
+    im_path = s3_path + 'images/left_cam/' + self.file_name_prfx + img_id + '.png'
+    anno_path = s3_path + 'labels/' + self.file_name_prfx + img_id + '.xml'  # xml file has no left_cam directory
+
+    print('loading:', im_path)
+    print('loading:', anno_path)
+
+    s3 = boto3.resource('s3', region_name='us-west-2')
+    bucket = s3.Bucket(s3_bucket)
+    im_obj = bucket.Object(im_path)
+    anno_obj = bucket.Object(anno_path)
+
+    tmp = tempfile.NamedTemporaryFile()
+
+    # dowload to temp file and read in
+    with open(tmp.name, 'wb') as f:
+        im_obj.download_fileobj(f)
+    img = cv2.imread(tmp.name)
+
+    with open(tmp.name, 'wb') as f:
+        anno_obj.download_fileobj(f)
+    target = ET.parse(tmp.name).getroot()
+
+    return img, target
 
 
 net = build_ssd('test', 300, 3, square_boxes=False)    # initialize SSD 21 classes (num classes + 1)
@@ -24,10 +53,11 @@ for id in range(650, 755):
     img_id = im00.format(id)
 
 # img_id = '00670'
-    path_to_bball_im = '/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/'
-    bball_file = 'left_scene2_rot180_{}.png'.format(img_id)  # 442, 531, 855, 132
+#     path_to_bball_im = '/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/'
+#     bball_file = 'left_scene2_rot180_{}.png'.format(img_id)  # 442, 531, 855, 132
+#     image = cv2.imread(path_to_bball_im + bball_file, cv2.IMREAD_COLOR)
 
-    image = cv2.imread(path_to_bball_im + bball_file, cv2.IMREAD_COLOR)
+    image, _ = get_img_targ_from_s3(img_id)
     print(image.shape)
 
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
