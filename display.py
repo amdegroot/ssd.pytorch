@@ -76,7 +76,7 @@ for id in range(650, 755):
     top_k = 10
     plt.ioff()
 
-    plt.figure(figsize=(10, 10))
+    # plt.figure(figsize=(10, 10))
     colors = ['green', 'purple'] #plt.cm.hsv(np.linspace(0, 1, 21)).tolist()
     plt.imshow(rgb_image)  # plot the image for matplotlib
     currentAxis = plt.gca()
