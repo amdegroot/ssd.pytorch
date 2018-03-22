@@ -42,11 +42,11 @@ v2 = {
 
     'square_only': False,
 
-    'variance' : [0.1, 0.2],
+    'variance': [0.1, 0.2],
 
-    'clip' : True,
+    'clip': True,
 
-    'name' : 'v2',
+    'name': 'v2',
 
     'center_step_size': 1
 }
