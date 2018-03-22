@@ -110,4 +110,6 @@ for id in range(650, 755):
                                                     edgecolor=color, linewidth=1, alpha=.8))
                 currentAxis.text(pt[0], pt[1], display_txt, bbox={'facecolor': color, 'alpha': 0.2})
 
-    plt.savefig('/Users/keith.landry/code/ssd.pytorch/data/output_imgs/leftcam_detect_{}.png'.format(img_id))
+    outfile = '/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/output_imgs/leftcam_detect_{}.png'.format(img_id)
+    # outfile = '/Users/keith.landry/code/ssd.pytorch/data/output_imgs/leftcam_detect_{}.png'.format(img_id)
+    plt.savefig(outfile)
