@@ -18,8 +18,8 @@ else:
 
 
 # GLOBALS
-CLASSES = ('person', 'basketball')
-# CLASSES = ['basketball']
+# CLASSES = ('person', 'basketball')
+CLASSES = ['basketball']
 # for making bounding boxes pretty
 COLORS = ((255, 0, 0, 128), (0, 255, 0, 128), (0, 0, 255, 128),
           (0, 255, 255, 128), (255, 0, 255, 128), (255, 255, 0, 128))
@@ -64,7 +64,7 @@ class AnnotationTransformBhjc(object):
             # move to next object if not a ball and we've decided on ball detection only
             if detect_only_balls:
                 if 'ball' not in name:
-                    print('object not a ball, skipping', name)
+                    # print('object not a ball, skipping', name)
                     continue
 
             bbox = obj.find('bndbox')

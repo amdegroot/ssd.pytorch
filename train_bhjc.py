@@ -16,6 +16,7 @@ import numpy as np
 import time
 import datetime
 
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
@@ -30,7 +31,7 @@ parser.add_argument('--num_workers', default=4, type=int, help='Number of worker
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training iterations')
 parser.add_argument('--start_iter', default=0, type=int, help='Begin counting iterations starting from this value (should be used with resume)')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda to train model')
-parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
+parser.add_argument('--lr', '--learning-rate', default=1e-5, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
@@ -40,9 +41,10 @@ parser.add_argument('--send_images_to_visdom', type=str2bool, default=False, hel
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 parser.add_argument('--anno_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/')
 parser.add_argument('--img_dir', default='/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/labels/left_cam/')
-# parser.add_argument('--id_file', default='/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
-parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
+parser.add_argument('--id_file', default='/Users/keith.landry/code/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
+# parser.add_argument('--id_file', default='/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/bhjc20180123_bball/bhjc_trainval.txt')
 parser.add_argument('--ball_only', default=True, type=str2bool)
+parser.add_argument('--square_boxes', default=False, type=str2bool)
 
 args = parser.parse_args()
 
@@ -57,9 +59,13 @@ if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
 # train_sets = 'train'
+if args.ball_only:
+    CLASSES = ['basketball']
+
 ssd_dim = 1166  # dimension of small side of image
 means = (104, 117, 123)  # only support voc now
 # means = (103, 100, 94)  # RGB mean values for bhjc 700 image set
+std_devs = (71.1, 69.2, 67.3)
 num_classes = len(CLASSES) + 1
 batch_size = args.batch_size
 accum_batch_size = 32
@@ -75,11 +81,11 @@ if args.visdom:
     import visdom
     viz = visdom.Visdom()
 
-ssd_net = build_ssd('train', 300, num_classes)  # use the configuration for the SSD300 network
+ssd_net = build_ssd('train', 300, num_classes, args.square_boxes)  # use the configuration for the SSD300 network
 net = ssd_net
 
 if args.cuda:
-    net = torch.nn.DataParallel(ssd_net)
+    net = torch.nn.DataParallel(ssd_net)  # this fixed something
     cudnn.benchmark = True
 
 if args.resume:

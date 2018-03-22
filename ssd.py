@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from layers import *
-from data import v2
+from data import v2, bhjc_cfg
 import os
 
 
@@ -32,6 +32,7 @@ class SSD(nn.Module):
         self.priorbox = PriorBox(v2)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
         self.size = 300
+        self.config = v2
 
         # SSD network
         self.vgg = nn.ModuleList(base)
@@ -73,8 +74,8 @@ class SSD(nn.Module):
         for k in range(23):
             x = self.vgg[k](x)
 
-        s = self.L2Norm(x)
-        sources.append(s)
+        norm_output_conv4_3 = self.L2Norm(x)
+        sources.append(norm_output_conv4_3)
 
         # apply vgg up to fc7
         for k in range(23, len(self.vgg)):
@@ -99,9 +100,6 @@ class SSD(nn.Module):
         print('-----loc', loc.shape)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
         if self.phase == "test":
-            # print('after softmax:', self.softmax(conf.view(conf.size(0), -1,
-            #         self.num_classes)))
-            # print('priors:', self.priors.shape)
             output = self.detect(
                 loc.view(loc.size(0), -1, 4),                   # loc preds
                 self.softmax(conf.view(conf.size(0), -1,
@@ -109,10 +107,10 @@ class SSD(nn.Module):
                 self.priors.type(type(x.data))                  # default boxes
             )
         else:
-            print('locations:')
-            print(loc.view(loc.size(0), -1, 4))
-            print('confs:')
-            print(conf.view(conf.size(0), -1, self.num_classes))
+            # print('locations:')
+            # print(loc.view(loc.size(0), -1, 4))
+            # print('confs:')
+            # print(conf.view(conf.size(0), -1, self.num_classes))
             output = (
                 loc.view(loc.size(0), -1, 4),
                 conf.view(conf.size(0), -1, self.num_classes),  # why no softmax here? -> goes into multibox loss
@@ -176,17 +174,20 @@ def add_extras(cfg, i, batch_norm=False):
 def multibox(vgg, extra_layers, cfg, num_classes):
     loc_layers = []
     conf_layers = []
-    vgg_source = [21, -2]  # coming from middle of conv4_3 and middle of conv6
+
+    # Not sure why he uses 21 here when the actual source comes from 23 (end of 4_3 rather than mid)
+    # but it should give the same size.
+    vgg_source = [21, -2]
     for k, v in enumerate(vgg_source):
         loc_layers += [nn.Conv2d(vgg[v].out_channels,
-                                 cfg[k] * 4, kernel_size=3, padding=1, stride=1)]  #changed from stiede1
+                                 cfg[k] * 4, kernel_size=3, padding=1, stride=1)]  # changed from s1 to s2 when using half number of prior boxes
         conf_layers += [nn.Conv2d(vgg[v].out_channels,
-                        cfg[k] * num_classes, kernel_size=3, padding=1, stride=1)] #changed from stride1
+                        cfg[k] * num_classes, kernel_size=3, padding=1, stride=1)]  # changed from s1 to s2...
     for k, v in enumerate(extra_layers[1::2], 2):
         loc_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                 * 4, kernel_size=3, padding=1, stride=1)] #changed from stide1
+                                 * 4, kernel_size=3, padding=1, stride=1)]  # changed from s1 to s2...
         conf_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                  * num_classes, kernel_size=3, padding=1, stride=1)] #changed from stride1
+                                  * num_classes, kernel_size=3, padding=1, stride=1)]  # changed from s1 to s2...
     return vgg, extra_layers, (loc_layers, conf_layers)
 
 
@@ -198,6 +199,7 @@ base = {
 extras = {
     '300': [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256],
     '512': [],
+    # extra layers added to bring feature maps to 38, 19, 10, 5, 3, 1
     '1166': [256, 'S', 512, 128, 'S', 256, 256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256]
 }
 mbox = {
@@ -210,7 +212,7 @@ mbox = {
 }
 
 
-def build_ssd(phase, size=300, num_classes=21):
+def build_ssd(phase, size=300, num_classes=21, square_boxes=False):
     if phase != "test" and phase != "train":
         print("Error: Phase not recognized")
         return
@@ -218,6 +220,9 @@ def build_ssd(phase, size=300, num_classes=21):
         print("Error: Sorry only SSD300 is supported currently!")
         return
     print('number of classes =', num_classes)
+    if square_boxes:
+        mbox[str(size)] = [2]*len(mbox[str(size)])
+        print(mbox[str(size)])
     base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
                                      add_extras(extras[str(size)], 1024),  # 3 and 1024 are input channels
                                      mbox[str(size)], num_classes)
