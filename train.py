@@ -14,8 +14,10 @@ from ssd import build_ssd
 import numpy as np
 import time
 
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
+
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Training')
 parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
@@ -49,6 +51,9 @@ if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
 train_sets = [('2007', 'trainval'), ('2012', 'trainval')]
+train_sets = [('2007', 'trainval')]
+
+
 # train_sets = 'train'
 ssd_dim = 300  # only support 300 now
 means = (104, 117, 123)  # only support voc now
@@ -56,17 +61,20 @@ num_classes = len(VOC_CLASSES) + 1
 batch_size = args.batch_size
 accum_batch_size = 32
 iter_size = accum_batch_size / batch_size
-max_iter = 120000
+# max_iter = 120000
+max_iter = args.iterations
 weight_decay = 0.0005
 stepvalues = (80000, 100000, 120000)
 gamma = 0.1
 momentum = 0.9
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 if args.visdom:
     import visdom
     viz = visdom.Visdom()
 
 ssd_net = build_ssd('train', 300, num_classes)
+# net = torch.nn.DataParallel(ssd_net)
 net = ssd_net
 
 if args.cuda:
@@ -212,9 +220,9 @@ def train():
                 )
         if iteration % 5000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_' +
+            torch.save(ssd_net.state_dict(), 'weights/ssd300_0712_XX' +
                        repr(iteration) + '.pth')
-    torch.save(ssd_net.state_dict(), args.save_folder + '' + args.version + '.pth')
+    torch.save(ssd_net.state_dict(), args.save_folder + 'finalXX' + args.version + '.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, step):

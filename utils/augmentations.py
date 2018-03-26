@@ -70,12 +70,15 @@ class ConvertFromInts(object):
 
 
 class SubtractMeans(object):
-    def __init__(self, mean):
+    def __init__(self, mean, std_dev=None):
         self.mean = np.array(mean, dtype=np.float32)
+        self.std = std_dev
 
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
         image -= self.mean
+        if self.std is not None:  # Keith added this
+            image /= self.std
         return image.astype(np.float32), boxes, labels
 
 
@@ -398,9 +401,10 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
-    def __init__(self, size=300, mean=(104, 117, 123)):
+    def __init__(self, size=300, mean=(104, 117, 123), std_dev=None):
         self.mean = mean
         self.size = size
+        self.std_dev = std_dev
         self.augment = Compose([
             ConvertFromInts(),
             ToAbsoluteCoords(),
@@ -410,7 +414,7 @@ class SSDAugmentation(object):
             RandomMirror(),
             ToPercentCoords(),
             Resize(self.size),
-            SubtractMeans(self.mean)
+            SubtractMeans(self.mean, self.std_dev)
         ])
 
     def __call__(self, img, boxes, labels):

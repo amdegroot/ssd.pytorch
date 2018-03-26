@@ -26,6 +26,8 @@ class PriorBox(object):
         self.aspect_ratios = cfg['aspect_ratios']
         self.clip = cfg['clip']
         self.version = cfg['name']
+        self.center_step_size = cfg['center_step_size']
+        self.square_only = cfg['square_only']
         for v in self.variance:
             if v <= 0:
                 raise ValueError('Variances must be greater than 0')
@@ -33,15 +35,16 @@ class PriorBox(object):
     def forward(self):
         mean = []
         # TODO merge these
-        if self.version == 'v2':
+        if self.version == 'v2' or self.version == 'bhjc':
             for k, f in enumerate(self.feature_maps):
+                # for i, j in product(range(0, f, self.center_step_size), repeat=2):
                 for i, j in product(range(f), repeat=2):
-                    f_k = self.image_size / self.steps[k]
+                    f_k = self.image_size / self.steps[k]  # realy should be thought of a image_size/range(f)
                     # unit center x,y
+                    # cx = (j + 0.5*self.center_step_size) / f_k
+                    # cy = (i + 0.5*self.center_step_size) / f_k
                     cx = (j + 0.5) / f_k
-                    cy = (i + 0.5) / f_k
-
-                    # aspect_ratio: 1
+                    cy = (i + 0.5) / f_k  # aspect_ratio: 1
                     # rel size: min_size
                     s_k = self.min_sizes[k]/self.image_size
                     mean += [cx, cy, s_k, s_k]
@@ -52,9 +55,10 @@ class PriorBox(object):
                     mean += [cx, cy, s_k_prime, s_k_prime]
 
                     # rest of aspect ratios
-                    for ar in self.aspect_ratios[k]:
-                        mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
-                        mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
+                    if not self.square_only:
+                        for ar in self.aspect_ratios[k]:
+                            mean += [cx, cy, s_k*sqrt(ar), s_k/sqrt(ar)]
+                            mean += [cx, cy, s_k/sqrt(ar), s_k*sqrt(ar)]
 
         else:
             # original version generation of prior (default) boxes
@@ -87,4 +91,5 @@ class PriorBox(object):
         output = torch.Tensor(mean).view(-1, 4)
         if self.clip:
             output.clamp_(max=1, min=0)
+        # print(output)
         return output

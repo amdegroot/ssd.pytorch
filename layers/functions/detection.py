@@ -39,6 +39,8 @@ class Detect(Function):
 
         # Decode predictions into bboxes.
         for i in range(num):
+            print(loc_data[i])
+            print(prior_data)
             decoded_boxes = decode(loc_data[i], prior_data, self.variance)
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
@@ -52,6 +54,10 @@ class Detect(Function):
                 boxes = decoded_boxes[l_mask].view(-1, 4)
                 # idx of highest scoring and non-overlapping boxes per class
                 ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
+                print('boxes')
+                print(boxes[ids[:count]])
+                print('scores')
+                print(scores[ids[:count]].unsqueeze(1))
                 output[i, cl, :count] = \
                     torch.cat((scores[ids[:count]].unsqueeze(1),
                                boxes[ids[:count]]), 1)

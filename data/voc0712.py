@@ -101,7 +101,7 @@ class VOCDetection(data.Dataset):
     def __init__(self, root, image_sets, transform=None, target_transform=None,
                  dataset_name='VOC0712'):
         self.root = root
-        self.image_set = image_sets
+        self.image_set = image_sets  # Don't think this ever gets used
         self.transform = transform
         self.target_transform = target_transform
         self.name = dataset_name
