@@ -37,23 +37,24 @@ def get_img_targ_from_s3(img_id, s3_bucket='geniussports-computer-vision-data',
     return img
 
 
-net = build_ssd('test', 300, 3, square_boxes=False)    # initialize SSD 21 classes (num classes + 1)
-weight_file = 'weights/ssd1166_bhjctrained_iter5000_smallLR.pth'
+net = build_ssd('test', 300, 2, square_boxes=True)    # initialize SSD 21 classes (num classes + 1)
+# weight_file = 'weights/ssd1166_bhjctrained_iter5000_smallLR.pth'
+weight_file = 'weights/ssd1166_bhjctrained_iter104000_ballonlysquare.pth'
 net.load_weights(weight_file)
 
 
 im00 = '00{}'
 
-for id in range(650, 755):
+for id in range(880, 881):
     img_id = im00.format(id)
 
 # img_id = '00670'
-#     path_to_bball_im = '/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/'
-#     bball_file = 'left_scene2_rot180_{}.png'.format(img_id)  # 442, 531, 855, 132
-#     image = cv2.imread(path_to_bball_im + bball_file, cv2.IMREAD_COLOR)
+    path_to_bball_im = '/Users/keith.landry/data/internal-experiments/basketball/bhjc/20180123/images/left_cam/'
+    bball_file = 'left_scene2_rot180_{}.png'.format(img_id)  # 442, 531, 855, 132
+    image = cv2.imread(path_to_bball_im + bball_file, cv2.IMREAD_COLOR)
 
-    image = get_img_targ_from_s3(img_id)
-    print(image.shape)
+    # image = get_img_targ_from_s3(img_id)
+    print(img_id)
 
     rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -74,9 +75,8 @@ for id in range(650, 755):
     y = net(xx)  # passes image through pretrained network
 
     top_k = 10
-    plt.ioff()
 
-    # plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(10, 10))
     colors = ['green', 'purple'] #plt.cm.hsv(np.linspace(0, 1, 21)).tolist()
     plt.imshow(rgb_image)  # plot the image for matplotlib
     currentAxis = plt.gca()
@@ -86,13 +86,13 @@ for id in range(650, 755):
     scale = torch.Tensor(rgb_image.shape[1::-1]).repeat(2)
     for i in range(1, detections.size(1)):  # i should start at 1 because 0 is background
 
-        top_det_scores = detections[0, i, :2, 0]
-        top_det_locats = detections[0, i, :2, 1:]
+        top_det_scores = detections[0, i, :, 0]
+        top_det_locats = detections[0, i, :, 1:]
 
         for score, loc in zip(top_det_scores, top_det_locats):
             label_name = labels[i - 1]
             print(label_name, score)
-            if score >= .194:
+            if score >= .1:
                 display_txt = '%s: %.2f' % (label_name, score)
                 pt = (loc * scale).cpu().numpy()
                 coords = (pt[0], pt[1]), pt[2] - pt[0] + 1, pt[3] - pt[1] + 1
@@ -103,6 +103,8 @@ for id in range(650, 755):
                                                     edgecolor=color, linewidth=1, alpha=.8))
                 currentAxis.text(pt[0], pt[1], display_txt, bbox={'facecolor': color, 'alpha': 0.2})
 
-    outfile = '/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/output_imgs/leftcam_detect_{}.png'.format(img_id)
+    # outfile = '/home/ec2-user/computer_vision/bball_detection/ssd.pytorch/data/output_imgs/leftcam_detect_{}.png'.format(img_id)
     # outfile = '/Users/keith.landry/code/ssd.pytorch/data/output_imgs/leftcam_detect_{}.png'.format(img_id)
-    plt.savefig(outfile)
+
+    # plt.savefig(outfile)
+    # plt.close()
