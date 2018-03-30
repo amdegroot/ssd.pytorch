@@ -24,10 +24,10 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - Clone this repository.
   * Note: We currently only support Python 3+.
 - Then download the dataset by following the [instructions](#datasets) below.
-- We now support [Visdom](https://github.com/facebookresearch/visdom) for real-time loss visualization during training! 
-  * To use Visdom in the browser: 
+- We now support [Visdom](https://github.com/facebookresearch/visdom) for real-time loss visualization during training!
+  * To use Visdom in the browser:
   ```Shell
-  # First install Python server and client 
+  # First install Python server and client
   pip install visdom
   # Start the server (probably in a screen or tmux)
   python -m visdom.server
@@ -40,7 +40,7 @@ To make things easy, we provide bash scripts to handle the dataset downloads and
 
 
 ### COCO
-Microsoft COCO: Common Objects in Context 
+Microsoft COCO: Common Objects in Context
 
 ##### Download COCO 2014
 ```Shell
@@ -83,7 +83,7 @@ python train.py
   * For training, an NVIDIA GPU is strongly recommended for speed.
   * For instructions on Visdom usage/installation, see the <a href='#installation'>Installation</a> section.
   * You can pick-up training from a checkpoint by specifying the path as one of the training parameters (again, see `train.py` for options)
-  
+
 ## Evaluation
 To evaluate a trained network:
 
@@ -107,7 +107,7 @@ You can specify the parameters listed in the `eval.py` file by flagging them or 
 | 77.2 % | 77.26 % | 58.12% | 77.43 % |
 
 ##### FPS
-**GTX 1060:** ~45.45 FPS 
+**GTX 1060:** ~45.45 FPS
 
 ## Demos
 
@@ -115,23 +115,23 @@ You can specify the parameters listed in the `eval.py` file by flagging them or 
 
 #### Download a pre-trained network
 - We are trying to provide PyTorch `state_dicts` (dict of weight tensors) of the latest SSD model definitions trained on different datasets.  
-- Currently, we provide the following PyTorch models: 
+- Currently, we provide the following PyTorch models:
     * SSD300 trained on VOC0712 (newest PyTorch weights)
       - https://s3.amazonaws.com/amdegroot-models/ssd300_mAP_77.43_v2.pth
     * SSD300 trained on VOC0712 (original Caffe weights)
       - https://s3.amazonaws.com/amdegroot-models/ssd_300_VOC0712.pth
-- Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325) 
+- Our goal is to reproduce this table from the [original paper](http://arxiv.org/abs/1512.02325)
 <p align="left">
 <img src="http://www.cs.unc.edu/~wliu/papers/ssd_results.png" alt="SSD results on multiple datasets" width="800px"></p>
 
 ### Try the demo notebook
 - Make sure you have [jupyter notebook](http://jupyter.readthedocs.io/en/latest/install.html) installed.
 - Two alternatives for installing jupyter notebook:
-    1. If you installed PyTorch with [conda](https://www.continuum.io/downloads) (recommended), then you should already have it.  (Just  navigate to the ssd.pytorch cloned repo and run): 
-    `jupyter notebook` 
+    1. If you installed PyTorch with [conda](https://www.continuum.io/downloads) (recommended), then you should already have it.  (Just  navigate to the ssd.pytorch cloned repo and run):
+    `jupyter notebook`
 
     2. If using [pip](https://pypi.python.org/pypi/pip):
-    
+
 ```Shell
 # make sure pip is upgraded
 pip3 install --upgrade pip
@@ -169,5 +169,5 @@ We have accumulated the following to-do list, which we hope to complete in the n
 - Wei Liu, et al. "SSD: Single Shot MultiBox Detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).
 - [Original Implementation (CAFFE)](https://github.com/weiliu89/caffe/tree/ssd)
 - A huge thank you to [Alex Koltun](https://github.com/alexkoltun) and his team at [Webyclip](webyclip.com) for their help in finishing the data augmentation portion.
-- A list of other great SSD ports that were sources of inspiration (especially the Chainer repo): 
-  * [Chainer](https://github.com/Hakuyume/chainer-ssd), [Keras](https://github.com/rykov8/ssd_keras), [MXNet](https://github.com/zhreshold/mxnet-ssd), [Tensorflow](https://github.com/balancap/SSD-Tensorflow) 
+- A list of other great SSD ports that were sources of inspiration (especially the Chainer repo):
+  * [Chainer](https://github.com/Hakuyume/chainer-ssd), [Keras](https://github.com/rykov8/ssd_keras), [MXNet](https://github.com/zhreshold/mxnet-ssd), [Tensorflow](https://github.com/balancap/SSD-Tensorflow)

@@ -30,6 +30,15 @@ COCO_CLASSES = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                 'teddy bear', 'hair drier', 'toothbrush')
 
 
+def get_label_map(label_file):
+    label_map = {}
+    labels = open(label_file, 'r')
+    for line in labels:
+        ids = line.split(',')
+        label_map[int(ids[0])] = int(ids[1])
+    return label_map
+
+
 class COCOAnnotationTransform(object):
     """Transforms a COCO annotation into a Tensor of bbox coords and label index
     Initilized with a dictionary lookup of classnames to indexes
@@ -74,8 +83,8 @@ class COCODetection(data.Dataset):
         in the target (bbox) and transforms it.
     """
 
-    def __init__(self, root, image_set, transform=None,
-                 target_transform=None):
+    def __init__(self, root, image_set='trainval35k', transform=None,
+                 target_transform=COCOAnnotationTransform(), dataset_name='MS COCO'):
         sys.path.append(osp.join(root, COCO_API))
         from pycocotools.coco import COCO
         self.root = osp.join(root, IMAGES, image_set)
@@ -84,7 +93,7 @@ class COCODetection(data.Dataset):
         self.ids = list(self.coco.imgToAnns.keys())
         self.transform = transform
         self.target_transform = target_transform
-        self.name = 'MS COCO ' + image_set
+        self.name = dataset_name
 
     def __getitem__(self, index):
         """
@@ -169,12 +178,3 @@ class COCODetection(data.Dataset):
         tmp = '    Target Transforms (if any): '
         fmt_str += '{0}{1}'.format(tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         return fmt_str
-
-
-def get_label_map(label_file):
-    label_map = {}
-    labels = open(label_file, 'r')
-    for line in labels:
-        ids = line.split(',')
-        label_map[int(ids[0])] = int(ids[1])
-    return label_map

@@ -8,13 +8,11 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
 from torch.autograd import Variable
-from data import VOCroot
+from data import VOC_ROOT, VOCAnnotationTransform, VOCDetection, BaseTransform
 from data import VOC_CLASSES as labelmap
 import torch.utils.data as data
 
-from data import AnnotationTransform, VOCDetection, BaseTransform, VOC_CLASSES
 from ssd import build_ssd
 
 import sys
@@ -30,12 +28,16 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
-parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
-parser.add_argument('--trained_model', default='weights/ssd300_mAP_77.43_v2.pth',
-                    type=str, help='Trained state_dict file path to open')
+
+parser = argparse.ArgumentParser(
+    description='Single Shot MultiBox Detector Evaluation')
+parser.add_argument('--trained_model',
+                    default='weights/ssd300_mAP_77.43_v2.pth', type=str,
+                    help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='eval/', type=str,
                     help='File path to save results')
 parser.add_argument('--confidence_threshold', default=0.01, type=float,
@@ -44,25 +46,35 @@ parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
 parser.add_argument('--cuda', default=True, type=str2bool,
                     help='Use cuda to train model')
-parser.add_argument('--voc_root', default=VOCroot, help='Location of VOC root directory')
-parser.add_argument('-f', default=None, type=str, help="Dummy arg so we can load in Jupyter Notebooks")
+parser.add_argument('--voc_root', default=VOC_ROOT,
+                    help='Location of VOC root directory')
+parser.add_argument('--cleanup', default=True, type=str2bool,
+                    help='Cleanup and remove results files following eval')
+
 args = parser.parse_args()
 
 if not os.path.exists(args.save_folder):
     os.mkdir(args.save_folder)
 
-if args.cuda and torch.cuda.is_available():
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+if torch.cuda.is_available():
+    if args.cuda:
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    if not args.cuda:
+        print("WARNING: It looks like you have a CUDA device, but aren't using \
+              CUDA.  Run with --cuda for optimal eval speed.")
+        torch.set_default_tensor_type('torch.FloatTensor')
 else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
 annopath = os.path.join(args.voc_root, 'VOC2007', 'Annotations', '%s.xml')
 imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
-imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets', 'Main', '{:s}.txt')
+imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets',
+                          'Main', '{:s}.txt')
 YEAR = '2007'
-devkit_path = VOCroot + 'VOC' + YEAR
+devkit_path = args.voc_root + 'VOC' + YEAR
 dataset_mean = (104, 117, 123)
 set_type = 'test'
+
 
 class Timer(object):
     """A simple timer."""
@@ -183,7 +195,7 @@ def voc_ap(rec, prec, use_07_metric=True):
     """ ap = voc_ap(rec, prec, [use_07_metric])
     Compute VOC AP given precision and recall.
     If use_07_metric is true, uses the
-    VOC 07 11 point method (default:False).
+    VOC 07 11 point method (default:True).
     """
     if use_07_metric:
         # 11 point metric
@@ -236,7 +248,7 @@ classname: Category name (duh)
 cachedir: Directory for caching the annotations
 [ovthresh]: Overlap threshold (default = 0.5)
 [use_07_metric]: Whether to use VOC07's 11 point AP computation
-   (default False)
+   (default True)
 """
 # assumes detections are in detpath.format(classname)
 # assumes annotations are in annopath.format(imagename)
@@ -351,7 +363,6 @@ cachedir: Directory for caching the annotations
 
 def test_net(save_folder, net, cuda, dataset, transform, top_k,
              im_size=300, thresh=0.05):
-    """Test a Fast R-CNN network on an image database."""
     num_images = len(dataset)
     # all detections are collected into:
     #    all_boxes[cls][image] = N x 5 array of detections in
@@ -387,8 +398,9 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
             boxes[:, 1] *= h
             boxes[:, 3] *= h
             scores = dets[:, 0].cpu().numpy()
-            cls_dets = np.hstack((boxes.cpu().numpy(), scores[:, np.newaxis])) \
-                .astype(np.float32, copy=False)
+            cls_dets = np.hstack((boxes.cpu().numpy(),
+                                  scores[:, np.newaxis])).astype(np.float32,
+                                                                 copy=False)
             all_boxes[j][i] = cls_dets
 
         print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1,
@@ -408,13 +420,15 @@ def evaluate_detections(box_list, output_dir, dataset):
 
 if __name__ == '__main__':
     # load net
-    num_classes = len(VOC_CLASSES) + 1 # +1 background
-    net = build_ssd('test', 300, num_classes) # initialize SSD
+    num_classes = len(labelmap) + 1                      # +1 for background
+    net = build_ssd('test', 300, num_classes)            # initialize SSD
     net.load_state_dict(torch.load(args.trained_model))
     net.eval()
     print('Finished loading model!')
     # load data
-    dataset = VOCDetection(args.voc_root, [('2007', set_type)], BaseTransform(300, dataset_mean), AnnotationTransform())
+    dataset = VOCDetection(args.voc_root, [('2007', set_type)],
+                           BaseTransform(300, dataset_mean),
+                           VOCAnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
