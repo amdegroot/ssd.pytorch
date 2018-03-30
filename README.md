@@ -23,7 +23,7 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
 - Install [PyTorch](http://pytorch.org/) by selecting your environment on the website and running the appropriate command.
 - Clone this repository.
   * Note: We currently only support Python 3+.
-- Then download the dataset by following the [instructions](#download-voc2007-trainval--test) below.
+- Then download the dataset by following the [instructions](#datasets) below.
 - We now support [Visdom](https://github.com/facebookresearch/visdom) for real-time loss visualization during training! 
   * To use Visdom in the browser: 
   ```Shell
@@ -33,21 +33,31 @@ A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detecto
   python -m visdom.server
   ```
   * Then (during training) navigate to http://localhost:8097/ (see the Train section below for training details).
-- Note: For training, we currently only support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/), but are adding [COCO](http://mscoco.org/) and hopefully [ImageNet](http://www.image-net.org/) soon. 
+- Note: For training, we currently support [VOC](http://host.robots.ox.ac.uk/pascal/VOC/) and [COCO](http://mscoco.org/), and aim to add [ImageNet](http://www.image-net.org/) support soon.
 
 ## Datasets
-To make things easy, we provide a simple VOC dataset loader that inherits `torch.utils.data.Dataset` making it fully compatible with the `torchvision.datasets` [API](http://pytorch.org/docs/torchvision/datasets.html).
+To make things easy, we provide bash scripts to handle the dataset downloads and setup for you.  We also provide simple dataset loaders that inherit `torch.utils.data.Dataset`, making them fully compatible with the `torchvision.datasets` [API](http://pytorch.org/docs/torchvision/datasets.html).
+
+
+### COCO
+Microsoft COCO: Common Objects in Context 
+
+##### Download COCO 2014
+```Shell
+# specify a directory for dataset to be downloaded into, else default is ~/data/
+sh data/scripts/COCO2014.sh
+```
 
 ### VOC Dataset
-##### Download VOC2007 trainval & test
+PASCAL VOC: Visual Object Classes
 
+##### Download VOC2007 trainval & test
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
 sh data/scripts/VOC2007.sh # <directory>
 ```
 
 ##### Download VOC2012 trainval
-
 ```Shell
 # specify a directory for dataset to be downloaded into, else default is ~/data/
 sh data/scripts/VOC2012.sh # <directory>
@@ -142,18 +152,18 @@ jupyter notebook
 - Running `python -m demo.live` opens the webcam and begins detecting!
 
 ## TODO
-We have accumulated the following to-do list, which you can expect to be done in the very near future
+We have accumulated the following to-do list, which we hope to complete in the near future
 - Still to come:
-  * Support for the MS COCO dataset
-  * Support for SSD512 training and testing
-  * Support for training on custom datasets
+  * [x] Support for the MS COCO dataset
+  * [ ] Support for SSD512 training and testing
+  * [ ] Support for training on custom datasets
 
 ## Authors
 
 * [**Max deGroot**](https://github.com/amdegroot)
 * [**Ellis Brown**](http://github.com/ellisbrown)
 
-***Note:*** Unfortunately, this is just a hobby of ours and not a full-time job, so we'll do our best to keep things up to date, but no guarantees.  That being said, thanks to everyone for your continued help and feedback as it is really appreciated. We will try to address everything as soon as possible. 
+***Note:*** Unfortunately, this is just a hobby of ours and not a full-time job, so we'll do our best to keep things up to date, but no guarantees.  That being said, thanks to everyone for your continued help and feedback as it is really appreciated. We will try to address everything as soon as possible.
 
 ## References
 - Wei Liu, et al. "SSD: Single Shot MultiBox Detector." [ECCV2016]((http://arxiv.org/abs/1512.02325)).

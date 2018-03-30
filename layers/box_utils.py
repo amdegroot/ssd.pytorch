@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
 
+
 def point_form(boxes):
     """ Convert prior_boxes to (xmin, ymin, xmax, ymax)
     representation for comparison to point form ground truth data.
