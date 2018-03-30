@@ -19,19 +19,20 @@ class SSD(nn.Module):
 
     Args:
         phase: (string) Can be "test" or "train"
+        size: input image size
         base: VGG16 layers for input, size of either 300 or 500
         extras: extra layers that feed to multibox loc and conf layers
         head: "multibox head" consists of loc and conf conv layers
     """
 
-    def __init__(self, phase, base, extras, head, num_classes):
+    def __init__(self, phase, size, base, extras, head, num_classes):
         super(SSD, self).__init__()
         self.phase = phase
         self.num_classes = num_classes
-        # TODO: implement __call__ in PriorBox
-        self.priorbox = PriorBox(coco)
+        self.cfg = (coco, voc)[num_classes == 21]
+        self.priorbox = PriorBox(self.cfg)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
-        self.size = 300
+        self.size = size
 
         # SSD network
         self.vgg = nn.ModuleList(base)
@@ -98,7 +99,7 @@ class SSD(nn.Module):
             output = self.detect(
                 loc.view(loc.size(0), -1, 4),                   # loc preds
                 self.softmax(conf.view(conf.size(0), -1,
-                    self.num_classes)),                         # conf preds
+                             self.num_classes)),                # conf preds
                 self.priors.type(type(x.data))                  # default boxes
             )
         else:
@@ -196,12 +197,13 @@ mbox = {
 
 def build_ssd(phase, size=300, num_classes=21):
     if phase != "test" and phase != "train":
-        print("Error: Phase not recognized")
+        print("ERROR: Phase: " + phase + " not recognized")
         return
     if size != 300:
-        print("Error: Sorry, only SSD300 is currently supported!")
+        print("ERROR: You specified size " + repr(size) + ". However, " +
+              "currently only SSD300 (size=300) is supported!")
         return
     base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
                                      add_extras(extras[str(size)], 1024),
                                      mbox[str(size)], num_classes)
-    return SSD(phase, base_, extras_, head_, num_classes)
+    return SSD(phase, size, base_, extras_, head_, num_classes)

@@ -6,13 +6,10 @@ https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 Updated by: Ellis Brown, Max deGroot
 """
 from .config import HOME
-import os
-import os.path
+import os.path as osp
 import sys
 import torch
 import torch.utils.data as data
-import torchvision.transforms as transforms
-from PIL import Image, ImageDraw, ImageFont
 import cv2
 import numpy as np
 if sys.version_info[0] == 2:
@@ -28,7 +25,7 @@ VOC_CLASSES = (  # always index 0
     'sheep', 'sofa', 'train', 'tvmonitor')
 
 # note: if you used our download scripts, this should be right
-VOC_ROOT = os.path.join(HOME, "data/VOCdevkit/")
+VOC_ROOT = osp.join(HOME, "data/VOCdevkit/")
 
 
 class VOCAnnotationTransform(object):
@@ -97,19 +94,21 @@ class VOCDetection(data.Dataset):
             (default: 'VOC2007')
     """
 
-    def __init__(self, root, image_sets, transform=None, target_transform=None,
+    def __init__(self, root,
+                 image_sets=[('2007', 'trainval'), ('2012', 'trainval')],
+                 transform=None, target_transform=VOCAnnotationTransform(),
                  dataset_name='VOC0712'):
         self.root = root
         self.image_set = image_sets
         self.transform = transform
         self.target_transform = target_transform
         self.name = dataset_name
-        self._annopath = os.path.join('%s', 'Annotations', '%s.xml')
-        self._imgpath = os.path.join('%s', 'JPEGImages', '%s.jpg')
+        self._annopath = osp.join('%s', 'Annotations', '%s.xml')
+        self._imgpath = osp.join('%s', 'JPEGImages', '%s.jpg')
         self.ids = list()
         for (year, name) in image_sets:
-            rootpath = os.path.join(self.root, 'VOC' + year)
-            for line in open(os.path.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
+            rootpath = osp.join(self.root, 'VOC' + year)
+            for line in open(osp.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
                 self.ids.append((rootpath, line.strip()))
 
     def __getitem__(self, index):
