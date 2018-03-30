@@ -10,7 +10,6 @@ class PriorBox(object):
     """
     def __init__(self, cfg):
         super(PriorBox, self).__init__()
-        # self.type = cfg.name
         self.image_size = cfg['min_dim']
         # number of priors for feature map location (either 4 or 6)
         self.num_priors = len(cfg['aspect_ratios'])
