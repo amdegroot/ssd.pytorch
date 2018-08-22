@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 import cv2
 import numpy as np
 
-COCO_ROOT = osp.join(HOME, 'data/coco/')
+COCO_ROOT = osp.join(HOME, 'datasets/coco/')
 IMAGES = 'images'
 ANNOTATIONS = 'annotations'
 COCO_API = 'PythonAPI'
@@ -139,7 +139,7 @@ class COCODetection(data.Dataset):
         return torch.from_numpy(img).permute(2, 0, 1), target, height, width
 
     def pull_image(self, index):
-        '''Returns the original image object at index in PIL form
+        """Returns the original image object at index in PIL form
 
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
@@ -148,13 +148,13 @@ class COCODetection(data.Dataset):
             index (int): index of img to show
         Return:
             cv2 img
-        '''
+        """
         img_id = self.ids[index]
         path = self.coco.loadImgs(img_id)[0]['file_name']
         return cv2.imread(osp.join(self.root, path), cv2.IMREAD_COLOR)
 
     def pull_anno(self, index):
-        '''Returns the original annotation of image at index
+        """Returns the original annotation of image at index
 
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
@@ -164,7 +164,7 @@ class COCODetection(data.Dataset):
         Return:
             list:  [img_id, [(label, bbox coords),...]]
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
-        '''
+        """
         img_id = self.ids[index]
         ann_ids = self.coco.getAnnIds(imgIds=img_id)
         return self.coco.loadAnns(ann_ids)
