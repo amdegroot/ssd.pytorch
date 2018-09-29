@@ -1,3 +1,11 @@
+### Fixes to run on pytorch 0.4.
+pytorch 0.3.0 Legacy code has not been changed, only lines that are required to make it work on 0.4.1
+
+* line 49 of functions/detction.py
+<if scores.dim() == 0: 
+>if len(scores) == 0: 
+#torch.tensor([]).dim() retuns 1 in pytorch 0.4.1, 
+
 # SSD: Single Shot MultiBox Object Detector, in PyTorch
 A [PyTorch](http://pytorch.org/) implementation of [Single Shot MultiBox Detector](http://arxiv.org/abs/1512.02325) from the 2016 paper by Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy, Scott Reed, Cheng-Yang, and Alexander C. Berg.  The official and original Caffe code can be found [here](https://github.com/weiliu89/caffe/tree/ssd).
 
