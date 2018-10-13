@@ -64,7 +64,9 @@ echo "Creating trainval35k dataset..."
 
 # Download annotations json
 echo "Downloading trainval35k annotations from S3"
-curl -LO https://s3.amazonaws.com/amdegroot-datasets/instances_trainval35k.json.zip
+wget https://dl.dropboxusercontent.com/s/s3tw5zcg7395368/instances_valminusminival2014.json.zip
+unzip instances_valminusminival2014.json.zip
+mv instances_valminusminival2014.json instances_trainval35k.json
 
 # combine train and val 
 echo "Combining train and val images"
