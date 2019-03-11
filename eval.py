@@ -390,7 +390,7 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
             dets = detections[0, j, :]
             mask = dets[:, 0].gt(0.).expand(5, dets.size(0)).t()
             dets = torch.masked_select(dets, mask).view(-1, 5)
-            if dets.dim() == 0:
+            if dets.size(0) == 0:
                 continue
             boxes = dets[:, 1:]
             boxes[:, 0] *= w
