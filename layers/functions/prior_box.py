@@ -2,6 +2,7 @@ from __future__ import division
 from math import sqrt as sqrt
 from itertools import product as product
 import torch
+from layers.box_utils import point_form, center_size
 
 
 class PriorBox(object):
@@ -51,5 +52,7 @@ class PriorBox(object):
         # back to torch land
         output = torch.Tensor(mean).view(-1, 4)
         if self.clip:
+            output = point_form(output)
             output.clamp_(max=1, min=0)
+            output = center_size(output)
         return output
