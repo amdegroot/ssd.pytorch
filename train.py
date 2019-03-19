@@ -150,7 +150,7 @@ def train():
                                   pin_memory=True)
     # create batch iterator
 
-
+    # 每个迭代向后顺序取batch size个图片
     batch_iterator = iter(data_loader)
     for iteration in range(args.start_iter, cfg['max_iter']):
         if args.visdom and iteration != 0 and (iteration % epoch_size == 0):
