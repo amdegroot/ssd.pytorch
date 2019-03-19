@@ -14,7 +14,8 @@ import torch.nn.init as init
 import torch.utils.data as data
 import numpy as np
 import argparse
-
+import visdom 
+viz = visdom.Visdom()
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -23,8 +24,8 @@ def str2bool(v):
 parser = argparse.ArgumentParser(
     description='Single Shot MultiBox Detector Training With Pytorch')
 train_set = parser.add_mutually_exclusive_group()
-parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO'],
-                    type=str, help='VOC or COCO')
+parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO', 'visdrone'],
+                    type=str, help='VOC or COCO or VisDrone')
 parser.add_argument('--dataset_root', default=VOC_ROOT,
                     help='Dataset root directory path')
 parser.add_argument('--basenet', default='vgg16_reducedfc.pth',
@@ -81,16 +82,16 @@ def train():
                                 transform=SSDAugmentation(cfg['min_dim'],
                                                           MEANS))
     elif args.dataset == 'VOC':
-        if args.dataset_root == COCO_ROOT:
-            parser.error('Must specify dataset if specifying dataset_root')
+        # if args.dataset_root == COCO_ROOT:
+        #     parser.error('Must specify dataset if specifying dataset_root')
         cfg = voc
         dataset = VOCDetection(root=args.dataset_root,
                                transform=SSDAugmentation(cfg['min_dim'],
                                                          MEANS))
 
-    if args.visdom:
-        import visdom
-        viz = visdom.Visdom()
+    # if args.visdom:
+    #     import visdom 
+    #     viz = visdom.Visdom()
 
     ssd_net = build_ssd('train', cfg['min_dim'], cfg['num_classes'])
     net = ssd_net
@@ -141,16 +142,19 @@ def train():
         vis_legend = ['Loc Loss', 'Conf Loss', 'Total Loss']
         iter_plot = create_vis_plot('Iteration', 'Loss', vis_title, vis_legend)
         epoch_plot = create_vis_plot('Epoch', 'Loss', vis_title, vis_legend)
+        epoch_plot2 = create_vis_plot('Epoch', 'Loss', vis_title, vis_legend)
 
     data_loader = data.DataLoader(dataset, args.batch_size,
                                   num_workers=args.num_workers,
                                   shuffle=True, collate_fn=detection_collate,
                                   pin_memory=True)
     # create batch iterator
+
+
     batch_iterator = iter(data_loader)
     for iteration in range(args.start_iter, cfg['max_iter']):
         if args.visdom and iteration != 0 and (iteration % epoch_size == 0):
-            update_vis_plot(epoch, loc_loss, conf_loss, epoch_plot, None,
+            update_vis_plot(epoch, loc_loss, conf_loss, epoch_plot, epoch_plot2,
                             'append', epoch_size)
             # reset epoch loss counters
             loc_loss = 0
@@ -162,7 +166,13 @@ def train():
             adjust_learning_rate(optimizer, args.gamma, step_index)
 
         # load train data
-        images, targets = next(batch_iterator)
+        # 循环一次之后iter无法回到起点，需要重新赋值
+        try:
+            images, targets=next(batch_iterator)
+        except StopIteration:
+            batch_iterator=iter(data_loader)
+            images, targets=next(batch_iterator)
+        # images, targets = next(batch_iterator)
 
         if args.cuda:
             images = Variable(images.cuda())
@@ -180,18 +190,18 @@ def train():
         loss.backward()
         optimizer.step()
         t1 = time.time()
-        loc_loss += loss_l.data[0]
-        conf_loss += loss_c.data[0]
+        loc_loss += loss_l.data
+        conf_loss += loss_c.data
 
         if iteration % 10 == 0:
             print('timer: %.4f sec.' % (t1 - t0))
-            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data), end=' ')
 
         if args.visdom:
-            update_vis_plot(iteration, loss_l.data[0], loss_c.data[0],
+            update_vis_plot(iteration, loss_l.data, loss_c.data,
                             iter_plot, epoch_plot, 'append')
 
-        if iteration != 0 and iteration % 5000 == 0:
+        if iteration != 0 and iteration % 1000 == 0:
             print('Saving state, iter:', iteration)
             torch.save(ssd_net.state_dict(), 'weights/ssd300_COCO_' +
                        repr(iteration) + '.pth')
