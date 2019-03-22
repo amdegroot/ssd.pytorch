@@ -24,7 +24,7 @@ def str2bool(v):
 parser = argparse.ArgumentParser(
     description='Single Shot MultiBox Detector Training With Pytorch')
 train_set = parser.add_mutually_exclusive_group()
-parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO', 'visdrone'],
+parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO', 'VisDrone2018'],
                     type=str, help='VOC or COCO or VisDrone')
 parser.add_argument('--dataset_root', default=VOC_ROOT,
                     help='Dataset root directory path')
@@ -87,6 +87,11 @@ def train():
         cfg = voc
         dataset = VOCDetection(root=args.dataset_root,
                                transform=SSDAugmentation(cfg['min_dim'],
+                                                         MEANS))
+    elif args.dataset == 'VisDrone2018':
+        cfg = visdrone
+        dataset = VOCDetection(root=args.dataset_root,
+                                transform=SSDAugmentation(cfg['min_dim'],
                                                          MEANS))
 
     # if args.visdom:
@@ -185,7 +190,7 @@ def train():
         out = net(images)
         # backprop
         optimizer.zero_grad()
-        loss_l, loss_c = criterion(out, targets)
+        loss_l, loss_c = criterion(out, targets)    # 对比network output和gt
         loss = loss_l + loss_c
         loss.backward()
         optimizer.step()

@@ -6,6 +6,7 @@ https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
 Updated by: Ellis Brown, Max deGroot
 """
 from .config import HOME
+import os
 import os.path as osp
 import sys
 import torch
@@ -18,14 +19,13 @@ else:
     import xml.etree.ElementTree as ET
 
 VOC_CLASSES = (  # always index 0
-    'aeroplane', 'bicycle', 'bird', 'boat',
-    'bottle', 'bus', 'car', 'cat', 'chair',
-    'cow', 'diningtable', 'dog', 'horse',
-    'motorbike', 'person', 'pottedplant',
-    'sheep', 'sofa', 'train', 'tvmonitor')
+    'pedestrian', 'person', 'bicycle', 'car',
+    'van', 'truck', 'tricycle', 'awning-tricycle', 'bus',
+    'motor', 'others')
 
 # note: if you used our download scripts, this should be right
-VOC_ROOT = osp.join(HOME, "data/VOCdevkit/")
+# make sure path does not contains substring 'annotations'
+VOC_ROOT = "/media/mk/本地磁盘/Datasets/UAV/VisDrone2018"
 
 
 class VOCAnnotationTransform(object):
@@ -46,7 +46,7 @@ class VOCAnnotationTransform(object):
             zip(VOC_CLASSES, range(len(VOC_CLASSES))))
         self.keep_difficult = keep_difficult
 
-    def __call__(self, target, width, height):
+    def __call__(self, filename, frameidx):
         """
         Arguments:
             target (annotation) : the target annotation to be made usable
@@ -54,29 +54,50 @@ class VOCAnnotationTransform(object):
         Returns:
             a list containing lists of bounding boxes  [bbox coords, class name]
         """
+
+        # target: filename
         res = []
-        for obj in target.iter('object'):
-            difficult = int(obj.find('difficult').text) == 1
-            if not self.keep_difficult and difficult:
-                continue
-            name = obj.find('name').text.lower().strip()
-            bbox = obj.find('bndbox')
+        with open(filename+'.txt', 'r') as f:
+            lines = f.readlines()
+            frameanno = []
+            for itemline in lines:
+                item = itemline.strip().split(',')  # 去换行符，逗号分割
+                # print(item)
+                
+                if int(item[0]) == frameidx: # item[6] == 0?
+                    bbox = [float(item[2]), float(item[3]), float(item[2])+float(item[4]), float(item[3])+float(item[5]), int(item[7])]
+                    # print('bbox'+str(bbox))
+                    res += [bbox]
+            print('nums of bbox: ' + str(len(res)))
+        
+        return res
 
-            pts = ['xmin', 'ymin', 'xmax', 'ymax']
-            bndbox = []
-            for i, pt in enumerate(pts):
-                cur_pt = int(bbox.find(pt).text) - 1
-                # scale height or width
-                cur_pt = cur_pt / width if i % 2 == 0 else cur_pt / height
-                bndbox.append(cur_pt)
-            label_idx = self.class_to_ind[name]
-            bndbox.append(label_idx)
-            res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
-            # img_id = target.find('filename').text[:-4]
 
-            
 
-        return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
+
+
+
+        # res = []
+        # for obj in target.iter('object'):
+        #     difficult = int(obj.find('difficult').text) == 1
+        #     if not self.keep_difficult and difficult:
+        #         continue
+        #     name = obj.find('name').text.lower().strip()
+        #     bbox = obj.find('bndbox')
+
+        #     pts = ['xmin', 'ymin', 'xmax', 'ymax']
+        #     bndbox = []
+        #     for i, pt in enumerate(pts):
+        #         cur_pt = int(bbox.find(pt).text) - 1
+        #         # scale height or width
+        #         cur_pt = cur_pt / width if i % 2 == 0 else cur_pt / height
+        #         bndbox.append(cur_pt)
+        #     label_idx = self.class_to_ind[name]
+        #     bndbox.append(label_idx)
+        #     res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
+        #     # img_id = target.find('filename').text[:-4]
+
+        # return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
 
 class VOCDetection(data.Dataset):
@@ -97,26 +118,33 @@ class VOCDetection(data.Dataset):
     """
 
     def __init__(self, root,
-                 image_sets=[('2007', 'trainval'), ('2012', 'trainval')],
                  transform=None, target_transform=VOCAnnotationTransform(),
-                 dataset_name='VOC0712'):
+                 dataset_name='VisDrone 2018', train=1):
         self.root = root
-        self.image_set = image_sets
         self.transform = transform
         self.target_transform = target_transform
         self.name = dataset_name
-        self._annopath = osp.join('%s', 'Annotations', '%s.xml')
-        self._imgpath = osp.join('%s', 'JPEGImages', '%s.jpg')
-        self.ids = list()
-        for (year, name) in image_sets:
-            rootpath = osp.join(self.root, 'VOC' + year)
-            for line in open(osp.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
-                # print('rootpath: '+str(rootpath)+' '+line.strip())
-                self.ids.append((rootpath, line.strip()))
-                # print(self.ids[-1]) # 文件path和文件名的列表
-                # print(self.ids[0])
+        if train == 1:
+            self._annopath = osp.join(self.root, 'VisDrone2018-VID-train', 'annotations')
+            self._imgpath = osp.join(self.root, 'VisDrone2018-VID-train', 'sequences')
+        else:
+            self._annopath = osp.join(self.root, 'VisDrone2018-VID-val', 'annotations')
+            self._imgpath = osp.join(self.root, 'VisDrone2018-VID-val', 'sequences')
+            
 
-        
+        self.ids = list()
+
+        rootpath = osp.join(self.root, 'VisDrone2018-VID-train', 'sequences')
+        cnt = 0
+        for foldername in os.listdir(rootpath):
+            for item in os.listdir(osp.join(rootpath, foldername)):
+                self.ids.append((os.path.join(rootpath, foldername), item.split('.')[0])) 
+
+
+        # for (year, name) in image_sets:
+        #     rootpath = osp.join(self.root, 'VOC' + year)
+        #     for line in open(osp.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
+        #         self.ids.append((rootpath, line.strip()))
 
     def __getitem__(self, index):
         im, gt, h, w = self.pull_item(index)
@@ -127,15 +155,14 @@ class VOCDetection(data.Dataset):
         return len(self.ids)
 
     def pull_item(self, index):
-        img_id = self.ids[index]
+        img_info = self.ids[index]
 
-        target = ET.parse(self._annopath % img_id).getroot()
-        img = cv2.imread(self._imgpath % img_id)
+        img = cv2.imread(osp.join(self._imgpath, img_info[0], img_info[1]+'.jpg'), cv2.IMREAD_COLOR)
         height, width, channels = img.shape
 
-        if self.target_transform is not None:
-            target = self.target_transform(target, width, height)
-
+        
+        target = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]))
+        # print('size of target' + str(np.array(target).shape))
         if self.transform is not None:
             target = np.array(target)
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
@@ -157,8 +184,8 @@ class VOCDetection(data.Dataset):
         Return:
             PIL img
         '''
-        img_id = self.ids[index]
-        return cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
+        img_info = self.ids[index]
+        return cv2.imread(osp.join(self._imgpath, img_info[0], img_info[1]+'.jpg'), cv2.IMREAD_COLOR)
 
     def pull_anno(self, index):
         '''Returns the original annotation of image at index
@@ -172,11 +199,10 @@ class VOCDetection(data.Dataset):
             list:  [img_id, [(label, bbox coords),...]]
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
-        img_id = self.ids[index]
-        anno = ET.parse(self._annopath % img_id).getroot()
-        gt = self.target_transform(anno, 1, 1)
-
-        return img_id[1], gt
+        img_info = self.ids[index]
+        gt = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]))
+        gt[[0, 4], :]=gt[[4, 0], :]
+        return img_info, gt
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
