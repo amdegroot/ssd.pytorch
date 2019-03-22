@@ -29,6 +29,8 @@ class SSD(nn.Module):
         self.phase = phase
         self.num_classes = num_classes
         self.cfg = (coco, voc)[num_classes == 21]
+        # TODO: check cfg
+        print(self.cfg)
         self.priorbox = PriorBox(self.cfg)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
         self.size = size
