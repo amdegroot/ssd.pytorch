@@ -89,7 +89,7 @@ def train():
                                transform=SSDAugmentation(cfg['min_dim'],
                                                          MEANS))
     elif args.dataset == 'VisDrone2018':
-        cfg = visdrone
+        cfg = visdrone  # 选择哪一个config
         dataset = VOCDetection(root=args.dataset_root,
                                 transform=SSDAugmentation(cfg['min_dim'],
                                                          MEANS))
@@ -98,6 +98,7 @@ def train():
     #     import visdom 
     #     viz = visdom.Visdom()
 
+    print('num_classes: '+str(cfg['num_classes']))
     ssd_net = build_ssd('train', cfg['min_dim'], cfg['num_classes'])
     net = ssd_net
 
@@ -158,6 +159,7 @@ def train():
     # 每个迭代向后顺序取batch size个图片
     batch_iterator = iter(data_loader)
     for iteration in range(args.start_iter, cfg['max_iter']):
+        # print('it: '+str(iteration))
         if args.visdom and iteration != 0 and (iteration % epoch_size == 0):
             update_vis_plot(epoch, loc_loss, conf_loss, epoch_plot, epoch_plot2,
                             'append', epoch_size)

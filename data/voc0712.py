@@ -17,7 +17,7 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
-VOC_CLASSES = (  # always index 0
+VOC_CLASSES = (  # always index from 0   1+20=21
     'aeroplane', 'bicycle', 'bird', 'boat',
     'bottle', 'bus', 'car', 'cat', 'chair',
     'cow', 'diningtable', 'dog', 'horse',
@@ -73,7 +73,7 @@ class VOCAnnotationTransform(object):
             bndbox.append(label_idx)
             res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
             # img_id = target.find('filename').text[:-4]
-
+        # print('aeroplane: '+str(self.class_to_ind['aeroplane']))
             
 
         return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]

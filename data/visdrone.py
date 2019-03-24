@@ -18,7 +18,7 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
-VOC_CLASSES = (  # always index 0
+VOC_CLASSES = (  #  1+11=12
     'pedestrian', 'person', 'bicycle', 'car',
     'van', 'truck', 'tricycle', 'awning-tricycle', 'bus',
     'motor', 'others')
@@ -65,10 +65,15 @@ class VOCAnnotationTransform(object):
                 # print(item)
                 
                 if int(item[0]) == frameidx: # item[6] == 0?
-                    bbox = [float(item[2]), float(item[3]), float(item[2])+float(item[4]), float(item[3])+float(item[5]), int(item[7])]
+                    bbox = [float(item[2]), float(item[3]), float(item[2])+float(item[4]), float(item[3])+float(item[5]), int(item[7])-1]
+                    # 注意！！！
+                    # 导致错误  RuntimeError: cuda runtime error (59) : device-side assert triggered at /opt/conda/conda-bld/pytorch_1544199946412/work/aten/src/THC/generated/../THCTensorMathCompareT.cuh:69
+                    #          RuntimeError: copy_if failed to synchronize: device-side assert triggered
+                    # 输入1-x转为0-(x-1)，box_utils.py中再补0，否则数组超限
+                    # int(item[7])-1原因为统一成输入标注从0开始，再在layers/box_utils.py中转换为0非物体，1-x物体，item为从1-11的标注，bbox为0-10，和voc 0-19统一
                     # print('bbox'+str(bbox))
                     res += [bbox]
-            print('nums of bbox: ' + str(len(res)))
+            # print('nums of bbox: ' + str(len(res)))
         
         return res
 

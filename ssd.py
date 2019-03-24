@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from layers import *
-from data import voc, coco, VOC_CLASSES
+from data import voc, coco, visdrone, VOC_CLASSES
 import os
 
 class SSD(nn.Module):
@@ -28,8 +28,16 @@ class SSD(nn.Module):
         super(SSD, self).__init__()
         self.phase = phase
         self.num_classes = num_classes
-        self.cfg = (coco, voc)[num_classes == 21]
+        # self.cfg = (coco, voc)[num_classes == 21]   # 类似c++ ？语句，前面为中括号为false后面为true时的值
+        if num_classes == 11:
+            self.cfg = visdrone
+        elif num_classes == 21:
+            self.cfg = voc
+        else:
+            self.cfg =coco
+
         # TODO: check cfg
+        print('SSD config')
         print(self.cfg)
         self.priorbox = PriorBox(self.cfg)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
@@ -138,12 +146,18 @@ def vgg(cfg, i, batch_norm=False):
                 layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
             else:
                 layers += [conv2d, nn.ReLU(inplace=True)]
-            in_channels = v
+            in_channels = v # 输入通道数（上一层输出通道）
     pool5 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
     conv6 = nn.Conv2d(512, 1024, kernel_size=3, padding=6, dilation=6)
     conv7 = nn.Conv2d(1024, 1024, kernel_size=1)
     layers += [pool5, conv6,
                nn.ReLU(inplace=True), conv7, nn.ReLU(inplace=True)]
+
+    print('vgg layers: ')
+    idx=0
+    for item in layers:
+        idx+=1
+        print(str(idx)+': '+str(item))
     return layers
 
 
@@ -151,6 +165,7 @@ def add_extras(cfg, i, batch_norm=False):
     # Extra layers added to VGG for feature scaling
     layers = []
     in_channels = i
+    # print('in_channels:'+str(in_channels))
     flag = False
     for k, v in enumerate(cfg):
         if in_channels != 'S':
@@ -161,6 +176,15 @@ def add_extras(cfg, i, batch_norm=False):
                 layers += [nn.Conv2d(in_channels, v, kernel_size=(1, 3)[flag])]
             flag = not flag
         in_channels = v
+
+        # print('in_channels'+str(in_channels))
+
+
+    print('extra layers: ')
+    idx=0
+    for item in layers:
+        idx+=1
+        print(str(idx)+': '+str(item))
     return layers
 
 
@@ -178,6 +202,10 @@ def multibox(vgg, extra_layers, cfg, num_classes):
                                  * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(v.out_channels, cfg[k]
                                   * num_classes, kernel_size=3, padding=1)]
+
+    # 构建VGG，VGG多余的层，分类和回归层
+    print('loc layers: '+str(loc_layers))
+    print('conf layers: '+str(conf_layers))
     return vgg, extra_layers, (loc_layers, conf_layers)
 
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch
 
-
 def point_form(boxes):
     """ Convert prior_boxes to (xmin, ymin, xmax, ymax)
     representation for comparison to point form ground truth data.
@@ -105,6 +104,16 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     for j in range(best_prior_idx.size(0)):
         best_truth_idx[best_prior_idx[j]] = j
     matches = truths[best_truth_idx]          # Shape: [num_priors,4]
+    
+    # depict
+    # if len(VOC_CLASSES) == 12:  # 标注从1开始(0是ignore obj，不做标注，只用于detect输出)
+    #     conf = labels[best_truth_idx]
+    # else:
+    #     conf = labels[best_truth_idx] + 1   # 标注从0开始aeroplane
+    # print('len: '+str(len(labels)))
+    # print('conf: '+str(conf))
+
+    # 转换为0-非物体，1-x物体类别
     conf = labels[best_truth_idx] + 1         # Shape: [num_priors]
     conf[best_truth_overlap < threshold] = 0  # label as background
     loc = encode(matches, priors, variances)
@@ -166,6 +175,9 @@ def log_sum_exp(x):
         x (Variable(tensor)): conf_preds from conf layers
     """
     x_max = x.data.max()
+    # 沿着dim维相加（消减dim维），keepdim则保留长度为1的维度
+    # x-x_max计算和最大值之间的差距（all negative），exp后求和，指数差距，保留最接近max（每行最大的）的差，再取log，值接近每行最大值-x_max, 最后加上，结果为最大值的近似
+    # 每行max值越大，结果越大
     return torch.log(torch.sum(torch.exp(x-x_max), 1, keepdim=True)) + x_max
 
 
