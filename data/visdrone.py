@@ -73,7 +73,7 @@ class VOCAnnotationTransform(object):
                     # int(item[7])-1原因为统一成输入标注从0开始，再在layers/box_utils.py中转换为0非物体，1-x物体，item为从1-11的标注，bbox为0-10，和voc 0-19统一
                     # print('bbox'+str(bbox))
                     res += [bbox]
-            # print('nums of bbox: ' + str(len(res)))
+            # print('res.shape: ' + str(np.array(res).shape))
         
         return res
 
@@ -144,7 +144,7 @@ class VOCDetection(data.Dataset):
         for foldername in os.listdir(rootpath):
             for item in os.listdir(osp.join(rootpath, foldername)):
                 self.ids.append((os.path.join(rootpath, foldername), item.split('.')[0])) 
-
+        print(1+len(self.ids))
 
         # for (year, name) in image_sets:
         #     rootpath = osp.join(self.root, 'VOC' + year)
@@ -152,7 +152,14 @@ class VOCDetection(data.Dataset):
         #         self.ids.append((rootpath, line.strip()))
 
     def __getitem__(self, index):
+        # print('index: '+str(index))
+        # print('img_info: '+str(self.ids[index]))
+
         im, gt, h, w = self.pull_item(index)
+        while gt.shape == (1,5) and np.sum(gt, axis=1)==0:   # sum 哪一维，结果就不存在这一维
+                                                             # shape 是小括号，取数是中括号
+            index = (index + 1)%len(self.ids)
+            im, gt, h, w = self.pull_item(index)
 
         return im, gt
 
@@ -161,20 +168,30 @@ class VOCDetection(data.Dataset):
 
     def pull_item(self, index):
         img_info = self.ids[index]
-
+        # print('index: '+str(index))
+        # print('img_info: '+str(img_info))
         img = cv2.imread(osp.join(self._imgpath, img_info[0], img_info[1]+'.jpg'), cv2.IMREAD_COLOR)
         height, width, channels = img.shape
 
-        
+        # target 检测目标框和类别，每一行代表一个obj，每一个target表示一张图中所有的框
         target = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]))
         # print('size of target' + str(np.array(target).shape))
         if self.transform is not None:
             target = np.array(target)
+            if target.shape[0] == 0:
+                # 处理一个frame没有bbox的情况
+                print('bad data')
+                return torch.from_numpy(img).permute(2,0,1), np.zeros([1,5]), height, width
+            # print('size of target '+str(target.shape))
+            # print('size of target1 '+str(target[:,:4].shape))
+            # print('size of target2 '+str(target[:,4].shape))
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
             # to rgb
             img = img[:, :, (2, 1, 0)]
             # img = img.transpose(2, 0, 1)
-            target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
+            target = np.hstack((boxes, np.expand_dims(labels, axis=1))) # box和labels水平堆叠, np.expand_dims可以使(numbox,) 转为(numbox, 1)
+            # print('labels size: '+str(labels.shape))
+            # print('boxes size: '+str(boxes.shape))
         return torch.from_numpy(img).permute(2, 0, 1), target, height, width
         # return torch.from_numpy(img), target, height, width
 

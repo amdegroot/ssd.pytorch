@@ -140,7 +140,7 @@ def train():
     print('Training SSD on:', dataset.name)
     print('Using the specified args:')
     print(args)
-
+    # print(args.dataset)
     step_index = 0
 
     if args.visdom:
@@ -200,7 +200,7 @@ def train():
         loc_loss += loss_l.data
         conf_loss += loss_c.data
 
-        if iteration % 10 == 0:
+        if iteration % 100 == 0:
             print('timer: %.4f sec.' % (t1 - t0))
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data), end=' ')
 
@@ -210,7 +210,7 @@ def train():
 
         if iteration != 0 and iteration % 1000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_COCO_' +
+            torch.save(ssd_net.state_dict(), 'weights/ssd300_'+str(args.dataset)+'_' +
                        repr(iteration) + '.pth')
     torch.save(ssd_net.state_dict(),
                args.save_folder + '' + args.dataset + '.pth')
