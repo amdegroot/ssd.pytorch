@@ -14,7 +14,7 @@ import torch.utils.data as data
 from ssd import build_ssd
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
-parser.add_argument('--trained_model', default='weights/ssd_300_VOC0712.pth',
+parser.add_argument('--trained_model', default='weights/ssd300_mAP_77.43_v2.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='eval/', type=str,
                     help='Dir to save results')
@@ -42,7 +42,7 @@ def test_net(save_folder, net, cuda, testset, transform, thresh):
     for i in range(num_images):
         print('Testing image {:d}/{:d}....'.format(i+1, num_images))
         img = testset.pull_image(i)
-        img_id, annotation = testset.pull_anno(i)
+        img_id, annotation = testset.pull_anno(i)   # id， bbox， 类别
         x = torch.from_numpy(transform(img)[0]).permute(2, 0, 1)
         x = Variable(x.unsqueeze(0))
 
@@ -55,6 +55,9 @@ def test_net(save_folder, net, cuda, testset, transform, thresh):
 
         y = net(x)      # forward pass
         detections = y.data
+
+        print('network output: '+str(y.data))
+
         # scale each detection back up to the image
         scale = torch.Tensor([img.shape[1], img.shape[0],
                              img.shape[1], img.shape[0]])
@@ -72,7 +75,7 @@ def test_net(save_folder, net, cuda, testset, transform, thresh):
                 pred_num += 1
                 with open(filename, mode='a') as f:
                     f.write(str(pred_num)+' label: '+label_name+' score: ' +
-                            str(score) + ' '+' || '.join(str(c) for c in coords) + '\n')
+                            str(score.data) + ' '+' || '.join(str(c) for c in coords) + '\n')
                 j += 1
 
 

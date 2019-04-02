@@ -249,6 +249,7 @@ class DroneDetection(data.Dataset):
             list:  [img_id, [(label, bbox coords),...]]
                 eg: ('001718', [('dog', (96, 13, 438, 332))])
         '''
+        # TODO
         img_info = self.ids[index]
         gt = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]))
         gt[[0, 4], :]=gt[[4, 0], :]

@@ -41,6 +41,11 @@ class SSD(nn.Module):
         print(self.cfg)
         self.priorbox = PriorBox(self.cfg)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
+        # 建议volatile=True修改为
+        # with torch.no_grad():
+        #     self.priors = torch.Tensor(self.priorbox.forward())
+        
+
         self.size = size
 
         # SSD network
