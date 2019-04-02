@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from layers import *
-from data import voc, coco, visdrone, VOC_CLASSES
+from data import voc, coco, visdrone, VOC_CLASSES, DRONE_CLASSES, COCO_CLASSES
 import os
 
 class SSD(nn.Module):
@@ -29,11 +29,11 @@ class SSD(nn.Module):
         self.phase = phase
         self.num_classes = num_classes
         # self.cfg = (coco, voc)[num_classes == 21]   # 类似c++ ？语句，前面为中括号为false后面为true时的值
-        if num_classes == 11:
+        if num_classes == len(DRONE_CLASSES)+1: # ignore class
             self.cfg = visdrone
-        elif num_classes == 21:
+        elif num_classes == len(VOC_CLASSES)+1:
             self.cfg = voc
-        else:
+        elif num_classes == len(COCO_CLASSES)+1:
             self.cfg =coco
 
         # TODO: check cfg

@@ -13,9 +13,11 @@ MEANS = (104, 117, 123)
 # SSD300 CONFIGS
 voc = {
     'num_classes': 21,  # 0-19 object, 20 background
-    'lr_steps': (80000, 100000, 120000),
-    'max_iter': 120000,
-    # 'max_iter': 100,
+    # 'lr_steps': (80000, 100000, 120000),
+    # 'max_iter': 120000,
+    'lr_steps': (8000, 10000, 12000),
+    'max_iter': 12000,
+    'means': (104, 117, 123),
     'feature_maps': [38, 19, 10, 5, 3, 1],
     'min_dim': 300,
     'steps': [8, 16, 32, 64, 100, 300],
@@ -30,8 +32,9 @@ voc = {
 visdrone = {
     'num_classes': 12,
     'lr_steps': (8000, 10000, 12000),
+    # 'max_iter': 12000,
     'max_iter': 12000,
-    # 'max_iter': 100,
+    'means': (119, 122, 116),
     'feature_maps': [38, 19, 10, 5, 3, 1],
     'min_dim': 300,
     'steps': [8, 16, 32, 64, 100, 300],
@@ -47,6 +50,7 @@ coco = {
     'num_classes': 201,
     'lr_steps': (280000, 360000, 400000),
     'max_iter': 400000,
+    'means': (104, 117, 123),
     'feature_maps': [38, 19, 10, 5, 3, 1],
     'min_dim': 300,
     'steps': [8, 16, 32, 64, 100, 300],

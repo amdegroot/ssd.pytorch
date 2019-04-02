@@ -1,4 +1,4 @@
-"""VOC Dataset Classes
+"""VisDrone2018 Dataset Classes
 
 Original author: Francisco Massa
 https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
@@ -18,23 +18,23 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
-VOC_CLASSES = (  #  1+11=12
+DRONE_CLASSES = (  #  1+11=12
     'pedestrian', 'person', 'bicycle', 'car',
     'van', 'truck', 'tricycle', 'awning-tricycle', 'bus',
     'motor', 'others')
 
 # note: if you used our download scripts, this should be right
 # make sure path does not contains substring 'annotations'
-VOC_ROOT = "/media/mk/本地磁盘/Datasets/UAV/VisDrone2018"
+DRONE_ROOT = "/media/mk/本地磁盘/Datasets/UAV/VisDrone2018"
 
 
-class VOCAnnotationTransform(object):
-    """Transforms a VOC annotation into a Tensor of bbox coords and label index
+class DroneAnnotationTransform(object):
+    """Transforms a VisDrone2018 annotation into a Tensor of bbox coords and label index
     Initilized with a dictionary lookup of classnames to indexes
 
     Arguments:
         class_to_ind (dict, optional): dictionary lookup of classnames -> indexes
-            (default: alphabetic indexing of VOC's 20 classes)
+            (default: alphabetic indexing of VisDrone2018's 11 classes, 1 ignore)
         keep_difficult (bool, optional): keep difficult instances or not
             (default: False)
         height (int): height
@@ -43,16 +43,18 @@ class VOCAnnotationTransform(object):
 
     def __init__(self, class_to_ind=None, keep_difficult=False):
         self.class_to_ind = class_to_ind or dict(
-            zip(VOC_CLASSES, range(len(VOC_CLASSES))))
+            zip(DRONE_CLASSES, range(len(DRONE_CLASSES))))
         self.keep_difficult = keep_difficult
 
-    def __call__(self, filename, frameidx):
+    def __call__(self, filename, frameidx, width, height):
         """
         Arguments:
-            target (annotation) : the target annotation to be made usable
-                will be an ET.Element
+            filename: anno文件的名字
+            frameidx: 文件中对应的视频段的哪一帧，每行第一个数
         Returns:
             a list containing lists of bounding boxes  [bbox coords, class name]
+            [x0, y0, x1, y1, category(int)]
+            坐标进行过标准化，变成[0., 1.]的小数
         """
 
         # target: filename
@@ -65,7 +67,7 @@ class VOCAnnotationTransform(object):
                 # print(item)
                 
                 if int(item[0]) == frameidx: # item[6] == 0?
-                    bbox = [float(item[2]), float(item[3]), float(item[2])+float(item[4]), float(item[3])+float(item[5]), int(item[7])-1]
+                    bbox = [float(item[2])/width, float(item[3])/height, (float(item[2])+float(item[4]))/width, (float(item[3])+float(item[5]))/height, int(item[7])-1]
                     # 注意！！！
                     # 导致错误  RuntimeError: cuda runtime error (59) : device-side assert triggered at /opt/conda/conda-bld/pytorch_1544199946412/work/aten/src/THC/generated/../THCTensorMathCompareT.cuh:69
                     #          RuntimeError: copy_if failed to synchronize: device-side assert triggered
@@ -105,13 +107,13 @@ class VOCAnnotationTransform(object):
         # return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
 
-class VOCDetection(data.Dataset):
-    """VOC Detection Dataset Object
+class DroneDetection(data.Dataset):
+    """VisDrone2018 Detection Dataset Object
 
     input is image, target is annotation
 
     Arguments:
-        root (string): filepath to VOCdevkit folder.
+        root (string): filepath to VisDrone2018 devkit folder.
         image_set (string): imageset to use (eg. 'train', 'val', 'test')
         transform (callable, optional): transformation to perform on the
             input image
@@ -119,11 +121,11 @@ class VOCDetection(data.Dataset):
             target `annotation`
             (eg: take in caption string, return tensor of word indices)
         dataset_name (string, optional): which dataset to load
-            (default: 'VOC2007')
+            (default: 'VisDrone2018 2007')
     """
 
     def __init__(self, root,
-                 transform=None, target_transform=VOCAnnotationTransform(),
+                 transform=None, target_transform=DroneAnnotationTransform(),
                  dataset_name='VisDrone 2018', train=1):
         self.root = root
         self.transform = transform
@@ -174,20 +176,46 @@ class VOCDetection(data.Dataset):
         height, width, channels = img.shape
 
         # target 检测目标框和类别，每一行代表一个obj，每一个target表示一张图中所有的框
-        target = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]))
+        target = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]), width, height)    # 读取坐标时转为小数，相对坐标
         # print('size of target' + str(np.array(target).shape))
-        if self.transform is not None:
+        if self.transform is not None:  # 数据增强
             target = np.array(target)
-            if target.shape[0] == 0:
+            if target.shape[0] == 0: 
                 # 处理一个frame没有bbox的情况
                 print('bad data')
                 return torch.from_numpy(img).permute(2,0,1), np.zeros([1,5]), height, width
+            
             # print('size of target '+str(target.shape))
             # print('size of target1 '+str(target[:,:4].shape))
             # print('size of target2 '+str(target[:,4].shape))
-            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
+            # with open('before.jpg', 'wb') as f:
+            #     cv2.imwrite('before.jpg', img)
+            # cv2.imshow('before', img)
+            # cv2.imwrite('before.jpg', img)
+            # print('before '+str(np.array(img).shape))
+
+            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])   # 前四个+第五个
+            # self.transform -> SSDAugmentation.call -> SSDAugmentation.augment -> compose.call
+
+            # # 显示图片的代码
+            # origin=np.copy(img)
+            # imgheight, imgwidth, imgchannel=img.shape
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # origin=origin/origin.max()  # 对于浮点数必须在0-1.0之间才可以正常显示
+            # for idx, it in enumerate(boxes):
+            #     if float(it[0].item()) <= 1.0:
+            #         origin=cv2.rectangle(origin, (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)), (int(it[2].item()*imgwidth), int(it[3].item()*imgheight)), (255,255,0), 4)
+            #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)-2), font, 1, (0,0,255), 1)
+            #     else:
+            #         origin=cv2.rectangle(origin, (int(it[0].item()), int(it[1].item())), (int(it[2].item()), int(it[3].item())), (255,255,0), 4)
+            #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()), int(it[1].item())-2), font, 1, (0,0,255), 1)
+            # cv2.imshow('cat', origin)
+            # cv2.waitKey()   # 加上waitkey才显示图片   
+
             # to rgb
             img = img[:, :, (2, 1, 0)]
+
+            # print('img size: '+str(np.array(img).shape))
             # img = img.transpose(2, 0, 1)
             target = np.hstack((boxes, np.expand_dims(labels, axis=1))) # box和labels水平堆叠, np.expand_dims可以使(numbox,) 转为(numbox, 1)
             # print('labels size: '+str(labels.shape))

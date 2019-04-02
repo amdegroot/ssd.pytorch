@@ -1,8 +1,6 @@
 """VOC Dataset Classes
-
 Original author: Francisco Massa
 https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
-
 Updated by: Ellis Brown, Max deGroot
 """
 from .config import HOME
@@ -17,7 +15,7 @@ if sys.version_info[0] == 2:
 else:
     import xml.etree.ElementTree as ET
 
-VOC_CLASSES = (  # always index from 0   1+20=21
+VOC_CLASSES = (  # always index 0
     'aeroplane', 'bicycle', 'bird', 'boat',
     'bottle', 'bus', 'car', 'cat', 'chair',
     'cow', 'diningtable', 'dog', 'horse',
@@ -31,7 +29,7 @@ VOC_ROOT = osp.join(HOME, "data/VOCdevkit/")
 class VOCAnnotationTransform(object):
     """Transforms a VOC annotation into a Tensor of bbox coords and label index
     Initilized with a dictionary lookup of classnames to indexes
-
+    # always index from 0   1+20=21
     Arguments:
         class_to_ind (dict, optional): dictionary lookup of classnames -> indexes
             (default: alphabetic indexing of VOC's 20 classes)
@@ -64,26 +62,22 @@ class VOCAnnotationTransform(object):
 
             pts = ['xmin', 'ymin', 'xmax', 'ymax']
             bndbox = []
-            for i, pt in enumerate(pts):
+            for i, pt in enumerate(pts):    
                 cur_pt = int(bbox.find(pt).text) - 1
-                # scale height or width
+                # scale height or width, 变成标准化的位置 0.x
                 cur_pt = cur_pt / width if i % 2 == 0 else cur_pt / height
                 bndbox.append(cur_pt)
             label_idx = self.class_to_ind[name]
             bndbox.append(label_idx)
             res += [bndbox]  # [xmin, ymin, xmax, ymax, label_ind]
             # img_id = target.find('filename').text[:-4]
-        # print('aeroplane: '+str(self.class_to_ind['aeroplane']))
-            
 
         return res  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
 
 
 class VOCDetection(data.Dataset):
     """VOC Detection Dataset Object
-
     input is image, target is annotation
-
     Arguments:
         root (string): filepath to VOCdevkit folder.
         image_set (string): imageset to use (eg. 'train', 'val', 'test')
@@ -111,12 +105,8 @@ class VOCDetection(data.Dataset):
         for (year, name) in image_sets:
             rootpath = osp.join(self.root, 'VOC' + year)
             for line in open(osp.join(rootpath, 'ImageSets', 'Main', name + '.txt')):
-                # print('rootpath: '+str(rootpath)+' '+line.strip())
                 self.ids.append((rootpath, line.strip()))
-                # print(self.ids[-1]) # 文件path和文件名的列表
-                # print(self.ids[0])
-
-        
+                # print('rootpath: '+str(rootpath)+' '+line.strip())
 
     def __getitem__(self, index):
         im, gt, h, w = self.pull_item(index)
@@ -137,8 +127,43 @@ class VOCDetection(data.Dataset):
             target = self.target_transform(target, width, height)
 
         if self.transform is not None:
+
+            
             target = np.array(target)
+
+            # before show
+            # origin=np.copy(img)
+            # imgheight, imgwidth, imgchannel=img.shape
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # for idx, it in enumerate(target[:,:4]):
+            #     if float(it[0].item()) <= 1.0:
+            #         origin=cv2.rectangle(origin, (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)), (int(it[2].item()*imgwidth), int(it[3].item()*imgheight)), (255,255,0), 4)
+            #         origin=cv2.putText(origin, VOC_CLASSES[int(target[idx][4])], (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)-2), font, 1, (0,0,255), 1)
+            #     else:
+            #         origin=cv2.rectangle(origin, (int(it[0].item()), int(it[1].item())), (int(it[2].item()), int(it[3].item())), (255,255,0), 4)
+            #         origin=cv2.putText(origin, VOC_CLASSES[int(target[idx][4])], (int(it[0].item()), int(it[1].item())-2), font, 1, (0,0,255), 1)
+            # cv2.imshow('origin', origin)
+            # cv2.waitKey()   # 加上waitkey才显示图片   
+
+
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
+
+            # disabled in training
+            # origin=np.copy(img)
+            # imgheight, imgwidth, imgchannel=img.shape
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # origin=origin/origin.max()  # 对于浮点数必须在0-1.0之间才可以正常显示
+            # for idx, it in enumerate(boxes):
+            #     if float(it[0].item()) <= 1.0:
+            #         origin=cv2.rectangle(origin, (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)), (int(it[2].item()*imgwidth), int(it[3].item()*imgheight)), (255,255,0), 4)
+            #         origin=cv2.putText(origin, VOC_CLASSES[int(labels[idx])], (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)-2), font, 1, (0,0,255), 1)
+            #     else:
+            #         origin=cv2.rectangle(origin, (int(it[0].item()), int(it[1].item())), (int(it[2].item()), int(it[3].item())), (255,255,0), 4)
+            #         origin=cv2.putText(origin, VOC_CLASSES[int(labels[idx])], (int(it[0].item()), int(it[1].item())-2), font, 1, (0,0,255), 1)
+            # cv2.imshow('cat', origin)
+            # cv2.waitKey()   # 加上waitkey才显示图片   
+
+
             # to rgb
             img = img[:, :, (2, 1, 0)]
             # img = img.transpose(2, 0, 1)
@@ -148,10 +173,8 @@ class VOCDetection(data.Dataset):
 
     def pull_image(self, index):
         '''Returns the original image object at index in PIL form
-
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
-
         Argument:
             index (int): index of img to show
         Return:
@@ -162,10 +185,8 @@ class VOCDetection(data.Dataset):
 
     def pull_anno(self, index):
         '''Returns the original annotation of image at index
-
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
-
         Argument:
             index (int): index of img to get annotation of
         Return:
@@ -175,15 +196,12 @@ class VOCDetection(data.Dataset):
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
         gt = self.target_transform(anno, 1, 1)
-
         return img_id[1], gt
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
-
         Note: not using self.__getitem__(), as any transformations passed in
         could mess up this functionality.
-
         Argument:
             index (int): index of img to show
         Return:

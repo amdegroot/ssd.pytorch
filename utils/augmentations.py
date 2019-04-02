@@ -4,7 +4,17 @@ import cv2
 import numpy as np
 import types
 from numpy import random
+VOC_CLASSES = (  # always index 0
+    'aeroplane', 'bicycle', 'bird', 'boat',
+    'bottle', 'bus', 'car', 'cat', 'chair',
+    'cow', 'diningtable', 'dog', 'horse',
+    'motorbike', 'person', 'pottedplant',
+    'sheep', 'sofa', 'train', 'tvmonitor')
 
+DRONE_CLASSES = (  #  1+11=12
+    'pedestrian', 'person', 'bicycle', 'car',
+    'van', 'truck', 'tricycle', 'awning-tricycle', 'bus',
+    'motor', 'others')
 
 def intersect(box_a, box_b):
     max_xy = np.minimum(box_a[:, 2:], box_b[2:])
@@ -32,7 +42,7 @@ def jaccard_numpy(box_a, box_b):
     union = area_a + area_b - inter
     return inter / union  # [A,B]
 
-
+    
 class Compose(object):
     """Composes several augmentations together.
     Args:
@@ -47,9 +57,41 @@ class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
 
+    # 会调用两遍compose类
     def __call__(self, img, boxes=None, labels=None):
         for t in self.transforms:
+ 
+
             img, boxes, labels = t(img, boxes, labels)
+
+            # disabled in training.
+
+            # print('num of object: '+str(len(boxes)))
+            # print(type(t))
+            # imgheight, imgwidth, imgchannel=img.shape
+            # origin=np.copy(img)
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # # if abs(np.max(origin)-int(np.max(origin)))>=1e-7: # 判断是真小数
+            # #     print('OK')
+            # origin=origin/origin.max()  # cv2画图： 浮点数必须0-1.0， 整数0-255
+
+            # isrelative=np.max(boxes)<=1.0
+            # for idx, it in enumerate(boxes):
+            #     if isrelative:  
+            #         print('RE x0: '+str(it[0].item()))
+            #         print('RE y0: '+str(it[1].item()))
+            #         origin=cv2.rectangle(origin, (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)), (int(it[2].item()*imgwidth), int(it[3].item()*imgheight)), (255,255,0), 4)
+            #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)-2), font, 1, (0,0,255), 1)
+            #     else:
+            #         print('ABS x0: '+str(it[0].item()))
+            #         print('ABS y0: '+str(it[1].item()))
+            #         origin=cv2.rectangle(origin, (int(it[0].item()), int(it[1].item())), (int(it[2].item()), int(it[3].item())), (255,255,0), 4)
+            #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()), int(it[1].item())-2), font, 1, (0,0,255), 1)
+            
+            # # print(origin[0][0])
+            # cv2.imshow(str(type(t)), origin)
+            # cv2.waitKey()   # 加上waitkey才显示图片  
+
         return img, boxes, labels
 
 
@@ -63,12 +105,13 @@ class Lambda(object):
     def __call__(self, img, boxes=None, labels=None):
         return self.lambd(img, boxes, labels)
 
-
+# int转换为float32
+# cv2和matplotlib画图时，float32类型需要在0-1之间才可画图
 class ConvertFromInts(object):
     def __call__(self, image, boxes=None, labels=None):
         return image.astype(np.float32), boxes, labels
 
-
+# 减去RGB每一通道的均值
 class SubtractMeans(object):
     def __init__(self, mean):
         self.mean = np.array(mean, dtype=np.float32)
@@ -78,7 +121,7 @@ class SubtractMeans(object):
         image -= self.mean
         return image.astype(np.float32), boxes, labels
 
-
+# 之前输入的boxes是相对坐标（0.x），转为绝对坐标xxx.0，方便后续操作
 class ToAbsoluteCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
@@ -89,14 +132,10 @@ class ToAbsoluteCoords(object):
 
         return image, boxes, labels
 
-
+# 绝对坐标转为相对坐标
 class ToPercentCoords(object):
     def __call__(self, image, boxes=None, labels=None):
         height, width, channels = image.shape
-        # print('shape: '+str(image.shape))
-        # print('boxes: '+str(np.array(boxes).shape))
-        # print(type(boxes[0]))
-        # print(type(boxes[0][0]))
         boxes[:, 0] /= width
         boxes[:, 2] /= width
         boxes[:, 1] /= height
@@ -104,7 +143,7 @@ class ToPercentCoords(object):
 
         return image, boxes, labels
 
-
+# resize图片，由于相对坐标，所以没有影响
 class Resize(object):
     def __init__(self, size=300):
         self.size = size
@@ -312,7 +351,7 @@ class RandomSampleCrop(object):
 
                 return current_image, current_boxes, current_labels
 
-
+# 50%的样本进行1-4的比例随机进行放大，原图在右下角，其他扩充位置为均值
 class Expand(object):
     def __init__(self, mean):
         self.mean = mean
@@ -350,7 +389,7 @@ class RandomMirror(object):
             boxes[:, 0::2] = width - boxes[:, 2::-2]
         return image, boxes, classes
 
-
+# 改变第三维的三列的顺序：变换RGB通道
 class SwapChannels(object):
     """Transforms a tensorized image by swapping the channels in the order
      specified in the swap tuple.
@@ -415,7 +454,7 @@ class SSDAugmentation(object):
             ToPercentCoords(),
             Resize(self.size),
             SubtractMeans(self.mean)
-        ])
+        ])  # 以上所有transform都做一遍，返回一张图片
 
     def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)

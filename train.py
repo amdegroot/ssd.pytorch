@@ -14,8 +14,10 @@ import torch.nn.init as init
 import torch.utils.data as data
 import numpy as np
 import argparse
-import visdom 
-viz = visdom.Visdom()
+
+from logger import Logger
+# import visdom 
+# viz = visdom.Visdom()
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -30,7 +32,7 @@ parser.add_argument('--dataset_root', default=VOC_ROOT,
                     help='Dataset root directory path')
 parser.add_argument('--basenet', default='vgg16_reducedfc.pth',
                     help='Pretrained base model')
-parser.add_argument('--batch_size', default=32, type=int,
+parser.add_argument('--batch_size', default=16, type=int,
                     help='Batch size for training')
 parser.add_argument('--resume', default=None, type=str,
                     help='Checkpoint state_dict file to resume training from')
@@ -52,6 +54,8 @@ parser.add_argument('--visdom', default=False, type=str2bool,
                     help='Use visdom for loss visualization')
 parser.add_argument('--save_folder', default='weights/',
                     help='Directory for saving checkpoint models')
+parser.add_argument('--tensorboard', default=True, type=str2bool,
+                    help='User tensorboard')
 args = parser.parse_args()
 
 
@@ -80,19 +84,20 @@ def train():
         cfg = coco
         dataset = COCODetection(root=args.dataset_root,
                                 transform=SSDAugmentation(cfg['min_dim'],
-                                                          MEANS))
+                                                          cfg['means']))
     elif args.dataset == 'VOC':
         # if args.dataset_root == COCO_ROOT:
         #     parser.error('Must specify dataset if specifying dataset_root')
         cfg = voc
         dataset = VOCDetection(root=args.dataset_root,
                                transform=SSDAugmentation(cfg['min_dim'],
-                                                         MEANS))
+                                                         cfg['means']))
     elif args.dataset == 'VisDrone2018':
+        args.dataset_root = DRONE_ROOT
         cfg = visdrone  # 选择哪一个config
-        dataset = VOCDetection(root=args.dataset_root,
+        dataset = DroneDetection(root=args.dataset_root,
                                 transform=SSDAugmentation(cfg['min_dim'],
-                                                         MEANS))
+                                                         cfg['means']))
 
     # if args.visdom:
     #     import visdom 
@@ -150,6 +155,12 @@ def train():
         epoch_plot = create_vis_plot('Epoch', 'Loss', vis_title, vis_legend)
         epoch_plot2 = create_vis_plot('Epoch', 'Loss', vis_title, vis_legend)
 
+    if args.tensorboard:
+        logger = Logger('./logs')
+        
+    
+    
+
     data_loader = data.DataLoader(dataset, args.batch_size,
                                   num_workers=args.num_workers,
                                   shuffle=True, collate_fn=detection_collate,
@@ -200,9 +211,48 @@ def train():
         loc_loss += loss_l.data
         conf_loss += loss_c.data
 
-        if iteration % 100 == 0:
-            print('timer: %.4f sec.' % (t1 - t0))
-            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data), end=' ')
+        if iteration % 10 == 0:
+            # print('timer: %.4f sec.' % (t1 - t0))
+            # print('ok')
+            print('iter [{}/{}]'.format(iteration, cfg['max_iter']-args.start_iter)  + ' || Loss: %.4f' % (loss.data))
+
+
+            # print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data), end=' ')
+        
+
+        # print(loss)
+
+        # print('isnan'+str(torch.isnan(loss)))
+        # print(torch.isnan(loss))
+        if torch.isnan(loss).data!=0: 
+            print('Error')
+            errorcnt=1
+            for img in images:
+
+                cv2.imwrite('./logs/'+str(errorcnt)+'.jpg', img)
+            
+            break
+
+
+        if args.tensorboard:
+            info = {'loss': loss.data}
+
+            for tag, value in info.items():
+                logger.scalar_summary(tag, value, iteration)
+
+            for tag, value in net.named_parameters():
+                # print('tag: ' + str(tag))
+                # print('params: ' + str(value.data.cpu().numpy().shape)) # convert to cpu data and transform to numpy
+                tag = tag.replace('.', '/')
+                logger.histo_summary(tag, value.data.cpu().numpy(), iteration)
+                logger.histo_summary(tag+'/grad', value.grad.data.cpu().numpy(), iteration)
+
+            info = {'images': images.view(-1, int(cfg['min_dim']), int(cfg['min_dim'])).cpu().numpy()}
+
+            for tag, img in info.items():
+                logger.image_summary(tag, img, iteration)
+
+            
 
         if args.visdom:
             update_vis_plot(iteration, loss_l.data, loss_c.data,
