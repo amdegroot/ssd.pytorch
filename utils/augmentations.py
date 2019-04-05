@@ -59,6 +59,8 @@ class Compose(object):
 
     # 会调用两遍compose类
     def __call__(self, img, boxes=None, labels=None):
+        originbox=str(len(boxes))
+
         for t in self.transforms:
  
 
@@ -68,29 +70,31 @@ class Compose(object):
 
             # print('num of object: '+str(len(boxes)))
             # print(type(t))
-            # imgheight, imgwidth, imgchannel=img.shape
-            # origin=np.copy(img)
-            # font = cv2.FONT_HERSHEY_SIMPLEX
-            # # if abs(np.max(origin)-int(np.max(origin)))>=1e-7: # 判断是真小数
-            # #     print('OK')
-            # origin=origin/origin.max()  # cv2画图： 浮点数必须0-1.0， 整数0-255
 
-            # isrelative=np.max(boxes)<=1.0
-            # for idx, it in enumerate(boxes):
-            #     if isrelative:  
-            #         print('RE x0: '+str(it[0].item()))
-            #         print('RE y0: '+str(it[1].item()))
-            #         origin=cv2.rectangle(origin, (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)), (int(it[2].item()*imgwidth), int(it[3].item()*imgheight)), (255,255,0), 4)
-            #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)-2), font, 1, (0,0,255), 1)
-            #     else:
-            #         print('ABS x0: '+str(it[0].item()))
-            #         print('ABS y0: '+str(it[1].item()))
-            #         origin=cv2.rectangle(origin, (int(it[0].item()), int(it[1].item())), (int(it[2].item()), int(it[3].item())), (255,255,0), 4)
-            #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()), int(it[1].item())-2), font, 1, (0,0,255), 1)
-            
-            # # print(origin[0][0])
-            # cv2.imshow(str(type(t)), origin)
-            # cv2.waitKey()   # 加上waitkey才显示图片  
+        # imgheight, imgwidth, imgchannel=img.shape
+        # origin=np.copy(img)
+        # font = cv2.FONT_HERSHEY_SIMPLEX
+        # # if abs(np.max(origin)-int(np.max(origin)))>=1e-7: # 判断是真小数
+        # #     print('OK')
+        # origin=origin/origin.max()  # cv2画图： 浮点数必须0-1.0， 整数0-255
+
+        # isrelative=np.max(boxes)<=1.0
+        # for idx, it in enumerate(boxes):
+        #     if isrelative:  
+        #         # print('RE x0: '+str(it[0].item()))
+        #         # print('RE y0: '+str(it[1].item()))
+        #         origin=cv2.rectangle(origin, (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)), (int(it[2].item()*imgwidth), int(it[3].item()*imgheight)), (255,255,0), 4)
+        #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)-2), font, 1, (0,0,255), 1)
+        #     else:
+        #         # print('ABS x0: '+str(it[0].item()))
+        #         # print('ABS y0: '+str(it[1].item()))
+        #         origin=cv2.rectangle(origin, (int(it[0].item()), int(it[1].item())), (int(it[2].item()), int(it[3].item())), (255,255,0), 4)
+        #         origin=cv2.putText(origin, DRONE_CLASSES[int(labels[idx])], (int(it[0].item()), int(it[1].item())-2), font, 1, (0,0,255), 1)
+        
+        # # print(origin[0][0])
+        # cv2.imshow('hahaha', origin)
+        # cv2.waitKey()   # 加上waitkey才显示图片  
+        # print(originbox+"---"+str(len(boxes)))
 
         return img, boxes, labels
 

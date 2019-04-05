@@ -196,6 +196,7 @@ class VOCDetection(data.Dataset):
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
         gt = self.target_transform(anno, 1, 1)  # x0, y0, x1, y1, category
+        print(gt)
         return img_id[1], gt
 
     def pull_tensor(self, index):

@@ -417,7 +417,7 @@ def evaluate_detections(box_list, output_dir, dataset):
     write_voc_results_file(box_list, dataset)
     do_python_eval(output_dir)
 
-
+# TODO needs modification
 if __name__ == '__main__':
     # load net
     num_classes = len(labelmap) + 1                      # +1 for background

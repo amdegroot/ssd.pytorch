@@ -58,7 +58,7 @@ class MultiBoxLoss(nn.Module):
                 shape: [batch_size,num_objs,5] (last idx is the label).
         """
         loc_data, conf_data, priors = predictions
-        num = loc_data.size(0)  # batch size
+        num = loc_data.size(0)
         priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
         num_classes = self.num_classes
@@ -91,29 +91,12 @@ class MultiBoxLoss(nn.Module):
 
         # Compute max conf across batch for hard negative mining
         batch_conf = conf_data.view(-1, self.num_classes)
-        # print('batch_conf: '+str(batch_conf.shape))
-        # print('conf_t: '+str(conf_t.shape)) # batch_szie X prior num
-        # print('log_sum_exp: '+str(log_sum_exp(batch_conf)))
-        # print('conf_t.view: '+str(conf_t.view(-1, 1)))
-        # print('gather: '+str(batch_conf.gather(1, conf_t.view(-1,1)).shape))
         loss_c = log_sum_exp(batch_conf) - batch_conf.gather(1, conf_t.view(-1, 1))
-        # torch.gather(input, dim, index)方法 index和input维度相同，使用对于input的每个位置，使用对应位置的index中数字替换第dim维的数，返回的数组为替换后坐标对应的input中的数
-        # out[i][j] = input[index[i][j]][j]  # if dim == 0
-        # out[i][j] = input[i][index[i][j]]  # if dim == 1
-        # example
-        # >>> t = torch.tensor([[1,2],[3,4]])
-        # >>> torch.gather(t, 1, torch.tensor([[0,0],[1,0]]))
-        # tensor([[ 1,  1],
-        #         [ 4,  3]])
 
         # Hard Negative Mining
-
         loss_c = loss_c.view(num, -1)
-        # print(loss_c) # 玄学错误： RuntimeError: cuda runtime error (59) : device-side assert triggered at /opt/conda/conda-bld/pytorch_1544199946412/work/aten/src/THC/generated/../THCTensorMathCompareT.cuh:69
-                        # 玄学错误： RuntimeError: copy_if failed to synchronize: device-side assert triggered
-                        # 解决方案： 读入的标注转为从0开始，item[7]-1，在box_utils.py中转为0非物体1-x物体
-        loss_c[pos] = 0  # filter out pos boxes for now
 
+        loss_c[pos] = 0  # filter out pos boxes for now
         _, loss_idx = loss_c.sort(1, descending=True)
         _, idx_rank = loss_idx.sort(1)
         num_pos = pos.long().sum(1, keepdim=True)
@@ -129,10 +112,7 @@ class MultiBoxLoss(nn.Module):
 
         # Sum of losses: L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
 
-        N = num_pos.data.sum().double()
-        loss_l = loss_l.double()
-        loss_c = loss_c.double()
-
+        N = num_pos.data.sum()
         loss_l /= N
         loss_c /= N
         return loss_l, loss_c

@@ -37,13 +37,15 @@ class SSD(nn.Module):
             self.cfg =coco
 
         # TODO: check cfg
-        print('SSD config')
-        print(self.cfg)
+        print('SSD config----------')
+        for k, v in self.cfg.items():   # .keys(), .values(), .items()
+            print(' '+str(k)+': '+str(v))
+            
         self.priorbox = PriorBox(self.cfg)
-        self.priors = Variable(self.priorbox.forward(), volatile=True)
-        # 建议volatile=True修改为
-        # with torch.no_grad():
-        #     self.priors = torch.Tensor(self.priorbox.forward())
+        # self.priors = Variable(self.priorbox.forward(), volatile=True)
+        # # 建议volatile=True修改为
+        with torch.no_grad():
+            self.priors = torch.Tensor(self.priorbox.forward())
         
 
         self.size = size
@@ -65,7 +67,7 @@ class SSD(nn.Module):
         """Applies network layers and ops on input image(s) x.
 
         Args:
-            x: input image or batch of images. Shape: [batch,3,300,300].
+            x: input image or batch of images. Shape: [batch,3,300,300]. or [batch, 3, res, res]
 
         Return:
             Depending on phase:
@@ -87,10 +89,11 @@ class SSD(nn.Module):
         # apply vgg up to conv4_3 relu
         for k in range(23):
             x = self.vgg[k](x)
-
+        # 增加中间的l2norm， multi-scale， skip connection
         s = self.L2Norm(x)
-        sources.append(s)
+        sources.append(s)   # 记录中间结果
 
+        # 沿vgg计算
         # apply vgg up to fc7
         for k in range(23, len(self.vgg)):
             x = self.vgg[k](x)
@@ -100,9 +103,11 @@ class SSD(nn.Module):
         for k, v in enumerate(self.extras):
             x = F.relu(v(x), inplace=True)
             if k % 2 == 1:
-                sources.append(x)
+                sources.append(x)   # 隔层做cache， source就是一个cache
 
+        # 定位和分类在每一个cache上做，相当于skip connection，直接连接浅层特征图 
         # apply multibox head to source layers
+        # TODO: 查看众多的loc和conf
         for (x, l, c) in zip(sources, self.loc, self.conf):
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
@@ -118,10 +123,13 @@ class SSD(nn.Module):
             )
         else:
             output = (
-                loc.view(loc.size(0), -1, 4),
-                conf.view(conf.size(0), -1, self.num_classes),
+                loc.view(loc.size(0), -1, 4),   # batch, num of obj, 4维框
+                conf.view(conf.size(0), -1, self.num_classes),  # batch, num of obj, 类别数量
                 self.priors
             )
+
+        # print('output 0 shape: '+str(output[0].shape))
+        # print('output 1 shape: '+str(output[1].shape))
         return output
 
     def load_weights(self, base_file):
@@ -158,11 +166,11 @@ def vgg(cfg, i, batch_norm=False):
     layers += [pool5, conv6,
                nn.ReLU(inplace=True), conv7, nn.ReLU(inplace=True)]
 
-    print('vgg layers: ')
-    idx=0
-    for item in layers:
-        idx+=1
-        print(str(idx)+': '+str(item))
+    # 打印vgg每一层
+    print('vgg layers----------')
+    for idx, item in enumerate(layers):
+        print('['+str(idx)+'] '+str(item))
+
     return layers
 
 
@@ -184,48 +192,64 @@ def add_extras(cfg, i, batch_norm=False):
 
         # print('in_channels'+str(in_channels))
 
+    print('extra layers----------')
+    for idx, item in enumerate(layers):
+        print('['+str(idx)+'] '+str(item))
+    print('\n')
 
-    print('extra layers: ')
-    idx=0
-    for item in layers:
-        idx+=1
-        print(str(idx)+': '+str(item))
     return layers
 
-
-def multibox(vgg, extra_layers, cfg, num_classes):
+# 调用vgg和add_extra函数，返回vgg和增加的层作为参数输入multi-box
+# multibox作用是增加卷积定位和分类的head层(loc, conf)，并返回所有层
+# 即localization head和classification head， 分类和定位任务的最后一层，卷积特征图，产生结果
+def multibox(vgg, extra_layers, cfg, num_classes):  # multibox的含义为多个检测框（boundingbox）
+    """
+    通过将每个边界框检测器分配到图像中的特定位置，one-stage目标检测算法（例如YOLO，SSD和DetectNet）都是这样来解决这个问题。
+    因为，检测器学会专注于某些位置的物体。为了获得更好的效果，我们还可以让检测器专注于物体的形状和大小。
+    """
+    # print('vgg----------- ')
+    # for idx, v in enumerate(vgg):
+    #     print(str(idx)+': '+str(v))
     loc_layers = []
     conf_layers = []
-    vgg_source = [21, -2]
-    for k, v in enumerate(vgg_source):
+    vgg_source = [21, -2]   # loc和conf layer接在第21和倒2之后
+    for k, v in enumerate(vgg_source):  # 使用mbox的前两个
         loc_layers += [nn.Conv2d(vgg[v].out_channels,
                                  cfg[k] * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(vgg[v].out_channels,
                         cfg[k] * num_classes, kernel_size=3, padding=1)]
-    for k, v in enumerate(extra_layers[1::2], 2):
-        loc_layers += [nn.Conv2d(v.out_channels, cfg[k]
+    for k, v in enumerate(extra_layers[1::2], 2):   # 编号从start开始，但是遍历顺序不变。 [1::2] 从idx为1开始（第二个），隔一个取一个
+        # loc和conf接在extra layer第二个和之后，隔一个接一个
+        loc_layers += [nn.Conv2d(v.out_channels, cfg[k] # 使用mbox的之后几个
                                  * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(v.out_channels, cfg[k]
                                   * num_classes, kernel_size=3, padding=1)]
 
     # 构建VGG，VGG多余的层，分类和回归层
-    print('loc layers: '+str(loc_layers))
-    print('conf layers: '+str(conf_layers))
+
+    print('loc layers----------')
+    for idx, item in enumerate(loc_layers):
+        print('  ['+str(idx)+'] '+str(item))
+    print('conf layers----------')
+    for idx, item in enumerate(conf_layers):
+        print('  ['+str(idx)+'] '+str(item))
+    print('\n')
     return vgg, extra_layers, (loc_layers, conf_layers)
 
 
 base = {
     '300': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
             512, 512, 512],
-    '512': [],
+    '512': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
+            512, 512, 512],
 }
 extras = {
     '300': [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256],
-    '512': [],
+    '512': [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256, 128, 256],
 }
 mbox = {
     '300': [4, 6, 6, 6, 4, 4],  # number of boxes per feature map location
-    '512': [],
+    '512': [4, 6, 6, 6, 6, 4, 4],
 }
 
 
@@ -233,10 +257,10 @@ def build_ssd(phase, size=300, num_classes=len(VOC_CLASSES)):
     if phase != "test" and phase != "train":
         print("ERROR: Phase: " + phase + " not recognized")
         return
-    if size != 300:
-        print("ERROR: You specified size " + repr(size) + ". However, " +
-              "currently only SSD300 (size=300) is supported!")
-        return
+    # if size != 300:
+    #     print("ERROR: You specified size " + repr(size) + ". However, " +
+    #           "currently only SSD300 (size=300) is supported!")
+    #     return
     base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
                                      add_extras(extras[str(size)], 1024),
                                      mbox[str(size)], num_classes)

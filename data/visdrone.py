@@ -66,14 +66,15 @@ class DroneAnnotationTransform(object):
                 item = itemline.strip().split(',')  # 去换行符，逗号分割
                 # print(item)
                 
-                if int(item[0]) == frameidx: # item[6] == 0?
-                    bbox = [float(item[2])/width, float(item[3])/height, (float(item[2])+float(item[4]))/width, (float(item[3])+float(item[5]))/height, int(item[7])-1]
+                if int(item[0]) == frameidx and int(item[6]) != 0: # item[6] == 0?
+                    bbox = [int(item[2])/width, int(item[3])/height, (int(item[2])+int(item[4]))/width, (int(item[3])+int(item[5]))/height, int(item[7])-1]
                     # 注意！！！
                     # 导致错误  RuntimeError: cuda runtime error (59) : device-side assert triggered at /opt/conda/conda-bld/pytorch_1544199946412/work/aten/src/THC/generated/../THCTensorMathCompareT.cuh:69
                     #          RuntimeError: copy_if failed to synchronize: device-side assert triggered
                     # 输入1-x转为0-(x-1)，box_utils.py中再补0，否则数组超限
                     # int(item[7])-1原因为统一成输入标注从0开始，再在layers/box_utils.py中转换为0非物体，1-x物体，item为从1-11的标注，bbox为0-10，和voc 0-19统一
-                    # print('bbox'+str(bbox))
+                    # print(str(int(item[2])/width)+' '+str(int(item[3])/height)+' '+str((int(item[2])+int(item[4]))/width)+' '+str((int(item[3])+int(item[5]))/height)+' '+str(width)+' '+str(height)+' '+str(int(bbox[4])))
+
                     res += [bbox]
             # print('res.shape: ' + str(np.array(res).shape))
         
@@ -251,9 +252,13 @@ class DroneDetection(data.Dataset):
         '''
         # TODO
         img_info = self.ids[index]
-        gt = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]))
-        gt[[0, 4], :]=gt[[4, 0], :]
-        return img_info, gt
+        img = cv2.imread(osp.join(self._imgpath, img_info[0], img_info[1]+'.jpg'), cv2.IMREAD_COLOR)
+        height, width, _ = img.shape    # 图片数组第一维是height，第二维是width，反着的
+        gt = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]), width, height)
+        npgt = np.array(gt)
+        npgt[[0, 4], :]=npgt[[4, 0], :]
+        print(npgt.tolist())
+        return img_info[1], npgt.tolist()  # 第一维是img info： 图片编号； 第二维是x0,y0,x1,y1,cate的数组
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form

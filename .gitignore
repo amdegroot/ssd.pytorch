@@ -128,4 +128,7 @@ data/ssd_dataloader.py
 .pylintrc
 
 logs/
-
+args/
+GitHubOrigin/
+ssd300_120000/
+trainimg/
