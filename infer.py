@@ -4,7 +4,7 @@ import torch
 import cv2
 from ssd import build_ssd
 
-num_classes = 201
+num_classes = 81
 image = cv2.imread("data/1.jpg")
 weights = "weights/ssd300_COCO_10000.pth"
 
@@ -21,11 +21,11 @@ if __name__ == '__main__':
     image = torch.Tensor(image)
     image = image.permute(2, 0, 1)
     image = image.unsqueeze(0)
-    #load weights to the net
-    #print(net.load_state_dict(torch.load(weights)))
+#load weights to the net
     net.load_state_dict(torch.load(weights))
-    #handle = net.ssd[0].register_forward_hook(get_features_hook)
-    _ = net(image)
-#    handle.remove()
+    output = net(image)
+    print(output.shape)
 #get the specific layer value
+
 #    print(net)
+
