@@ -29,6 +29,9 @@ COCO_CLASSES = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                 'refrigerator', 'book', 'clock', 'vase', 'scissors',
                 'teddy bear', 'hair drier', 'toothbrush')
 
+
+print("************" + str(len(COCO_CLASSES)))
+
 def get_label_map(label_file):
     label_map = {}
     labels = open(label_file, 'r')
