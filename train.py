@@ -14,7 +14,10 @@ import torch.nn.init as init
 import torch.utils.data as data
 import numpy as np
 import argparse
-
+try:
+    from apex import amp
+except ImportError:
+    amp = None
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -51,6 +54,15 @@ parser.add_argument('--visdom', default=False, type=str2bool,
                     help='Use visdom for loss visualization')
 parser.add_argument('--save_folder', default='weights/',
                     help='Directory for saving checkpoint models')
+# Mixed precision training parameters
+parser.add_argument('--apex', default=False, type=str2bool,
+                    help='Use apex for mixed precision training')
+parser.add_argument('--apex-opt-level', default='O1', type=str,
+                    help='For apex mixed precision training'
+                         'O0 for FP32 training, O1 for mixed precision training.'
+                         'For further detail, see https://github.com/NVIDIA/apex/tree/master/examples/imagenet'
+                    )
+
 args = parser.parse_args()
 
 
@@ -69,6 +81,13 @@ if not os.path.exists(args.save_folder):
 
 
 def train():
+    if args.apex:
+        if sys.version_info < (3, 0):
+            raise RuntimeError("Apex currently only supports Python 3. Aborting.")
+        if amp is None:
+            raise RuntimeError("Failed to import apex. Please install apex from https://www.github.com/nvidia/apex "
+                               "to enable mixed-precision training.")
+
     if args.dataset == 'COCO':
         if args.dataset_root == VOC_ROOT:
             if not os.path.exists(COCO_ROOT):
@@ -121,7 +140,10 @@ def train():
                           weight_decay=args.weight_decay)
     criterion = MultiBoxLoss(cfg['num_classes'], 0.5, True, 0, True, 3, 0.5,
                              False, args.cuda)
-
+    if args.apex:
+        ssd_net, optimizer = amp.initialize(ssd_net, optimizer,
+                                            opt_level=args.apex_opt_level
+                                            )
     net.train()
     # loss counters
     loc_loss = 0
@@ -177,18 +199,24 @@ def train():
         optimizer.zero_grad()
         loss_l, loss_c = criterion(out, targets)
         loss = loss_l + loss_c
-        loss.backward()
+        if args.apex:
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
         optimizer.step()
         t1 = time.time()
-        loc_loss += loss_l.data[0]
-        conf_loss += loss_c.data[0]
+        loc_loss += loss_l.data  #[0]
+        conf_loss += loss_c.data #[0]
 
         if iteration % 10 == 0:
-            print('timer: %.4f sec.' % (t1 - t0))
-            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+            print('timer: %.4f sec. Throughput: %.4f' % (t1 - t0, args.batch_size/(t1-t0)/10))
+            #print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')
+            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data), end=' ')
 
         if args.visdom:
-            update_vis_plot(iteration, loss_l.data[0], loss_c.data[0],
+            #update_vis_plot(iteration, loss_l.data[0], loss_c.data[0],
+            update_vis_plot(iteration, loss_l.data, loss_c.data,
                             iter_plot, epoch_plot, 'append')
 
         if iteration != 0 and iteration % 5000 == 0:
