@@ -158,6 +158,7 @@ def add_extras(cfg, i, batch_norm=False):
                            kernel_size=(1, 3)[flag], stride=2, padding=1)]
             else:
                 layers += [nn.Conv2d(in_channels, v, kernel_size=(1, 3)[flag])]
+            layers += [nn.ReLU(inplace=True)]
             flag = not flag
         in_channels = v
     return layers
