@@ -57,6 +57,8 @@ parser.add_argument('--tensorboard', default=True, type=str2bool,
                     help='User tensorboard')
 # parser.add_argument('--resolution', default=300, type=int,
 #                     help='Network input resolution, [300, 512, ]')
+parser.add_argument('--slowfast', default=True, type=str2bool,
+                    help='Using VGG or SlowFastNetwork')
 args = parser.parse_args()
 
 
@@ -116,10 +118,10 @@ def train():
     if args.resume:
         print('Resuming training, loading {}...'.format(args.resume))
         ssd_net.load_weights(args.resume)
-    else:
-        vgg_weights = torch.load(args.save_folder + args.basenet)
-        print('Loading base network...')
-        ssd_net.vgg.load_state_dict(vgg_weights)
+    # else:
+    #     vgg_weights = torch.load(args.save_folder + args.basenet)
+    #     print('Loading base network...')
+    #     ssd_net.vgg.load_state_dict(vgg_weights)
 
     if args.cuda:
         net = net.cuda()
@@ -127,6 +129,7 @@ def train():
     if not args.resume:
         print('Initializing weights...')
         # initialize newly added layers' weights with xavier method
+        ssd_net.vgg.apply(weights_init)
         ssd_net.extras.apply(weights_init)
         ssd_net.loc.apply(weights_init)
         ssd_net.conf.apply(weights_init)
@@ -192,7 +195,7 @@ def train():
             step_index += 1
             adjust_learning_rate(optimizer, args.gamma, step_index)
 
-        # load train data
+        # load train data, 取数据
         # 循环一次之后iter无法回到起点，需要重新赋值
         try:
             images, targets=next(batch_iterator)
@@ -201,6 +204,10 @@ def train():
             images, targets=next(batch_iterator)
         # images, targets = next(batch_iterator)
 
+        # print('feed size')
+        # print(images.shape)
+        # for item in targets:
+        #     print(item.shape)
         if args.cuda:
             images = Variable(images.cuda())
             with torch.no_grad():
@@ -228,6 +235,7 @@ def train():
         optimizer.zero_grad()   # 写在计算新的梯度之前就可以backward之前
         loss_l, loss_c = criterion(out, targets)    # 对比network output和gt
         loss = loss_l + loss_c
+        # print('loss: '+str(loss_l.data)+' '+str(loss_c.data))
         loss.backward()
         optimizer.step()
         t1 = time.time()

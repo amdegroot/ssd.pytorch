@@ -25,7 +25,7 @@ DRONE_CLASSES = (  #  1+11=12
 
 # note: if you used our download scripts, this should be right
 # make sure path does not contains substring 'annotations'
-DRONE_ROOT = "/media/mk/本地磁盘/Datasets/UAV/VisDrone2018"
+DRONE_ROOT = "/media/mk/Disk/Datasets/UAV/VisDrone2018"
 
 
 class DroneAnnotationTransform(object):
@@ -49,7 +49,7 @@ class DroneAnnotationTransform(object):
     def __call__(self, filename, frameidx, width, height):
         """
         Arguments:
-            filename: anno文件的名字
+            filename: anno文件的名字，不包含txt
             frameidx: 文件中对应的视频段的哪一帧，每行第一个数
         Returns:
             a list containing lists of bounding boxes  [bbox coords, class name]
@@ -127,7 +127,7 @@ class DroneDetection(data.Dataset):
 
     def __init__(self, root,
                  transform=None, target_transform=DroneAnnotationTransform(),
-                 dataset_name='VisDrone 2018', train=1):
+                 dataset_name='VisDrone 2018', train=1):    # valid or train
         self.root = root
         self.transform = transform
         self.target_transform = target_transform
@@ -135,14 +135,16 @@ class DroneDetection(data.Dataset):
         if train == 1:
             self._annopath = osp.join(self.root, 'VisDrone2018-VID-train', 'annotations')
             self._imgpath = osp.join(self.root, 'VisDrone2018-VID-train', 'sequences')
+            rootpath = osp.join(self.root, 'VisDrone2018-VID-train', 'sequences')
         else:
             self._annopath = osp.join(self.root, 'VisDrone2018-VID-val', 'annotations')
             self._imgpath = osp.join(self.root, 'VisDrone2018-VID-val', 'sequences')
+            rootpath = osp.join(self.root, 'VisDrone2018-VID-val', 'sequences')
             
 
-        self.ids = list()
+        self.ids = list()   # 根据序号取文件路径+文件名
 
-        rootpath = osp.join(self.root, 'VisDrone2018-VID-train', 'sequences')
+        
         cnt = 0
         for foldername in os.listdir(rootpath):
             for item in os.listdir(osp.join(rootpath, foldername)):
@@ -163,7 +165,8 @@ class DroneDetection(data.Dataset):
                                                              # shape 是小括号，取数是中括号
             index = (index + 1)%len(self.ids)
             im, gt, h, w = self.pull_item(index)
-
+        # print('im shape: '+str(im.shape))
+        # print('gt shape: '+str(gt.shape))
         return im, gt
 
     def __len__(self):
@@ -184,6 +187,7 @@ class DroneDetection(data.Dataset):
             if target.shape[0] == 0: 
                 # 处理一个frame没有bbox的情况
                 print('bad data')
+
                 return torch.from_numpy(img).permute(2,0,1), np.zeros([1,5]), height, width
             
             # print('size of target '+str(target.shape))
@@ -195,7 +199,7 @@ class DroneDetection(data.Dataset):
             # cv2.imwrite('before.jpg', img)
             # print('before '+str(np.array(img).shape))
 
-            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])   # 前四个+第五个
+            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])   # 前四个loc+第五个conf
             # self.transform -> SSDAugmentation.call -> SSDAugmentation.augment -> compose.call
 
             # # 显示图片的代码
@@ -257,7 +261,7 @@ class DroneDetection(data.Dataset):
         gt = self.target_transform(img_info[0].replace('sequences', 'annotations'), int(img_info[1]), width, height)
         npgt = np.array(gt)
         npgt[[0, 4], :]=npgt[[4, 0], :]
-        print(npgt.tolist())
+        # print(npgt.tolist())
         return img_info[1], npgt.tolist()  # 第一维是img info： 图片编号； 第二维是x0,y0,x1,y1,cate的数组
 
     def pull_tensor(self, index):

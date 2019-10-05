@@ -16,6 +16,7 @@ class Detect(Function):
         self.top_k = top_k
         # Parameters used in nms.
         self.nms_thresh = nms_thresh
+        # self.nms_thresh=0.99
         if nms_thresh <= 0:
             raise ValueError('nms_threshold must be non negative.')
         self.conf_thresh = conf_thresh

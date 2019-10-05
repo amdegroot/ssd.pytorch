@@ -68,10 +68,12 @@ for filename in os.listdir(rootpath):
 
     imgheight, imgwidth, imgchannel=newimg.shape
     origin=np.copy(newimg)
+    print(origin.min())
     font = cv2.FONT_HERSHEY_SIMPLEX
     # if abs(np.max(origin)-int(np.max(origin)))>=1e-7: # 判断是真小数
     #     print('OK')
     origin=origin/origin.max()  # cv2画图： 浮点数必须0-1.0， 整数0-255
+    print(type(origin))
     for idx, it in enumerate(newbox):
         if float(it[0].item()) <= 1.0:  
             origin=cv2.rectangle(origin, (int(it[0].item()*imgwidth), int(it[1].item()*imgheight)), (int(it[2].item()*imgwidth), int(it[3].item()*imgheight)), (255,255,0), 4)
@@ -81,6 +83,7 @@ for filename in os.listdir(rootpath):
             origin=cv2.putText(origin, DRONE_CLASSES[int(newlab[idx])], (int(it[0].item()), int(it[1].item())-2), font, 1, (0,0,255), 1)
     
     print(origin[0][0])
+    print(origin.dtype)
     cv2.imshow('ttt', origin)
     cv2.waitKey()   # 加上waitkey才显示图片  
 

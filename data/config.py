@@ -24,8 +24,8 @@ voc300 = {
     # 分辨率
     'min_dim': 300, # modified
     'steps': [8, 16, 32, 64, 100, 300], # modified
-    'min_sizes': [30, 60, 111, 162, 213, 264],  # modified
-    'max_sizes': [60, 111, 162, 213, 264, 315], # modified
+    'min_sizes': [30, 60, 120, 162, 213, 264],  # modified
+    'max_sizes': [60, 120, 162, 213, 264, 315], # modified
     'aspect_ratios': [[2], [2, 3], [2, 3], [2, 3], [2], [2]],
     'variance': [0.1, 0.2],
     'clip': True,
@@ -53,7 +53,7 @@ voc512 = {
 
 # using ssd 512 configuration
 # 表明使用voc0712做训练测试时使用SSD512的配置
-voc=voc512
+voc=voc300
 
 visdrone300 = {    # 意思是visdrone数据集跑ssd300
     'num_classes': 12,  # 包含ignored class
@@ -74,9 +74,9 @@ visdrone300 = {    # 意思是visdrone数据集跑ssd300
 
 visdrone512 = {
     'num_classes': 12,  # 包含ignored class
-    'lr_steps': (8000, 10000, 12000),
+    'lr_steps': (80000, 100000, 120000),
     # 'max_iter': 12000,
-    'max_iter': 12000,
+    'max_iter': 120000,
     'means': (119, 122, 116),
     'feature_maps': [64, 32, 16, 8, 6, 4, 2],
     'min_dim': 512,
@@ -89,6 +89,7 @@ visdrone512 = {
     'name': 'VisDrone2018',
 }
 
+# Change SSD configuration
 visdrone=visdrone512
 
 coco = {

@@ -40,7 +40,8 @@ class SSD(nn.Module):
         print('SSD config----------')
         for k, v in self.cfg.items():   # .keys(), .values(), .items()
             print(' '+str(k)+': '+str(v))
-            
+        
+        # TODO: priorbox 是干什么的，猜想是产生anchor
         self.priorbox = PriorBox(self.cfg)
         # self.priors = Variable(self.priorbox.forward(), volatile=True)
         # # 建议volatile=True修改为
@@ -61,7 +62,7 @@ class SSD(nn.Module):
 
         if phase == 'test':
             self.softmax = nn.Softmax(dim=-1)
-            self.detect = Detect(num_classes, 0, 200, 0.01, 0.45)
+            self.detect = Detect(num_classes, 0, 200, 0.01, 0.45)    # 0.45
 
     def forward(self, x):
         """Applies network layers and ops on input image(s) x.
@@ -92,12 +93,16 @@ class SSD(nn.Module):
         # 增加中间的l2norm， multi-scale， skip connection
         s = self.L2Norm(x)
         sources.append(s)   # 记录中间结果
+        
 
+
+        # print('vgg 23: '+str(s.detach().shape))
         # 沿vgg计算
         # apply vgg up to fc7
         for k in range(23, len(self.vgg)):
             x = self.vgg[k](x)
         sources.append(x)
+        # print('vgg end: '+str(x.detach().shape))
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
@@ -108,28 +113,49 @@ class SSD(nn.Module):
         # 定位和分类在每一个cache上做，相当于skip connection，直接连接浅层特征图 
         # apply multibox head to source layers
         # TODO: 查看众多的loc和conf
+        # for idx, item in enumerate(sources):
+        #     print('['+str(idx)+'] '+str(item.detach().shape))
+        # print(self.loc)
+        # print(self.conf)
+
         for (x, l, c) in zip(sources, self.loc, self.conf):
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
 
+
+
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
+        # print(loc.shape)    # [1, 34928]
+        # print(conf.shape)   # [1, 183372]
+        # for item in loc:    # self.loc是层，weight，参数。loc是tensor，运算结果
+        #     print('L: '+str(item.detach().shape))
+
+        # for item in conf:
+        #     print('C: '+str(item.detach().shape))
+
         if self.phase == "test":
             output = self.detect(
-                loc.view(loc.size(0), -1, 4),                   # loc preds
+                loc.view(loc.size(0), -1, 4),                   # loc preds [1, 8732, 4]
                 self.softmax(conf.view(conf.size(0), -1,
-                             self.num_classes)),                # conf preds
-                self.priors.type(type(x.data))                  # default boxes
+                             self.num_classes)),                # conf preds [1, 8732, 21]
+                self.priors.type(type(x.data))                  # default boxes 产生[1, 21, 200, 5]的输出
+                # 最后一个只是运算，不是网络输出，size(0)=1
             )
         else:
+            # print('before')
+            # print('loc shape: '+str(loc.shape))
+            # print('conf shape: '+str(conf.shape))
             output = (
                 loc.view(loc.size(0), -1, 4),   # batch, num of obj, 4维框
                 conf.view(conf.size(0), -1, self.num_classes),  # batch, num of obj, 类别数量
                 self.priors
             )
-
-        # print('output 0 shape: '+str(output[0].shape))
-        # print('output 1 shape: '+str(output[1].shape))
+            # print('after')
+            # print('loc shape: '+str(output[0].shape))
+            # print('conf shape: '+str(output[1].shape))
+            # print('prior shape: '+str(output[2].shape)) 
+            # print('output 0 shape: '+str(output[0].shape))
         return output
 
     def load_weights(self, base_file):
@@ -167,9 +193,9 @@ def vgg(cfg, i, batch_norm=False):
                nn.ReLU(inplace=True), conv7, nn.ReLU(inplace=True)]
 
     # 打印vgg每一层
-    print('vgg layers----------')
-    for idx, item in enumerate(layers):
-        print('['+str(idx)+'] '+str(item))
+    # print('vgg layers----------')
+    # for idx, item in enumerate(layers):
+    #     print('['+str(idx)+'] '+str(item))
 
     return layers
 
@@ -192,10 +218,10 @@ def add_extras(cfg, i, batch_norm=False):
 
         # print('in_channels'+str(in_channels))
 
-    print('extra layers----------')
-    for idx, item in enumerate(layers):
-        print('['+str(idx)+'] '+str(item))
-    print('\n')
+    # print('extra layers----------')
+    # for idx, item in enumerate(layers):
+    #     print('['+str(idx)+'] '+str(item))
+    # print('\n')
 
     return layers
 
@@ -227,13 +253,13 @@ def multibox(vgg, extra_layers, cfg, num_classes):  # multibox的含义为多个
 
     # 构建VGG，VGG多余的层，分类和回归层
 
-    print('loc layers----------')
-    for idx, item in enumerate(loc_layers):
-        print('  ['+str(idx)+'] '+str(item))
-    print('conf layers----------')
-    for idx, item in enumerate(conf_layers):
-        print('  ['+str(idx)+'] '+str(item))
-    print('\n')
+    # print('loc layers----------')
+    # for idx, item in enumerate(loc_layers):
+    #     print('  ['+str(idx)+'] '+str(item))
+    # print('conf layers----------')
+    # for idx, item in enumerate(conf_layers):
+    #     print('  ['+str(idx)+'] '+str(item))
+    # print('\n')
     return vgg, extra_layers, (loc_layers, conf_layers)
 
 
@@ -253,7 +279,7 @@ mbox = {
 }
 
 
-def build_ssd(phase, size=300, num_classes=len(VOC_CLASSES)):
+def build_ssd(phase, size=300, num_classes=len(VOC_CLASSES), issf=False):
     if phase != "test" and phase != "train":
         print("ERROR: Phase: " + phase + " not recognized")
         return
@@ -261,6 +287,8 @@ def build_ssd(phase, size=300, num_classes=len(VOC_CLASSES)):
     #     print("ERROR: You specified size " + repr(size) + ". However, " +
     #           "currently only SSD300 (size=300) is supported!")
     #     return
+    print('Building SSD_'+str(size))
+    
     base_, extras_, head_ = multibox(vgg(base[str(size)], 3),
                                      add_extras(extras[str(size)], 1024),
                                      mbox[str(size)], num_classes)

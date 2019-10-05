@@ -145,7 +145,6 @@ class VOCDetection(data.Dataset):
             # cv2.imshow('origin', origin)
             # cv2.waitKey()   # 加上waitkey才显示图片   
 
-
             img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
 
             # disabled in training
