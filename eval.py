@@ -9,8 +9,9 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
-from data import VOC_ROOT, VOCAnnotationTransform, VOCDetection, BaseTransform
-from data import VOC_CLASSES as labelmap
+from data import VOC_ROOT, VOCAnnotationTransform, VOCDetection, VOC_CLASSES, BaseTransform
+from data import DRONE_ROOT, DroneAnnotationTransform, DroneDetection, DRONE_CLASSES
+# from data import DRONE_CLASSES as labelmap
 import torch.utils.data as data
 
 from ssd import build_ssd
@@ -46,10 +47,12 @@ parser.add_argument('--top_k', default=5, type=int,
                     help='Further restrict the number of predictions to parse')
 parser.add_argument('--cuda', default=True, type=str2bool,
                     help='Use cuda to train model')
-parser.add_argument('--voc_root', default=VOC_ROOT,
+parser.add_argument('--data_root', default=VOC_ROOT,
                     help='Location of VOC root directory')
 parser.add_argument('--cleanup', default=True, type=str2bool,
                     help='Cleanup and remove results files following eval')
+parser.add_argument('--dataset', default='VOC', type=str,
+                    help='VOC, VisDrone2018, COCO')
 
 args = parser.parse_args()
 
@@ -66,13 +69,13 @@ if torch.cuda.is_available():
 else:
     torch.set_default_tensor_type('torch.FloatTensor')
 
-annopath = os.path.join(args.voc_root, 'VOC2007', 'Annotations', '%s.xml')
-imgpath = os.path.join(args.voc_root, 'VOC2007', 'JPEGImages', '%s.jpg')
-imgsetpath = os.path.join(args.voc_root, 'VOC2007', 'ImageSets',
+annopath = os.path.join(args.data_root, 'VOC2007', 'Annotations', '%s.xml')
+imgpath = os.path.join(args.data_root, 'VOC2007', 'JPEGImages', '%s.jpg')
+imgsetpath = os.path.join(args.data_root, 'VOC2007', 'ImageSets',
                           'Main', '{:s}.txt')
 YEAR = '2007'
-devkit_path = args.voc_root + 'VOC' + YEAR
-dataset_mean = (104, 117, 123)
+devkit_path = args.data_root + 'VOC' + YEAR
+dataset_mean = (0, 0, 0)
 set_type = 'test'
 
 
@@ -117,7 +120,6 @@ def parse_rec(filename):
                               int(bbox.find('xmax').text) - 1,
                               int(bbox.find('ymax').text) - 1]
         objects.append(obj_struct)
-
     return objects
 
 
@@ -375,20 +377,28 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
     output_dir = get_output_dir('ssd300_120000', set_type)
     det_file = os.path.join(output_dir, 'detections.pkl')
 
+    runtime=0.0
+    # num_images=2
     for i in range(num_images):
         im, gt, h, w = dataset.pull_item(i)
+
+        if gt.shape == (1,5) and np.sum(gt, axis=1)==0:
+            print('bad test data')
+            continue
 
         x = Variable(im.unsqueeze(0))
         if args.cuda:
             x = x.cuda()
         _t['im_detect'].tic()
+        
         detections = net(x).data
+        # print(detections.shape)   # [1, 21, 200, 5] 1output, 21class, 200？, 5(x1,y1,x2,y2,conf)
         detect_time = _t['im_detect'].toc(average=False)
 
         # skip j = 0, because it's the background class
         for j in range(1, detections.size(1)):
-            dets = detections[0, j, :]
-            mask = dets[:, 0].gt(0.).expand(5, dets.size(0)).t()
+            dets = detections[0, j, :]  # 一类的所有检测结果 [200, 5]
+            mask = dets[:, 0].gt(0.).expand(5, dets.size(0)).t()    # 第一列
             dets = torch.masked_select(dets, mask).view(-1, 5)
             if dets.size(0) == 0:
                 continue
@@ -405,20 +415,38 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
 
         print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1,
                                                     num_images, detect_time))
+        runtime+=detect_time
 
     with open(det_file, 'wb') as f:
         pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
     print('Evaluating detections')
     evaluate_detections(all_boxes, output_dir, dataset)
+    print('[Speed]: '+str(round(runtime/num_images, 4))+' s, '+str(round(num_images/runtime,1))+' fps')
 
 
 def evaluate_detections(box_list, output_dir, dataset):
     write_voc_results_file(box_list, dataset)
     do_python_eval(output_dir)
 
-
+# TODO needs modification
 if __name__ == '__main__':
+    # load data
+    if args.dataset == 'VOC':
+        args.data_root = VOC_ROOT
+        labelmap = VOC_CLASSES
+        dataset_mean = (104, 117, 123)
+        dataset = VOCDetection(args.data_root, [('2007', set_type)],
+                            BaseTransform(300, dataset_mean),
+                            VOCAnnotationTransform())
+    elif args.dataset == 'VisDrone2018':
+        args.data_root = DRONE_ROOT
+        labelmap = DRONE_CLASSES
+        dataset_mean = (119, 122, 116)
+        dataset = DroneDetection(args.data_root, 
+                            BaseTransform(300, dataset_mean), 
+                            target_transform=DroneAnnotationTransform(), train=0)
+
     # load net
     num_classes = len(labelmap) + 1                      # +1 for background
     net = build_ssd('test', 300, num_classes)            # initialize SSD
@@ -426,9 +454,8 @@ if __name__ == '__main__':
     net.eval()
     print('Finished loading model!')
     # load data
-    dataset = VOCDetection(args.voc_root, [('2007', set_type)],
-                           BaseTransform(300, dataset_mean),
-                           VOCAnnotationTransform())
+
+
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True

@@ -14,8 +14,11 @@ import torch.nn.init as init
 import torch.utils.data as data
 import numpy as np
 import argparse
-import visdom 
-viz = visdom.Visdom()
+import shutil
+
+from logger import Logger
+# import visdom 
+# viz = visdom.Visdom()
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -24,13 +27,11 @@ def str2bool(v):
 parser = argparse.ArgumentParser(
     description='Single Shot MultiBox Detector Training With Pytorch')
 train_set = parser.add_mutually_exclusive_group()
-parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO', 'visdrone'],
+parser.add_argument('--dataset', default='VOC', choices=['VOC', 'COCO', 'VisDrone2018'],
                     type=str, help='VOC or COCO or VisDrone')
-parser.add_argument('--dataset_root', default=VOC_ROOT,
-                    help='Dataset root directory path')
 parser.add_argument('--basenet', default='vgg16_reducedfc.pth',
                     help='Pretrained base model')
-parser.add_argument('--batch_size', default=32, type=int,
+parser.add_argument('--batch_size', default=16, type=int,
                     help='Batch size for training')
 parser.add_argument('--resume', default=None, type=str,
                     help='Checkpoint state_dict file to resume training from')
@@ -52,6 +53,12 @@ parser.add_argument('--visdom', default=False, type=str2bool,
                     help='Use visdom for loss visualization')
 parser.add_argument('--save_folder', default='weights/',
                     help='Directory for saving checkpoint models')
+parser.add_argument('--tensorboard', default=True, type=str2bool,
+                    help='User tensorboard')
+# parser.add_argument('--resolution', default=300, type=int,
+#                     help='Network input resolution, [300, 512, ]')
+parser.add_argument('--slowfast', default=True, type=str2bool,
+                    help='Using VGG or SlowFastNetwork')
 args = parser.parse_args()
 
 
@@ -70,29 +77,37 @@ if not os.path.exists(args.save_folder):
 
 
 def train():
+
+    # 选择不同的超参数配置和文件结构， 构建不同的dataset
     if args.dataset == 'COCO':
-        if args.dataset_root == VOC_ROOT:
-            if not os.path.exists(COCO_ROOT):
-                parser.error('Must specify dataset_root if specifying dataset')
-            print("WARNING: Using default COCO dataset_root because " +
-                  "--dataset_root was not specified.")
-            args.dataset_root = COCO_ROOT
+        # if args.dataset_root == VOC_ROOT:
+        #     if not os.path.exists(COCO_ROOT):
+        #         parser.error('Must specify dataset_root if specifying dataset')
+        #     print("WARNING: Using default COCO dataset_root because " +
+        #           "--dataset_root was not specified.")
+        #     args.dataset_root = COCO_ROOT
         cfg = coco
-        dataset = COCODetection(root=args.dataset_root,
+        dataset = COCODetection(root=COCO_ROOT,
                                 transform=SSDAugmentation(cfg['min_dim'],
-                                                          MEANS))
+                                                          cfg['means']))
     elif args.dataset == 'VOC':
         # if args.dataset_root == COCO_ROOT:
         #     parser.error('Must specify dataset if specifying dataset_root')
         cfg = voc
-        dataset = VOCDetection(root=args.dataset_root,
+        dataset = VOCDetection(root=VOC_ROOT,
                                transform=SSDAugmentation(cfg['min_dim'],
-                                                         MEANS))
+                                                         cfg['means']))
+    elif args.dataset == 'VisDrone2018':
+        cfg = visdrone  # 选择哪一个config
+        dataset = DroneDetection(root=DRONE_ROOT,
+                                transform=SSDAugmentation(cfg['min_dim'],
+                                                         cfg['means']))
 
     # if args.visdom:
     #     import visdom 
     #     viz = visdom.Visdom()
 
+    print('num_classes: '+str(cfg['num_classes']))
     ssd_net = build_ssd('train', cfg['min_dim'], cfg['num_classes'])
     net = ssd_net
 
@@ -103,10 +118,10 @@ def train():
     if args.resume:
         print('Resuming training, loading {}...'.format(args.resume))
         ssd_net.load_weights(args.resume)
-    else:
-        vgg_weights = torch.load(args.save_folder + args.basenet)
-        print('Loading base network...')
-        ssd_net.vgg.load_state_dict(vgg_weights)
+    # else:
+    #     vgg_weights = torch.load(args.save_folder + args.basenet)
+    #     print('Loading base network...')
+    #     ssd_net.vgg.load_state_dict(vgg_weights)
 
     if args.cuda:
         net = net.cuda()
@@ -114,12 +129,13 @@ def train():
     if not args.resume:
         print('Initializing weights...')
         # initialize newly added layers' weights with xavier method
+        ssd_net.vgg.apply(weights_init)
         ssd_net.extras.apply(weights_init)
         ssd_net.loc.apply(weights_init)
         ssd_net.conf.apply(weights_init)
 
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum,
-                          weight_decay=args.weight_decay)
+                          weight_decay=args.weight_decay)   # L2 penalty
     criterion = MultiBoxLoss(cfg['num_classes'], 0.5, True, 0, True, 3, 0.5,
                              False, args.cuda)
 
@@ -134,7 +150,7 @@ def train():
     print('Training SSD on:', dataset.name)
     print('Using the specified args:')
     print(args)
-
+    # print(args.dataset)
     step_index = 0
 
     if args.visdom:
@@ -143,6 +159,19 @@ def train():
         iter_plot = create_vis_plot('Iteration', 'Loss', vis_title, vis_legend)
         epoch_plot = create_vis_plot('Epoch', 'Loss', vis_title, vis_legend)
         epoch_plot2 = create_vis_plot('Epoch', 'Loss', vis_title, vis_legend)
+
+    if args.tensorboard:
+        logger = Logger('./logs')
+
+    # 初始化文件夹    
+    with open('trainlogs.txt', 'w') as f:
+        f.write('Start training on {}'.format(args.dataset))
+
+    shutil.rmtree('args/')
+    shutil.rmtree('logs/')
+    os.mkdir('args/')
+    os.mkdir('logs/')
+    imgcnt=0
 
     data_loader = data.DataLoader(dataset, args.batch_size,
                                   num_workers=args.num_workers,
@@ -153,6 +182,7 @@ def train():
     # 每个迭代向后顺序取batch size个图片
     batch_iterator = iter(data_loader)
     for iteration in range(args.start_iter, cfg['max_iter']):
+        # print('it: '+str(iteration))
         if args.visdom and iteration != 0 and (iteration % epoch_size == 0):
             update_vis_plot(epoch, loc_loss, conf_loss, epoch_plot, epoch_plot2,
                             'append', epoch_size)
@@ -165,7 +195,7 @@ def train():
             step_index += 1
             adjust_learning_rate(optimizer, args.gamma, step_index)
 
-        # load train data
+        # load train data, 取数据
         # 循环一次之后iter无法回到起点，需要重新赋值
         try:
             images, targets=next(batch_iterator)
@@ -174,28 +204,103 @@ def train():
             images, targets=next(batch_iterator)
         # images, targets = next(batch_iterator)
 
+        # print('feed size')
+        # print(images.shape)
+        # for item in targets:
+        #     print(item.shape)
         if args.cuda:
             images = Variable(images.cuda())
-            targets = [Variable(ann.cuda(), volatile=True) for ann in targets]
+            with torch.no_grad():
+                targets = [torch.Tensor(ann.cuda()) for ann in targets]
+
         else:
             images = Variable(images)
-            targets = [Variable(ann, volatile=True) for ann in targets]
+            targets = [torch.Tensor(ann) for ann in targets]
         # forward
         t0 = time.time()
+
+        # optimizer.zero_grad()
+
+        # # output img
+        # with torch.no_grad():
+        #     imgtensor=torch.Tensor(images)
+        #     for img in imgtensor:
+        #         imgnp=np.array(img.cpu().permute(1,2,0))
+        #         rgbimg=imgnp[:, :, (2, 1, 0)]
+        #         cv2.imwrite('trainimg/{}_{}.jpg'.format(args.dataset, imgcnt), rgbimg)
+        #         imgcnt+=1
+
         out = net(images)
         # backprop
-        optimizer.zero_grad()
-        loss_l, loss_c = criterion(out, targets)
+        optimizer.zero_grad()   # 写在计算新的梯度之前就可以backward之前
+        loss_l, loss_c = criterion(out, targets)    # 对比network output和gt
         loss = loss_l + loss_c
+        # print('loss: '+str(loss_l.data)+' '+str(loss_c.data))
         loss.backward()
         optimizer.step()
         t1 = time.time()
         loc_loss += loss_l.data
         conf_loss += loss_c.data
 
+
+
+
         if iteration % 10 == 0:
-            print('timer: %.4f sec.' % (t1 - t0))
-            print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data), end=' ')
+            # print('timer: %.4f sec.' % (t1 - t0))
+            # print('ok')
+            print('iter [{}/{}]'.format(iteration, cfg['max_iter']-args.start_iter)  + ' || Loss: %.4f' % (loss.data))
+
+            # # 打印参数
+            # with open('args/args_{}.txt'.format(iteration), 'a') as f:
+            #     for item in net.named_parameters():
+            #         f.write(' '+str(item[0])+': '+str(item[1]))
+
+            with open('trainlogs.txt', 'a') as f:
+                f.write('iter [{}/{}]'.format(iteration, cfg['max_iter']-args.start_iter)  + ' || Loss: %.4f \n' % (loss.data))
+
+            if args.tensorboard:
+                info = {'loss': loss.data}
+
+                for tag, value in info.items():
+                    logger.scalar_summary(tag, value, iteration)
+
+                for tag, value in net.named_parameters():
+                    # print('tag: ' + str(tag))
+                    # print('params: ' + str(value.data.cpu().numpy().shape)) # convert to cpu data and transform to numpy
+                    tag = tag.replace('.', '/')
+                    logger.histo_summary(tag, value.data.cpu().numpy(), iteration)
+                    logger.histo_summary(tag+'/grad', value.grad.data.cpu().numpy(), iteration)
+
+                info = {'images': images.view(-1, int(cfg['min_dim']), int(cfg['min_dim'])).cpu().numpy()}
+
+                for tag, img in info.items():
+                    logger.image_summary(tag, img, iteration)
+
+
+            # print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data), end=' ')
+        
+
+        # print(loss)
+
+        # print('isnan'+str(torch.isnan(loss)))
+        # print(torch.isnan(loss))
+
+        # # 检测loss爆炸
+        # if torch.isnan(loss).data!=0: 
+        #     print('Error')
+        #     errorcnt=1
+        #     with open('trainlogs.txt', 'a') as f:
+        #         f.write('ERROR')
+        #     # for img in images:
+
+        #     #     cv2.imwrite('./logs/'+str(errorcnt)+'.jpg', img)
+            
+        #     break
+
+
+
+
+            
 
         if args.visdom:
             update_vis_plot(iteration, loss_l.data, loss_c.data,
@@ -203,10 +308,12 @@ def train():
 
         if iteration != 0 and iteration % 1000 == 0:
             print('Saving state, iter:', iteration)
-            torch.save(ssd_net.state_dict(), 'weights/ssd300_COCO_' +
+            torch.save(ssd_net.state_dict(), 'weights/ssd'+ str(cfg['min_dim']) +'_'+str(args.dataset)+'_' +
                        repr(iteration) + '.pth')
+            with open('trainlogs.txt', 'a') as f:
+                f.write('Saving state, iter:'+ str(iteration))
     torch.save(ssd_net.state_dict(),
-               args.save_folder + '' + args.dataset + '.pth')
+               args.save_folder + '' + 'SSD' + str(cfg['min_dim']) + '_' + args.dataset + '.pth')
 
 
 def adjust_learning_rate(optimizer, gamma, step):
@@ -221,7 +328,7 @@ def adjust_learning_rate(optimizer, gamma, step):
 
 
 def xavier(param):
-    init.xavier_uniform(param)
+    init.xavier_uniform_(param)
 
 
 def weights_init(m):
