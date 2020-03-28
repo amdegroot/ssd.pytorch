@@ -20,5 +20,5 @@ class L2Norm(nn.Module):
         norm = x.pow(2).sum(dim=1, keepdim=True).sqrt()+self.eps
         #x /= norm
         x = torch.div(x,norm)
-        out = self.weight.unsqueeze(0).unsqueeze(2).unsqueeze(3).expand_as(x) * x
+        out = self.weight.view(1, -1, 1, 1) * x
         return out

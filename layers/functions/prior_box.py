@@ -8,12 +8,12 @@ class PriorBox(object):
     """Compute priorbox coordinates in center-offset form for each source
     feature map.
     """
-    def __init__(self, cfg):
+    def __init__(self, cfg, phase):
         super(PriorBox, self).__init__()
         self.image_size = cfg['min_dim']
         # number of priors for feature map location (either 4 or 6)
         self.num_priors = len(cfg['aspect_ratios'])
-        self.variance = cfg['variance'] or [0.1]
+        self.variance = cfg['variance'] or [0.1, 0.1]
         self.feature_maps = cfg['feature_maps']
         self.min_sizes = cfg['min_sizes']
         self.max_sizes = cfg['max_sizes']
@@ -21,6 +21,7 @@ class PriorBox(object):
         self.aspect_ratios = cfg['aspect_ratios']
         self.clip = cfg['clip']
         self.version = cfg['name']
+        self.phase = phase
         for v in self.variance:
             if v <= 0:
                 raise ValueError('Variances must be greater than 0')
@@ -52,4 +53,16 @@ class PriorBox(object):
         output = torch.Tensor(mean).view(-1, 4)
         if self.clip:
             output.clamp_(max=1, min=0)
+        if self.phase == 'export':
+            # CENTER based to CORNER based representaion
+            w, h = output[:,2], output[:,3]
+            output[:,0] -= w * 0.5
+            output[:,1] -= h * 0.5
+            output[:,2] = output[:,0] + w
+            output[:,3] = output[:,1] + h
+
+            # Append variance after prior boxes like in Caffe
+            variance = torch.Tensor([self.variance[0], self.variance[0], self.variance[1], self.variance[1]]) \
+                            .repeat(output.shape[0]).view(-1, 4)
+            return torch.cat([output, variance], 0).view(1, 2, -1)
         return output

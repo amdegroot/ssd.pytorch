@@ -30,7 +30,7 @@ class SSD(nn.Module):
         self.phase = phase
         self.num_classes = num_classes
         self.cfg = (coco, voc)[num_classes == 21]
-        self.priorbox = PriorBox(self.cfg)
+        self.priorbox = PriorBox(self.cfg, phase)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
         self.size = size
 
@@ -43,9 +43,11 @@ class SSD(nn.Module):
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
 
-        if phase == 'test':
+        if phase == 'test' or phase == 'export':
             self.softmax = nn.Softmax(dim=-1)
-            self.detect = Detect(num_classes, 0, 200, 0.01, 0.45)
+            self.top_k = 200
+            self.conf_thresh = 0.01
+            self.nms_thresh = 0.45
 
     def forward(self, x):
         """Applies network layers and ops on input image(s) x.
@@ -95,12 +97,18 @@ class SSD(nn.Module):
 
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
-        if self.phase == "test":
-            output = self.detect(
-                loc.view(loc.size(0), -1, 4),                   # loc preds
-                self.softmax(conf.view(conf.size(0), -1,
-                             self.num_classes)),                # conf preds
-                self.priors.type(type(x.data))                  # default boxes
+        if self.phase == "test" or self.phase == "export":
+            output = Detect.apply(
+                loc.view(loc.size(0), -1),                      # loc preds
+                self.softmax(conf.view(conf.size(0), -1, self.num_classes))
+                    .view(conf.size(0), -1),                    # conf preds
+                self.priors.type(type(x.data)),                 # default boxes
+                self.num_classes,
+                self.top_k,
+                self.cfg['variance'],
+                self.conf_thresh,
+                self.nms_thresh,
+                self.phase
             )
         else:
             output = (
@@ -196,7 +204,7 @@ mbox = {
 
 
 def build_ssd(phase, size=300, num_classes=21):
-    if phase != "test" and phase != "train":
+    if phase != "test" and phase != "train" and phase != "export":
         print("ERROR: Phase: " + phase + " not recognized")
         return
     if size != 300:
