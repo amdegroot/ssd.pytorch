@@ -30,10 +30,25 @@ class MultiBoxLoss(nn.Module):
         See: https://arxiv.org/pdf/1512.02325.pdf for more details.
     """
 
-    def __init__(self, num_classes, overlap_thresh, prior_for_matching,
+    # def __init__(self, num_classes, overlap_thresh, prior_for_matching,
+    #              bkg_label, neg_mining, neg_pos, neg_overlap, encode_target,
+    #              use_gpu=True):
+    #     super(MultiBoxLoss, self).__init__()
+    #     self.use_gpu = use_gpu
+    #     self.num_classes = num_classes
+    #     self.threshold = overlap_thresh
+    #     self.background_label = bkg_label
+    #     self.encode_target = encode_target
+    #     self.use_prior_for_matching = prior_for_matching
+    #     self.do_neg_mining = neg_mining
+    #     self.negpos_ratio = neg_pos
+    #     self.neg_overlap = neg_overlap
+    #     self.variance = cfg['variance']
+    def __init__(self, batch_size, num_classes, overlap_thresh, prior_for_matching,
                  bkg_label, neg_mining, neg_pos, neg_overlap, encode_target,
                  use_gpu=True):
         super(MultiBoxLoss, self).__init__()
+        self.batch_size = batch_size
         self.use_gpu = use_gpu
         self.num_classes = num_classes
         self.threshold = overlap_thresh
@@ -94,6 +109,16 @@ class MultiBoxLoss(nn.Module):
         loss_c = log_sum_exp(batch_conf) - batch_conf.gather(1, conf_t.view(-1, 1))
 
         # Hard Negative Mining
+        # loss_c[pos] = 0  # filter out pos boxes for now
+        # loss_c = loss_c.view(num, -1)
+        # _, loss_idx = loss_c.sort(1, descending=True)
+        # _, idx_rank = loss_idx.sort(1)
+        # num_pos = pos.long().sum(1, keepdim=True)
+        # num_neg = torch.clamp(self.negpos_ratio*num_pos, max=pos.size(1)-1)
+        # neg = idx_rank < num_neg.expand_as(idx_rank)
+        a = int(len(loss_c)/8732)
+        loss_c = loss_c.reshape((a, 8732))
+        #print(loss_c.shape,pos.shape)
         loss_c[pos] = 0  # filter out pos boxes for now
         loss_c = loss_c.view(num, -1)
         _, loss_idx = loss_c.sort(1, descending=True)
