@@ -96,12 +96,13 @@ class SSD(nn.Module):
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
         if self.phase == "test":
-            output = self.detect(
-                loc.view(loc.size(0), -1, 4),                   # loc preds
-                self.softmax(conf.view(conf.size(0), -1,
-                             self.num_classes)),                # conf preds
-                self.priors.type(type(x.data))                  # default boxes
-            )
+            # output = self.detect(
+            #     loc.view(loc.size(0), -1, 4),                   # loc preds
+            #     self.softmax(conf.view(conf.size(0), -1,
+            #                  self.num_classes)),                # conf preds
+            #     self.priors.type(type(x.data))                  # default boxes
+            # )
+            output=self.detect.forward(loc.view(loc.size(0), -1, 4),self.softmax(conf.view(conf.size(0), -1,self.num_classes)),self.priors.type(type(x.data)))
         else:
             output = (
                 loc.view(loc.size(0), -1, 4),
